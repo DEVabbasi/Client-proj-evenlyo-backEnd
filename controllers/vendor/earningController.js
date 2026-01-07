@@ -632,7 +632,7 @@ const getServiceItemEarningsAnalytics = async (req, res) => {
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
     const lastWeek = new Date(today); lastWeek.setDate(today.getDate() - 6);
-// log
+    console.log(lastWeek,"lastWeeklastWeeklastWeek");
     // Earnings stats for completed purchases
     // const [todayEarnings, lastWeekEarnings, totalEarnings] = await Promise.all([
     //   Purchase.aggregate([
@@ -657,8 +657,8 @@ const getServiceItemEarningsAnalytics = async (req, res) => {
 
     const lastWeekStart = new Date(todayStart);
     lastWeekStart.setDate(todayStart.getDate() - 7);
-    console.log(lastWeekStart,"lastWeekStartlastWeekStart");
-    
+    console.log(lastWeekStart, "lastWeekStartlastWeekStart");
+
     const [todayAgg, lastWeekAgg, totalAgg] = await Promise.all([
       // ✅ Today Earnings
       Purchase.aggregate([

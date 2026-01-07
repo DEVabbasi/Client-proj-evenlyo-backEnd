@@ -215,12 +215,26 @@ const acceptBooking = asyncHandler(async (req, res) => {
   }
 
   try {
+    // await notificationController.createNotification({
+    //   notificationFor: "Vendor",
+    //   vendorId: booking.vendorId, // vendor's user account receives notification
+    //   clientId: booking.userId, // 
+    //   bookingId: booking._id,
+    //   message: `Booking against ${booking.trackingId} has been accepted`,
+    // });
     await notificationController.createNotification({
+      title: {
+        en: "Booking Status",
+        nl: "Boekingstatus"
+      },
       notificationFor: "Vendor",
       vendorId: booking.vendorId, // vendor's user account receives notification
       clientId: booking.userId, // 
       bookingId: booking._id,
-      message: `Booking against ${booking.trackingId} has been accepted`,
+      message: {
+        en: `Booking against ${booking.trackingId} has been accepted`,
+        nl: `Boeking met betrekking tot ${booking.trackingId} is geaccepteerd.`,
+      },
     });
   } catch (e) {
     console.error(
@@ -432,23 +446,51 @@ const paymentConfirmation = async (req, res) => {
       booking.AmountLeft = 0;
       booking.paymentStatus = "paid" // safety
 
+      // await notificationController.createNotification({
+      //   notificationFor: "Vendor",
+      //   vendorId: booking?.vendorId, // vendor's user account receives notification
+      //   clientId: booking?.userId, // 
+      //   bookingId: booking?._id,
+      //   message: `full payment against ${booking.trackingId} has been paid`,
+      // });
       await notificationController.createNotification({
+        title: {
+          en: "Payment Status",
+          nl: "Betalingstatus"
+        },
         notificationFor: "Vendor",
         vendorId: booking?.vendorId, // vendor's user account receives notification
         clientId: booking?.userId, // 
         bookingId: booking?._id,
-        message: `full payment against ${booking.trackingId} has been paid`,
+        message: {
+          en: `full payment against ${booking.trackingId} has been paid`,
+          nl: `De volledige betaling voor ${booking.trackingId} is voldaan`,
+        },
       });
     }
     else {
       booking.paymentStatus = "upfront_paid"
       booking.isUpfrontPaid = true
+      // await notificationController.createNotification({
+      //   notificationFor: "Vendor",
+      //   vendorId: booking?.vendorId, // vendor's user account receives notification
+      //   clientId: booking?.userId, // 
+      //   bookingId: booking?._id,
+      //   message: `Upfront payment against ${booking.trackingId} has been paid`,
+      // });
       await notificationController.createNotification({
+        title: {
+          en: "Payment Status",
+          nl: "Betalingstatus"
+        },
         notificationFor: "Vendor",
         vendorId: booking?.vendorId, // vendor's user account receives notification
         clientId: booking?.userId, // 
         bookingId: booking?._id,
-        message: `Upfront payment against ${booking.trackingId} has been paid`,
+        message: {
+          en: `Upfront payment against ${booking.trackingId} has been paid.`,
+          nl: `De vooruitbetaling voor ${booking.trackingId} is voldaan.`,
+        },
       });
     }
 

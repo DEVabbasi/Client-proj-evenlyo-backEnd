@@ -316,7 +316,7 @@ const getDashboardAnalytics = async (req, res) => {
         totalBookingsCount,
         completedBookingsCount,
         totalBookings,
-        monthlyRevenue:monthlyRevenueAggAll[0].revenue, // now average of all months
+        monthlyRevenue: monthlyRevenueAggAll.length > 0 ? monthlyRevenueAggAll[0]?.revenue : 0, // now average of all months
         totalItemsListed,
         totalServiceItems,
         totalClients

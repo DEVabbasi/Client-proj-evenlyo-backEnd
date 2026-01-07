@@ -410,15 +410,15 @@ const createBookingRequest = asyncHandler(async (req, res) => {
         },
         category: listing.category
           ? {
-              _id: listing.category._id,
-              name: listing.category.name,
-            }
+            _id: listing.category._id,
+            name: listing.category.name,
+          }
           : "",
         subCategory: listing.subCategory
           ? {
-              _id: listing.subCategory._id,
-              name: listing.subCategory.name,
-            }
+            _id: listing.subCategory._id,
+            name: listing.subCategory.name,
+          }
           : "",
         serviceDetails: {
           serviceType: listing.serviceDetails?.serviceType,
@@ -508,9 +508,8 @@ const createBookingRequest = asyncHandler(async (req, res) => {
           ? `${client.firstName} ${client.lastName}`
           : "A client";
         const listingTitle = listing.title || "your listing";
-        const bookingDates = `${startDate}${
-          endDate !== startDate ? ` to ${endDate}` : ""
-        }`;
+        const bookingDates = `${startDate}${endDate !== startDate ? ` to ${endDate}` : ""
+          }`;
         console.log(listingTitle, bookingDates, "bookingDates");
 
         console.log(
@@ -520,6 +519,10 @@ const createBookingRequest = asyncHandler(async (req, res) => {
         );
         if (vendor.notifications.push === true) {
           await notificationController.createNotification({
+            title: {
+              en: "New booking request",
+              nl: "Nieuwe boekingsaanvraag"
+            },
             notificationFor: "Vendor",
             vendorId: vendor._id, // vendor's user account receives notification
             clientId: client._id, // vendor's user account receives notification
@@ -1214,14 +1217,14 @@ const getBookingDetails = asyncHandler(async (req, res) => {
     booking.userId && booking.userId._id
       ? booking.userId._id.toString()
       : booking.userId
-      ? booking.userId.toString()
-      : "";
+        ? booking.userId.toString()
+        : "";
   const bookingVendorIdStr =
     booking.vendorId && booking.vendorId._id
       ? booking.vendorId._id.toString()
       : booking.vendorId
-      ? booking.vendorId.toString()
-      : "";
+        ? booking.vendorId.toString()
+        : "";
   const vendorIdStr = vendor && vendor._id ? vendor._id.toString() : "";
 
   const hasAccess =
@@ -1301,14 +1304,14 @@ const getBookingSummary = asyncHandler(async (req, res) => {
     booking.userId && booking.userId._id
       ? booking.userId._id.toString()
       : booking.userId
-      ? booking.userId.toString()
-      : "";
+        ? booking.userId.toString()
+        : "";
   const bookingVendorIdStr =
     booking.vendorId && booking.vendorId._id
       ? booking.vendorId._id.toString()
       : booking.vendorId
-      ? booking.vendorId.toString()
-      : "";
+        ? booking.vendorId.toString()
+        : "";
   const vendorIdStr = vendor && vendor._id ? vendor._id.toString() : "";
 
   const hasAccess =
@@ -1323,8 +1326,7 @@ const getBookingSummary = asyncHandler(async (req, res) => {
   }
 
   const clientName = booking.userId
-    ? `${booking.userId.firstName || ""} ${
-        booking.userId.lastName || ""
+    ? `${booking.userId.firstName || ""} ${booking.userId.lastName || ""
       }`.trim()
     : "";
   const clientPhone = booking.userId ? booking.userId.contactNumber || "" : "";
@@ -1363,10 +1365,10 @@ const getBookingSummary = asyncHandler(async (req, res) => {
         Array.isArray(listing.images) && listing.images.length > 0
           ? listing.images[0]
           : listing.images
-          ? typeof listing.images === "string"
-            ? listing.images
-            : ""
-          : "",
+            ? typeof listing.images === "string"
+              ? listing.images
+              : ""
+            : "",
     };
   }
 
@@ -1386,10 +1388,10 @@ const getBookingSummary = asyncHandler(async (req, res) => {
       booking.pricing && typeof booking.pricing.totalPrice !== "undefined"
         ? booking.pricing.totalPrice
         : booking.pricing && booking.pricing.bookingPrice
-        ? booking.pricing.bookingPrice
-        : booking.pricing && booking.pricing.totalPrice
-        ? booking.pricing.totalPrice
-        : null,
+          ? booking.pricing.bookingPrice
+          : booking.pricing && booking.pricing.totalPrice
+            ? booking.pricing.totalPrice
+            : null,
     statusHistory: booking.statusHistory || [],
   };
 
@@ -1420,14 +1422,14 @@ const TrackBooking = asyncHandler(async (req, res) => {
     booking.userId && booking.userId._id
       ? booking.userId._id.toString()
       : booking.userId
-      ? booking.userId.toString()
-      : "";
+        ? booking.userId.toString()
+        : "";
   const bookingVendorIdStr =
     booking.vendorId && booking.vendorId._id
       ? booking.vendorId._id.toString()
       : booking.vendorId
-      ? booking.vendorId.toString()
-      : "";
+        ? booking.vendorId.toString()
+        : "";
   const vendorIdStr = vendor && vendor._id ? vendor._id.toString() : "";
 
   const hasAccess =
@@ -1442,8 +1444,7 @@ const TrackBooking = asyncHandler(async (req, res) => {
   }
 
   const clientName = booking.userId
-    ? `${booking.userId.firstName || ""} ${
-        booking.userId.lastName || ""
+    ? `${booking.userId.firstName || ""} ${booking.userId.lastName || ""
       }`.trim()
     : "";
   const clientPhone = booking.userId ? booking.userId.contactNumber || "" : "";
@@ -1482,10 +1483,10 @@ const TrackBooking = asyncHandler(async (req, res) => {
         Array.isArray(listing.images) && listing.images.length > 0
           ? listing.images[0]
           : listing.images
-          ? typeof listing.images === "string"
-            ? listing.images
-            : ""
-          : "",
+            ? typeof listing.images === "string"
+              ? listing.images
+              : ""
+            : "",
     };
   }
 
@@ -1501,10 +1502,10 @@ const TrackBooking = asyncHandler(async (req, res) => {
   const directionOnly = {
     listing: listingObj
       ? {
-          title: listingObj.title,
-          location: listingObj.location,
-          images: listingObj.images,
-        }
+        title: listingObj.title,
+        location: listingObj.location,
+        images: listingObj.images,
+      }
       : null,
     bookingLocation: {
       eventLocation: bookingLocation.eventLocation || "",
@@ -1696,14 +1697,14 @@ const getBookingSimpleDetails = asyncHandler(async (req, res) => {
     booking.userId && booking.userId._id
       ? booking.userId._id.toString()
       : booking.userId
-      ? booking.userId.toString()
-      : "";
+        ? booking.userId.toString()
+        : "";
   const bookingVendorIdStr =
     booking.vendorId && booking.vendorId._id
       ? booking.vendorId._id.toString()
       : booking.vendorId
-      ? booking.vendorId.toString()
-      : "";
+        ? booking.vendorId.toString()
+        : "";
   const vendorIdStr = vendor && vendor._id ? vendor._id.toString() : "";
 
   const hasAccess =
@@ -1717,8 +1718,7 @@ const getBookingSimpleDetails = asyncHandler(async (req, res) => {
   // Vendor info
   const vendorName = booking.vendorId
     ? booking.vendorId.businessName ||
-      `${booking.vendorId.firstName || ""} ${
-        booking.vendorId.lastName || ""
+    `${booking.vendorId.firstName || ""} ${booking.vendorId.lastName || ""
       }`.trim()
     : "";
   const vendorLogo = booking.vendorId
@@ -1747,8 +1747,8 @@ const getBookingSimpleDetails = asyncHandler(async (req, res) => {
     booking.pricing && typeof booking.pricing.totalPrice !== "undefined"
       ? booking.pricing.totalPrice
       : booking.pricing && booking.pricing.bookingPrice
-      ? booking.pricing.bookingPrice
-      : null;
+        ? booking.pricing.bookingPrice
+        : null;
 
   const result = {
     startDate:
