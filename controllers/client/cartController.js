@@ -191,9 +191,10 @@ const updateCartItem = asyncHandler(async (req, res) => {
     endDate,
     startTime,
     endTime,
-    location,
+    eventLongitude,
     eventLocation,
     description,
+    eventLatitude,
   } = req.body;
 
   // Validation
@@ -229,6 +230,8 @@ const updateCartItem = asyncHandler(async (req, res) => {
   // Prepare tempDetails conditionally
   let tempDetails = {
     eventLocation: eventLocation,
+    eventLatitude: eventLatitude,
+    eventLongitude: eventLongitude,
     description: description || "",
   };
 

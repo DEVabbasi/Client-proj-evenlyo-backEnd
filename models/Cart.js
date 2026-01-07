@@ -23,13 +23,9 @@ const cartSchema = new mongoose.Schema(
           startTime: String,
           endTime: String,
           distance: Number,
-          eventLocation: {
-            address: String,
-            coordinates: {
-              latitude: Number,
-              longitude: Number,
-            },
-          },
+          eventLocation: String,
+          eventLatitude: String,
+          eventLongitude: String,
           paymentPolicy: {
             type: Object,
             default: null,
