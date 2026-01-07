@@ -12,6 +12,6 @@ router.put('/admin/update-employee/:id', adminEmployeeController.updateEmployee)
 router.delete('/admin/delete-employee/:id', adminEmployeeController.deleteEmployee);
 
 // Toggle employee status
-router.patch('/:id/toggle-status', adminEmployeeController.toggleEmployeeStatus);
+router.post('/:id/toggle-status', adminEmployeeController.toggleEmployeeStatus);
 
 module.exports = router;

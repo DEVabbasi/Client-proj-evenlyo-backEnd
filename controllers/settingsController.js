@@ -60,124 +60,15 @@ const getPersonalInfo = async (req, res) => {
 const updatePersonalInfo = async (req, res) => {
   try {
     const userId = req.user.id;
-    const userType = req.user.userType;
-    const { contactNumber, address, language, profileImage } = req.body;
-    // Validate input
-    const updates = {};
-
-    if (contactNumber !== undefined) {
-      if (!contactNumber || contactNumber.trim() === "") {
-        return res.status(400).json({
-          success: false,
-          message: "Contact number cannot be empty",
-        });
-      }
-      updates.contactNumber = contactNumber.trim();
-    }
-    if (address !== undefined) {
-      if (typeof address !== "object" || !address.fullAddress) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Invalid address format. Must be an object with a fullAddress field.",
-        });
-      }
-      updates.address = address;
-    }
-
-    if (language !== undefined) {
-      if (!["english", "dutch"].includes(language)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid language. Must be either english or dutch",
-        });
-      }
-      updates.language = language;
-    }
-
-    if (profileImage !== undefined) {
-      console.log("Processing profileImage:", profileImage);
-
-      // Validate Cloudinary URL format
-      if (
-        profileImage &&
-        typeof profileImage === "string" &&
-        profileImage.trim() !== ""
-      ) {
-        const trimmedUrl = profileImage.trim();
-        console.log("Trimmed URL:", trimmedUrl);
-
-        // More flexible Cloudinary URL pattern
-        const cloudinaryUrlPattern =
-          /^https?:\/\/res\.cloudinary\.com\/[a-zA-Z0-9_-]+\/image\/upload\/.*\.(jpg|jpeg|png|gif|webp|svg)$/i;
-        const isValidCloudinaryUrl = cloudinaryUrlPattern.test(trimmedUrl);
-
-        console.log("URL validation result:", isValidCloudinaryUrl);
-
-        if (!isValidCloudinaryUrl) {
-          // Also check for basic Cloudinary pattern without file extension requirement
-          const basicCloudinaryPattern =
-            /^https?:\/\/res\.cloudinary\.com\/[a-zA-Z0-9_-]+\/image\/upload\//i;
-          if (!basicCloudinaryPattern.test(trimmedUrl)) {
-            return res.status(400).json({
-              success: false,
-              message:
-                "Invalid Cloudinary URL format. Please provide a valid Cloudinary image URL.",
-            });
-          }
-        }
-
-        updates.profileImage = trimmedUrl;
-        console.log("Profile image added to updates");
-      } else if (profileImage === "") {
-        updates.profileImage = "";
-        console.log("Profile image set to empty string");
-      } else {
-        console.log(
-          "Invalid profileImage type or value:",
-          typeof profileImage,
-          profileImage
-        );
-        return res.status(400).json({
-          success: false,
-          message:
-            "Profile image must be a valid Cloudinary URL string or an empty string",
-        });
-      }
-    }
-
-    // Debug logging
-    console.log("Final updates object:", updates);
-
-    if (Object.keys(updates).length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "No valid fields to update",
-      });
-    }
-
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { $set: updates },
+      req.body,
       { new: true, runValidators: true }
-    );
-
-    if (!updatedUser) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
+    ).select("-password")
     res.json({
       success: true,
       message: "Personal information updated successfully",
-      data: {
-        profileImage: updatedUser.profileImage,
-        contactNumber: updatedUser.contactNumber,
-        address: updatedUser.address,
-        language: updatedUser.language,
-      },
+      data: updatedUser
     });
   } catch (error) {
     console.error("Update personal info error:", error);
@@ -188,6 +79,113 @@ const updatePersonalInfo = async (req, res) => {
     });
   }
 };
+// const userId = req.user.id;
+// const userType = req.user.userType;
+// const { contactNumber, address, language, profileImage } = req.body;
+// // Validate input
+// const updates = {};
+
+// if (contactNumber !== undefined) {
+//   if (!contactNumber || contactNumber.trim() === "") {
+//     return res.status(400).json({
+//       success: false,
+//       message: "Contact number cannot be empty",
+//     });
+//   }
+//   updates.contactNumber = contactNumber.trim();
+// }
+// if (address !== undefined) {
+//   if (typeof address !== "object" || !address.fullAddress) {
+//     return res.status(400).json({
+//       success: false,
+//       message:
+//         "Invalid address format. Must be an object with a fullAddress field.",
+//     });
+//   }
+//   updates.address = address;
+// }
+
+// if (language !== undefined) {
+//   if (!["english", "dutch"].includes(language)) {
+//     return res.status(400).json({
+//       success: false,
+//       message: "Invalid language. Must be either english or dutch",
+//     });
+//   }
+//   updates.language = language;
+// }
+
+// if (profileImage !== undefined) {
+//   console.log("Processing profileImage:", profileImage);
+
+//   // Validate Cloudinary URL format
+//   if (
+//     profileImage &&
+//     typeof profileImage === "string" &&
+//     profileImage.trim() !== ""
+//   ) {
+//     const trimmedUrl = profileImage.trim();
+//     console.log("Trimmed URL:", trimmedUrl);
+
+//     // More flexible Cloudinary URL pattern
+//     const cloudinaryUrlPattern =
+//       /^https?:\/\/res\.cloudinary\.com\/[a-zA-Z0-9_-]+\/image\/upload\/.*\.(jpg|jpeg|png|gif|webp|svg)$/i;
+//     const isValidCloudinaryUrl = cloudinaryUrlPattern.test(trimmedUrl);
+
+//     console.log("URL validation result:", isValidCloudinaryUrl);
+
+//     if (!isValidCloudinaryUrl) {
+//       // Also check for basic Cloudinary pattern without file extension requirement
+//       const basicCloudinaryPattern =
+//         /^https?:\/\/res\.cloudinary\.com\/[a-zA-Z0-9_-]+\/image\/upload\//i;
+//       if (!basicCloudinaryPattern.test(trimmedUrl)) {
+//         return res.status(400).json({
+//           success: false,
+//           message:
+//             "Invalid Cloudinary URL format. Please provide a valid Cloudinary image URL.",
+//         });
+//       }
+//     }
+
+//     updates.profileImage = trimmedUrl;
+//     console.log("Profile image added to updates");
+//   } else if (profileImage === "") {
+//     updates.profileImage = "";
+//     console.log("Profile image set to empty string");
+//   } else {
+//     console.log(
+//       "Invalid profileImage type or value:",
+//       typeof profileImage,
+//       profileImage
+//     );
+//     return res.status(400).json({
+//       success: false,
+//       message:
+//         "Profile image must be a valid Cloudinary URL string or an empty string",
+//     });
+//   }
+// }
+
+// // Debug logging
+// console.log("Final updates object:", updates);
+
+// if (Object.keys(updates).length === 0) {
+//   return res.status(400).json({
+//     success: false,
+//     message: "No valid fields to update",
+//   });
+// }
+
+
+
+// if (!updatedUser) {
+//   return res.status(404).json({
+//     success: false,
+//     message: "User not found",
+//   });
+// }
+
+
 
 // Change password
 const changePassword = async (req, res) => {

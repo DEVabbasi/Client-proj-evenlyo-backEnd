@@ -412,12 +412,13 @@ const getAllVendors = async (req, res) => {
       vendorsData.map(async (vendorUser) => {
         // Find vendor profile
         const vendorProfile = await Vendor.findOne({ userId: vendorUser._id });
+        console.log(vendorProfile, "vendorProfilevendorProfilevendorProfilevendorProfile")
         let totalOrders = 0;
         let businessName = '';
         let approvalStatus = 'pending';
 
         if (vendorProfile) {
-          totalOrders = await Booking.countDocuments({ vendorId: vendorProfile._id });
+          totalOrders = await Booking.countDocuments({ vendorId: vendorProfile.userId });
           businessName = vendorProfile.businessName || '';
           approvalStatus = vendorProfile.approvalStatus || 'pending';
         }

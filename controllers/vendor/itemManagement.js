@@ -519,6 +519,8 @@ const updateItem = async (req, res) => {
 		// ==============================
 		// ✅ Validate Categories
 		// ==============================
+		console.log(item,"itemitem");
+		
 		let mainCategoryName = item.mainCategoryName;
 		let subCategoryName = item.subCategoryName;
 
