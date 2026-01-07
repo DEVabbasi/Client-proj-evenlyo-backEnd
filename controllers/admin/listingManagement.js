@@ -49,22 +49,49 @@ const getAllListingManagementData = async (req, res) => {
     });
     // Aggregate purchases by category via service items
     const purchases = await Purchase.aggregate([
+      // Step 1: unwind items array
+      { $unwind: "$items" },
+
+      // Step 2: convert string itemId → ObjectId
+      {
+        $addFields: {
+          itemObjectId: {
+            $cond: [
+              {
+                $and: [
+                  { $ne: ["$items.itemId", null] },
+                  { $eq: [{ $strLenCP: "$items.itemId" }, 24] }
+                ]
+              },
+              { $toObjectId: "$items.itemId" },
+              null
+            ]
+          }
+        }
+      },
+
+      // Step 3: lookup item details
       {
         $lookup: {
-          from: 'serviceitems', // Collection name for Item model
-          localField: 'item',
-          foreignField: '_id',
-          as: 'itemInfo',
-        },
+          from: "serviceitems",
+          localField: "itemObjectId",
+          foreignField: "_id",
+          as: "itemInfo"
+        }
       },
-      { $unwind: '$itemInfo' },
+
+      // Step 4: unwind itemInfo
+      { $unwind: "$itemInfo" },
+
+      // Step 5: group by category
       {
         $group: {
-          _id: '$itemInfo.mainCategory',
-          count: { $sum: 1 },
-        },
-      },
+          _id: "$itemInfo.mainCategory",
+          count: { $sum: 1 }
+        }
+      }
     ]);
+
 
     // Map purchase category _id to count
     const purchaseCountMap = {};
@@ -72,12 +99,15 @@ const getAllListingManagementData = async (req, res) => {
       purchaseCountMap[p._id?.toString()] = p.count;
     });
 
+    console.log(purchases, "purchasespurchasespurchasespurchasespurchases");
+
+
     // Prepare result for all categories (include id)
     const categoryBookings = categories.map(cat => ({
       id: cat._id,
       category: cat.name,
       count: bookingCountMap[cat._id.toString()]?.count || 0,  // 👈 fixed
-      total: bookingCountMap[cat._id.toString()]?.total || 0,
+      total: bookingCountMap[cat._id.toString()]?.count || 0,
     }));
     // Prepare purchase results for all categories
     const categoryPurchases = categories.map(cat => ({
@@ -141,11 +171,11 @@ const getSubCategoriesByMainCategory = async (req, res) => {
       name: sub.name.en,
       description: sub.description.en,
       isActive: sub.isActive,
-      isUpfrontEnabled:sub.isUpfrontEnabled,
-      upfrontFeePercent:sub.upfrontFeePercent,
-      escrowHours:sub.escrowHours,
-      isEvenlyoProtectEnabled:sub.isEvenlyoProtectEnabled,
-      evenlyoProtectFeePercent:sub.evenlyoProtectFeePercent
+      isUpfrontEnabled: sub.isUpfrontEnabled,
+      upfrontFeePercent: sub.upfrontFeePercent,
+      escrowHours: sub.escrowHours,
+      isEvenlyoProtectEnabled: sub.isEvenlyoProtectEnabled,
+      evenlyoProtectFeePercent: sub.evenlyoProtectFeePercent
     }));
     res.json(result);
   } catch (err) {
