@@ -93,7 +93,7 @@ router.get('/vendor-history', requireAuth, requireVendor, getVendorBookingHistor
 // @route   GET /api/booking/:id
 // @desc    Get detailed booking information
 // @access  Private (User/Vendor)
-router.get('/:id', requireAuth, getBookingDetails);
+router.get('/:id', requireAuth, getBookingDetails); 
 // Simplified details endpoint returning essential info (start/end, times, vendor, listing, price, locations)
 router.get('/:id/details', requireAuth, getBookingSimpleDetails);
 // Booking summary endpoint

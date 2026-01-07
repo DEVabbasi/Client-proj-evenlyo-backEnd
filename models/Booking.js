@@ -60,7 +60,7 @@ const bookingRequestSchema = new mongoose.Schema(
             this.details.startDate &&
             this.details.endDate &&
             new Date(this.details.startDate).toDateString() ===
-              new Date(this.details.endDate).toDateString()
+            new Date(this.details.endDate).toDateString()
           );
         },
       },
@@ -73,7 +73,7 @@ const bookingRequestSchema = new mongoose.Schema(
             this.details.startDate &&
             this.details.endDate &&
             new Date(this.details.startDate).toDateString() ===
-              new Date(this.details.endDate).toDateString()
+            new Date(this.details.endDate).toDateString()
           );
         },
       },
@@ -114,13 +114,9 @@ const bookingRequestSchema = new mongoose.Schema(
           },
         },
       ],
-      eventLocation: {
-        address: String,
-        coordinates: {
-          latitude: Number,
-          longitude: Number,
-        },
-      },
+      eventLocation: { type: String },
+      eventLatitude: { type: String },
+      eventLongitude: { type: String },
       coordinates: {
         latitude: {
           type: Number,
@@ -391,14 +387,14 @@ bookingRequestSchema.pre("save", function (next) {
               i === 0
                 ? "First day"
                 : i === diffDays - 1
-                ? "Last day"
-                : `Day ${i + 1}`,
+                  ? "Last day"
+                  : `Day ${i + 1}`,
             nl:
               i === 0
                 ? "Eerste dag"
                 : i === diffDays - 1
-                ? "Laatste dag"
-                : `Dag ${i + 1}`,
+                  ? "Laatste dag"
+                  : `Dag ${i + 1}`,
           },
         });
       }

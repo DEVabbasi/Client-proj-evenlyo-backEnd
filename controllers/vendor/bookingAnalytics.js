@@ -110,26 +110,42 @@ const acceptBooking = asyncHandler(async (req, res) => {
       message: "Booking request not found or already processed",
     });
   }
+  console.log(vendor, "vendorvendorvendorvendorvendor");
+  const isAvailable = await Listing.findOne({
+    _id: booking.listingId,
+    vendor: vendor.userId,
+    quantity: { $gte: 1 },
+  });
 
-  const availabilityResult = await getAvailabilityDetails(
-    booking.listingId,
-    booking.details.startDate,
-    booking.details.endDate,
-    booking._id
-  );
-
-  if (!availabilityResult.isAvailable) {
-    console.log(
-      `Booking acceptance failed for booking ${id}: conflicting bookings found for listing ${booking.listingId}`
-    );
-    return res.status(409).json({
+  if (!isAvailable) {
+    return res.status(400).json({
       success: false,
-      message: "Booking is no longer available due to conflicting bookings",
-      details:
-        "Another booking has been accepted for overlapping dates. Please check the booking calendar and try a different time slot.",
-      conflictingBookings: availabilityResult.conflictingBookings,
+      message: "Not enough stock to accept this booking",
     });
   }
+
+  // const availabilityResult = await getAvailabilityDetails(
+  //   booking.listingId,
+  //   booking.details.startDate,
+  //   booking.details.endDate,
+  //   booking._id
+  // );
+
+  // if (!availabilityResult.isAvailable) {
+  //   console.log(
+  //     `Booking acceptance failed for booking ${id}: conflicting bookings found for listing ${booking.listingId}`
+  //   );
+  //   return res.status(409).json({
+  //     success: false,
+  //     message: "Booking is no longer available due to conflicting bookings",
+  //     details:
+  //       "Another booking has been accepted for overlapping dates. Please check the booking calendar and try a different time slot.",
+  //     conflictingBookings: availabilityResult.conflictingBookings,
+  //   });
+  // }
+
+
+
 
   console.log(`Accepting booking ${id} for vendor ${vendor.userId}`);
 

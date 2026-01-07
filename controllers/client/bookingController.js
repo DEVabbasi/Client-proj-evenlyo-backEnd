@@ -452,6 +452,8 @@ const createBookingRequest = asyncHandler(async (req, res) => {
           isMultiDay: isMultiDay,
         },
         eventLocation,
+        eventLatitude: req.body.details.eventLatitude,
+        eventLongitude: req.body.details.eventLongitude,
         eventType: processedEventType,
         guestCount,
         specialRequests: processedSpecialRequests,

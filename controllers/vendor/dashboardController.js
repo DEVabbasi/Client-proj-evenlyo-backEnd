@@ -146,13 +146,13 @@ const getDashboardAnalytics = async (req, res) => {
     // Array of 12 months, fill missing with 0
     console.log(monthlyRevenueAggAll, "monthlyRevenueAggAllmonthlyRevenueAggAll");
 
-    const monthlyRevenueByMonth = Array.from({ length: 12 }, (_, i) => {
-      const found = monthlyRevenueAggAll.find(m => m._id === i + 1);
-      return found ? found.revenue : 0;
-    });
+    // const monthlyRevenueByMonth = Array.from({ length: 12 }, (_, i) => {
+    //   const found = monthlyRevenueAggAll.find(m => m._id === i + 1);
+    //   return found ? found.revenue : 0;
+    // });
     // Average monthly revenue (across all months)
-    const monthlyRevenue =
-      Number((monthlyRevenueByMonth.reduce((sum, val) => sum + val, 0) / 12).toFixed(3));
+    // const monthlyRevenue =
+    //   Number((monthlyRevenueByMonth.reduce((sum, val) => sum + val, 0) / 12).toFixed(3));
 
     // 3. Total Number of Items Listed (only 'active' listings, using Listing model)
     const totalItemsListed = await Listing.countDocuments({ vendor: vendorId, status: 'active', isActive: true });
@@ -316,7 +316,7 @@ const getDashboardAnalytics = async (req, res) => {
         totalBookingsCount,
         completedBookingsCount,
         totalBookings,
-        monthlyRevenue, // now average of all months
+        monthlyRevenue:monthlyRevenueAggAll[0].revenue, // now average of all months
         totalItemsListed,
         totalServiceItems,
         totalClients
