@@ -4,7 +4,9 @@ const BookingRequest = require("../../models/Booking");
 const Listing = require("../../models/Listing");
 const User = require("../../models/User");
 const Vendor = require("../../models/Vendor");
-const Review = require("../../models/Review")
+const Review = require("../../models/Review");
+const Cart = require("../../models/Cart"); // path apne project ke mutabiq adjust karo
+
 const Settings = require("../../models/Settings");
 const {
   checkAvailability,
@@ -66,7 +68,7 @@ const createBookingPaymentIntent = asyncHandler(async (req, res) => {
 });
 
 const restockItem = asyncHandler(async (req, res) => {
-  const { id } = req.params;  // bookingId
+  const { id } = req.params; // bookingId
   const userId = req.user.id;
   console.log(id, "ididid");
 
@@ -77,25 +79,25 @@ const restockItem = asyncHandler(async (req, res) => {
   if (!booking) {
     return res.status(404).json({
       success: false,
-      message: "Booking not found"
+      message: "Booking not found",
     });
   }
   // 2. Check if stock already updated
   if (booking.claimDetails?.stockUpdated === true) {
     return res.status(400).json({
       success: false,
-      message: "Stock already updated for this booking"
+      message: "Stock already updated for this booking",
     });
   }
 
   // 3. Get item details (assuming booking contains itemId + quantity)
   const itemId = booking.listingId;
-  const quantity = 1
+  const quantity = 1;
 
   if (!itemId) {
     return res.status(400).json({
       success: false,
-      message: "ItemId not found in booking"
+      message: "ItemId not found in booking",
     });
   }
 
@@ -104,7 +106,7 @@ const restockItem = asyncHandler(async (req, res) => {
   if (!item) {
     return res.status(404).json({
       success: false,
-      message: "Item not found"
+      message: "Item not found",
     });
   }
 
@@ -119,8 +121,8 @@ const restockItem = asyncHandler(async (req, res) => {
     { trackingId: id },
     {
       $set: {
-        "claimDetails.stockUpdated": true
-      }
+        "claimDetails.stockUpdated": true,
+      },
     },
     { new: true }
   );
@@ -130,8 +132,8 @@ const restockItem = asyncHandler(async (req, res) => {
     restockedQuantity: quantity,
     item: {
       id: item._id,
-      newStock: item.stockQuantity
-    }
+      newStock: item.stockQuantity,
+    },
   });
 });
 
@@ -140,7 +142,7 @@ const restockItem = asyncHandler(async (req, res) => {
 // @access  Private (Client)
 const reviewBooking = asyncHandler(async (req, res) => {
   const { rating, review } = req.body;
-  const { id } = req.params
+  const { id } = req.params;
   console.log(id, "ididid");
 
   // Simple rating validation
@@ -151,7 +153,7 @@ const reviewBooking = asyncHandler(async (req, res) => {
     });
   }
 
-  const details = await Booking.findOne({ _id: id })
+  const details = await Booking.findOne({ _id: id });
 
   // Fetch booking
   if (!id || !details.vendorId) {
@@ -174,7 +176,6 @@ const reviewBooking = asyncHandler(async (req, res) => {
     data: newReview,
   });
 });
-
 
 function getDayCount(startDate, endDate) {
   const start = new Date(startDate);
@@ -202,12 +203,10 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       guestCount,
       distanceKm,
       specialRequests,
-      pricingBreakdown
+      pricingBreakdown,
     },
   } = req.body;
   try {
-
-
     // Calculate duration and multi-day details early to determine validation
     const startDateObj = new Date(startDate);
     const endDateObj = new Date(endDate);
@@ -225,7 +224,8 @@ const createBookingRequest = asyncHandler(async (req, res) => {
     if (!isMultiDay && (!startTime || !endTime)) {
       return res.status(400).json({
         success: false,
-        message: "Start time and end time are required for single-day bookings.",
+        message:
+          "Start time and end time are required for single-day bookings.",
       });
     }
 
@@ -250,13 +250,11 @@ const createBookingRequest = asyncHandler(async (req, res) => {
     const requestedQty = 1;
     const stock = await checkListingStock(listingId, requestedQty);
     if (!stock.ok) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: stock.message,
-          availableQty: stock.availableQty,
-        });
+      return res.status(400).json({
+        success: false,
+        message: stock.message,
+        availableQty: stock.availableQty,
+      });
     }
 
     // If listing charges per km, require distanceKm in request details
@@ -382,7 +380,10 @@ const createBookingRequest = asyncHandler(async (req, res) => {
     console.log(listing, "listinglistinglistinglisting");
     const result = getDayCount(startDate, endDate);
     // console.log(result, "RESSASDASDADASD");
-    console.log(req?.body, "req?.body?.pricingBreakdownreq?.body?.pricingBreakdown");
+    console.log(
+      req?.body,
+      "req?.body?.pricingBreakdownreq?.body?.pricingBreakdown"
+    );
 
     // return
     const bookingRequest = new BookingRequest({
@@ -409,15 +410,15 @@ const createBookingRequest = asyncHandler(async (req, res) => {
         },
         category: listing.category
           ? {
-            _id: listing.category._id,
-            name: listing.category.name,
-          }
+              _id: listing.category._id,
+              name: listing.category.name,
+            }
           : "",
         subCategory: listing.subCategory
           ? {
-            _id: listing.subCategory._id,
-            name: listing.subCategory.name,
-          }
+              _id: listing.subCategory._id,
+              name: listing.subCategory.name,
+            }
           : "",
         serviceDetails: {
           serviceType: listing.serviceDetails?.serviceType,
@@ -481,9 +482,21 @@ const createBookingRequest = asyncHandler(async (req, res) => {
     });
 
     await bookingRequest.save();
-    console.log(bookingRequest, "bookingRequestbookingRequestbookingRequestbookingRequest");
-    const vendor = await User.findById(bookingRequest.vendorId).populate("firstName lastName")
-    // Notify vendor of new booking request
+
+    try {
+      const cart = await Cart.findOne({ userId: req.user.id });
+
+      if (cart) {
+        await cart.removeItem(listingId);
+      }
+    } catch (cartError) {
+      console.error("Failed to remove item from cart:", cartError);
+    }
+
+    const vendor = await User.findById(bookingRequest.vendorId).populate(
+      "firstName lastName"
+    );
+
     try {
       const client = await User.findById(bookingRequest.userId).select(
         "firstName lastName"
@@ -495,11 +508,16 @@ const createBookingRequest = asyncHandler(async (req, res) => {
           ? `${client.firstName} ${client.lastName}`
           : "A client";
         const listingTitle = listing.title || "your listing";
-        const bookingDates = `${startDate}${endDate !== startDate ? ` to ${endDate}` : ""
-          }`;
+        const bookingDates = `${startDate}${
+          endDate !== startDate ? ` to ${endDate}` : ""
+        }`;
         console.log(listingTitle, bookingDates, "bookingDates");
 
-        console.log(req.body.details.pricingBreakdown.paymentPolicy.isEvenlyoProtectEnabled, "req.body.details.pricingBreakdown.paymentPolicy.isEvenlyoProtectEnabled");
+        console.log(
+          req.body.details.pricingBreakdown.paymentPolicy
+            .isEvenlyoProtectEnabled,
+          "req.body.details.pricingBreakdown.paymentPolicy.isEvenlyoProtectEnabled"
+        );
         if (vendor.notifications.push === true) {
           await notificationController.createNotification({
             notificationFor: "Vendor",
@@ -508,20 +526,23 @@ const createBookingRequest = asyncHandler(async (req, res) => {
             bookingId: bookingRequest._id,
             message: {
               en: `New booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
-              nl: `Nieuwe boekingsaanvraag van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`
+              nl: `Nieuwe boekingsaanvraag van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
             },
           });
         }
-        if (req.body.details.pricingBreakdown.paymentPolicy.isEvenlyoProtectEnabled === true) {
+        if (
+          req.body.details.pricingBreakdown.paymentPolicy
+            .isEvenlyoProtectEnabled === true
+        ) {
           await notificationController.createNotification({
             notificationFor: "Admin",
             vendorId: vendor._id, // vendor's user account receives notification
-            clientId: client._id,// vendor's user account receives notification
+            clientId: client._id, // vendor's user account receives notification
             bookingId: bookingRequest._id,
             message: {
               en: `A evenlyo protected booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
-              nl: `Een beschermde boekingsaanvraag op Evenlyo van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`
-            }
+              nl: `Een beschermde boekingsaanvraag op Evenlyo van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
+            },
           });
         }
       }
@@ -602,7 +623,7 @@ const getAcceptedBookings = asyncHandler(async (req, res) => {
   const acceptedBookings = await BookingRequest.find({
     userId: req.user.id,
     status: "accepted",
-    paymentStatus: { $ne: "paid" }
+    paymentStatus: { $ne: "paid" },
   })
     .populate("vendorId", "firstName lastName")
     .sort({ createdAt: -1 });
@@ -685,56 +706,58 @@ const getBookingHistory = asyncHandler(async (req, res) => {
     filter.status = status;
   }
   const bookings = await BookingRequest.find(filter)
-    .populate(
-      "vendorId",
-      "firstName lastName"
-    )
+    .populate("vendorId", "firstName lastName")
     .sort({ createdAt: -1 })
     .limit(limit * 1)
     .skip((page - 1) * limit);
 
-  const isReviewed = Review.findOne({ bookingId: bookings._id, userId: req.user.id })
+  const isReviewed = Review.findOne({
+    bookingId: bookings._id,
+    userId: req.user.id,
+  });
 
   const total = await BookingRequest.countDocuments(filter);
 
   // Format bookings with action buttons based on status
-  const formattedBookings = await Promise.all(bookings.map(async (booking) => {
-    console.log(booking, "bookingbookingbookingbooking");
-    const reviewExists = await Review.exists({
-      bookingId: booking._id,
-    });
+  const formattedBookings = await Promise.all(
+    bookings.map(async (booking) => {
+      console.log(booking, "bookingbookingbookingbooking");
+      const reviewExists = await Review.exists({
+        bookingId: booking._id,
+      });
 
-    const bookingData = {
-      ...booking.toObject(),
-      _id: booking._id,
-      trackingId: booking.trackingId,
-      bookingDateTime: {
-        start: booking.details.startDate,
-        end: booking.details.endDate,
-        startTime: booking.details.startTime,
-        endTime: booking.details.endTime,
-      },
-      totalPrice: booking?.pricing?.totalPrice,
-      status: booking.status,
-      vendor: booking.vendorId,
-      listing: booking.listingId,
-      createdAt: booking.createdAt,
-      statusHistory: booking.statusHistory,
-      // Action buttons based on status for client
-      actionButtons: getClientActionButtons(booking.status),
-      // Additional details
-      eventLocation: booking.details.eventLocation,
-      guestCount: booking.details.guestCount,
-      specialRequests: booking.details.specialRequests,
-      paymentStatus: booking.paymentStatus,
-      rejectionReason: booking.rejectionReason,
-      claimDetails: booking.claimDetails,
-      images: booking.images || [],
-      isReviewed: !!reviewExists,
-    };
+      const bookingData = {
+        ...booking.toObject(),
+        _id: booking._id,
+        trackingId: booking.trackingId,
+        bookingDateTime: {
+          start: booking.details.startDate,
+          end: booking.details.endDate,
+          startTime: booking.details.startTime,
+          endTime: booking.details.endTime,
+        },
+        totalPrice: booking?.pricing?.totalPrice,
+        status: booking.status,
+        vendor: booking.vendorId,
+        listing: booking.listingId,
+        createdAt: booking.createdAt,
+        statusHistory: booking.statusHistory,
+        // Action buttons based on status for client
+        actionButtons: getClientActionButtons(booking.status),
+        // Additional details
+        eventLocation: booking.details.eventLocation,
+        guestCount: booking.details.guestCount,
+        specialRequests: booking.details.specialRequests,
+        paymentStatus: booking.paymentStatus,
+        rejectionReason: booking.rejectionReason,
+        claimDetails: booking.claimDetails,
+        images: booking.images || [],
+        isReviewed: !!reviewExists,
+      };
 
-    return bookingData;
-  }))
+      return bookingData;
+    })
+  );
 
   res.json({
     success: true,
@@ -974,7 +997,7 @@ const markBookingReceived = asyncHandler(async (req, res) => {
       await notificationController.createNotification({
         notificationFor: "Vendor",
         vendorId: booking?.vendorId, // vendor's user account receives notification
-        clientId: booking?.userId, // 
+        clientId: booking?.userId, //
         bookingId: booking?._id,
         message: `booking against ${booking.trackingId} has been received by the client`,
       });
@@ -1191,14 +1214,14 @@ const getBookingDetails = asyncHandler(async (req, res) => {
     booking.userId && booking.userId._id
       ? booking.userId._id.toString()
       : booking.userId
-        ? booking.userId.toString()
-        : "";
+      ? booking.userId.toString()
+      : "";
   const bookingVendorIdStr =
     booking.vendorId && booking.vendorId._id
       ? booking.vendorId._id.toString()
       : booking.vendorId
-        ? booking.vendorId.toString()
-        : "";
+      ? booking.vendorId.toString()
+      : "";
   const vendorIdStr = vendor && vendor._id ? vendor._id.toString() : "";
 
   const hasAccess =
@@ -1278,14 +1301,14 @@ const getBookingSummary = asyncHandler(async (req, res) => {
     booking.userId && booking.userId._id
       ? booking.userId._id.toString()
       : booking.userId
-        ? booking.userId.toString()
-        : "";
+      ? booking.userId.toString()
+      : "";
   const bookingVendorIdStr =
     booking.vendorId && booking.vendorId._id
       ? booking.vendorId._id.toString()
       : booking.vendorId
-        ? booking.vendorId.toString()
-        : "";
+      ? booking.vendorId.toString()
+      : "";
   const vendorIdStr = vendor && vendor._id ? vendor._id.toString() : "";
 
   const hasAccess =
@@ -1300,7 +1323,8 @@ const getBookingSummary = asyncHandler(async (req, res) => {
   }
 
   const clientName = booking.userId
-    ? `${booking.userId.firstName || ""} ${booking.userId.lastName || ""
+    ? `${booking.userId.firstName || ""} ${
+        booking.userId.lastName || ""
       }`.trim()
     : "";
   const clientPhone = booking.userId ? booking.userId.contactNumber || "" : "";
@@ -1339,10 +1363,10 @@ const getBookingSummary = asyncHandler(async (req, res) => {
         Array.isArray(listing.images) && listing.images.length > 0
           ? listing.images[0]
           : listing.images
-            ? typeof listing.images === "string"
-              ? listing.images
-              : ""
-            : "",
+          ? typeof listing.images === "string"
+            ? listing.images
+            : ""
+          : "",
     };
   }
 
@@ -1362,10 +1386,10 @@ const getBookingSummary = asyncHandler(async (req, res) => {
       booking.pricing && typeof booking.pricing.totalPrice !== "undefined"
         ? booking.pricing.totalPrice
         : booking.pricing && booking.pricing.bookingPrice
-          ? booking.pricing.bookingPrice
-          : booking.pricing && booking.pricing.totalPrice
-            ? booking.pricing.totalPrice
-            : null,
+        ? booking.pricing.bookingPrice
+        : booking.pricing && booking.pricing.totalPrice
+        ? booking.pricing.totalPrice
+        : null,
     statusHistory: booking.statusHistory || [],
   };
 
@@ -1396,14 +1420,14 @@ const TrackBooking = asyncHandler(async (req, res) => {
     booking.userId && booking.userId._id
       ? booking.userId._id.toString()
       : booking.userId
-        ? booking.userId.toString()
-        : "";
+      ? booking.userId.toString()
+      : "";
   const bookingVendorIdStr =
     booking.vendorId && booking.vendorId._id
       ? booking.vendorId._id.toString()
       : booking.vendorId
-        ? booking.vendorId.toString()
-        : "";
+      ? booking.vendorId.toString()
+      : "";
   const vendorIdStr = vendor && vendor._id ? vendor._id.toString() : "";
 
   const hasAccess =
@@ -1418,7 +1442,8 @@ const TrackBooking = asyncHandler(async (req, res) => {
   }
 
   const clientName = booking.userId
-    ? `${booking.userId.firstName || ""} ${booking.userId.lastName || ""
+    ? `${booking.userId.firstName || ""} ${
+        booking.userId.lastName || ""
       }`.trim()
     : "";
   const clientPhone = booking.userId ? booking.userId.contactNumber || "" : "";
@@ -1457,10 +1482,10 @@ const TrackBooking = asyncHandler(async (req, res) => {
         Array.isArray(listing.images) && listing.images.length > 0
           ? listing.images[0]
           : listing.images
-            ? typeof listing.images === "string"
-              ? listing.images
-              : ""
-            : "",
+          ? typeof listing.images === "string"
+            ? listing.images
+            : ""
+          : "",
     };
   }
 
@@ -1476,10 +1501,10 @@ const TrackBooking = asyncHandler(async (req, res) => {
   const directionOnly = {
     listing: listingObj
       ? {
-        title: listingObj.title,
-        location: listingObj.location,
-        images: listingObj.images,
-      }
+          title: listingObj.title,
+          location: listingObj.location,
+          images: listingObj.images,
+        }
       : null,
     bookingLocation: {
       eventLocation: bookingLocation.eventLocation || "",
@@ -1648,7 +1673,7 @@ module.exports = {
   TrackBooking,
   fetchBookingRequest,
   fetchBookingRequestByDate,
-  restockItem
+  restockItem,
 };
 
 // @desc    Get simplified booking details for client/vendor
@@ -1671,14 +1696,14 @@ const getBookingSimpleDetails = asyncHandler(async (req, res) => {
     booking.userId && booking.userId._id
       ? booking.userId._id.toString()
       : booking.userId
-        ? booking.userId.toString()
-        : "";
+      ? booking.userId.toString()
+      : "";
   const bookingVendorIdStr =
     booking.vendorId && booking.vendorId._id
       ? booking.vendorId._id.toString()
       : booking.vendorId
-        ? booking.vendorId.toString()
-        : "";
+      ? booking.vendorId.toString()
+      : "";
   const vendorIdStr = vendor && vendor._id ? vendor._id.toString() : "";
 
   const hasAccess =
@@ -1692,7 +1717,8 @@ const getBookingSimpleDetails = asyncHandler(async (req, res) => {
   // Vendor info
   const vendorName = booking.vendorId
     ? booking.vendorId.businessName ||
-    `${booking.vendorId.firstName || ""} ${booking.vendorId.lastName || ""
+      `${booking.vendorId.firstName || ""} ${
+        booking.vendorId.lastName || ""
       }`.trim()
     : "";
   const vendorLogo = booking.vendorId
@@ -1721,8 +1747,8 @@ const getBookingSimpleDetails = asyncHandler(async (req, res) => {
     booking.pricing && typeof booking.pricing.totalPrice !== "undefined"
       ? booking.pricing.totalPrice
       : booking.pricing && booking.pricing.bookingPrice
-        ? booking.pricing.bookingPrice
-        : null;
+      ? booking.pricing.bookingPrice
+      : null;
 
   const result = {
     startDate:
