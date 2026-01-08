@@ -844,10 +844,11 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
       (vendor.userId?.firstName && vendor.userId?.lastName
         ? `${vendor.userId.firstName} ${vendor.userId.lastName}`
         : "Business Name Not Set");
-
+        console.log(vendor,"vendorvendorvendor");
+        
     return {
       _id: vendor._id,
-      userId: vendor.userId._id,
+      userId: vendor?.userId?._id,
       businessName: displayBusinessName,
       businessLogo: vendor.businessLogo,
       businessLocation: vendor.businessLocation,

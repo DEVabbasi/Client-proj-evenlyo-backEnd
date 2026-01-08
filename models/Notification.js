@@ -29,6 +29,10 @@ const NotificationSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isClientRead: {
+    type: Boolean,
+    default: false
+  },
   createdAt: {
     type: Date,
     default: Date.now

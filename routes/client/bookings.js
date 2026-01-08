@@ -65,7 +65,7 @@ router.post('/:id/mark-finished', requireAuth, requireClient, markBookingFinishe
 // @route   POST /api/booking/:id/claim
 // @desc    Create a claim/report issue
 // @access  Private (Client)
-router.post('/:id/claim', requireAuth, requireClient, createClaim);
+router.post('/:id/claim', requireAuth, createClaim);
 
 // @route   POST /api/booking/:id/cancel
 // @desc    Cancel a booking (only within 30 min)

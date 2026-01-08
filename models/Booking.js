@@ -238,16 +238,7 @@ const bookingRequestSchema = new mongoose.Schema(
       default: "",
     },
     claimDetails: {
-      reason: {
-        en: {
-          type: String,
-          trim: true,
-        },
-        nl: {
-          type: String,
-          trim: true,
-        },
-      },
+      reason: { type: String, },
       claimedBy: {
         type: String,
         enum: ["client", "vendor"],
@@ -263,16 +254,7 @@ const bookingRequestSchema = new mongoose.Schema(
         default: 0,
         min: 0,
       },
-      adminNotes: {
-        en: {
-          type: String,
-          trim: true,
-        },
-        nl: {
-          type: String,
-          trim: true,
-        },
-      },
+      adminNotes: { type: String },
       stockUpdated: {
         type: Boolean,
         default: false,

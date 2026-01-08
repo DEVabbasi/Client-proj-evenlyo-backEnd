@@ -157,7 +157,7 @@ const createItem = async (req, res) => {
 		let awaitingActivityLog = null
 		try {
 			const itemTitle = multilingualTitle?.en || title;
-			awaitingActivityLog = await createActivityLog({
+			await createActivityLog({
 				heading: 'New Sale Item Added',
 				type: 'sale_item_added',
 				description: `Added new sale item: "${itemTitle}" with stock quantity of ${stockQuantity}`,

@@ -8,8 +8,8 @@ const activityLogSchema = new mongoose.Schema(
       required: true,
     },
     heading: {
-      type: String,
-      required: true,
+      en: { type: String, trim: true, required: true },
+      nl: { type: String, trim: true, required: true }
     },
     type: {
       type: String,
@@ -24,10 +24,14 @@ const activityLogSchema = new mongoose.Schema(
       ],
     },
     description: {
-      type: String,
-      required: true,
+      en: { type: String, trim: true, required: true },
+      nl: { type: String, trim: true, required: true }
     },
     bookingId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "BookingRequest",
+    },
+    saleId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "BookingRequest",
     },

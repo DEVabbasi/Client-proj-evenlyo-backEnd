@@ -45,7 +45,8 @@ exports.sendEmailToTicketUser = async (req, res) => {
 exports.getAllSupportTickets = async (req, res) => {
     try {
         const tickets = await SupportTicket.find({})
-            .select('ticketId createdAt issueRelatedTo issueRelatedto details status userEmail');
+            .select('ticketId createdAt issueRelatedTo issueRelatedto details status userEmail')
+            .sort({ createdAt: -1 })
 
         const formattedTickets = tickets.map(ticket => ({
             ticketId: ticket.ticketId,

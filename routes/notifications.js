@@ -8,7 +8,7 @@ const Vendor = require('../models/Vendor');
 const Notification = require('../models/Notification');
 
 router.get('/', requireAuth, async (req, res) => {
-console.log( req.user.id," req.user.id req.user.id");
+  console.log(req.user.id, " req.user.id req.user.id");
 
   const notifications = await Notification.find({ clientId: req.user.id }).sort({ createdAt: -1 });
   // let userIdToQuery = req.user.id;
@@ -47,8 +47,8 @@ router.get('/vendor-notifications', requireAuth, async (req, res) => {
 });
 
 // Mark a notification as read
-router.patch('/:id/read', requireAuth, async (req, res) => {
-  const notification = await markAsRead(req.params.id);
+router.patch('/:id/client-read', requireAuth, async (req, res) => {
+  const notification = await Notification.findByIdAndUpdate(req.params.id, { isClientRead: true }, { new: true });
   res.json({ success: true, data: notification });
 });
 

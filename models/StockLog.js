@@ -26,6 +26,10 @@ const stockLogSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: false
+  },
+  itemType: {
+    type: String,
+    default: "booking"
   }
 }, { timestamps: true });
 

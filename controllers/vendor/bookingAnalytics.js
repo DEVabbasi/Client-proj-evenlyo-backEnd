@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const Booking = require("../../models/Booking");
 const Vendor = require("../../models/Vendor");
+const User = require("../../models/User");
 const BookingRequest = require("../../models/Booking");
 const notificationController = require("../notificationController");
 const Listing = require("../../models/Listing");
@@ -204,9 +205,15 @@ const acceptBooking = asyncHandler(async (req, res) => {
   try {
     await createActivityLog({
       vendorId: vendor.userId,
-      heading: "Booking Accepted",
+      heading: {
+        en: "Booking Accepted",
+        nl: "Boeking Geaccepteerd"
+      },
       type: "booking_accepted",
-      description: `Booking ${booking.trackingId} has been accepted`,
+      description: {
+        en: `Booking ${booking.trackingId} has been accepted`,
+        nl: `Boeking ${booking.trackingId} is Geaccepteerd`
+      },
       bookingId: booking._id,
       userId: req.user?._id,
     });
@@ -215,13 +222,6 @@ const acceptBooking = asyncHandler(async (req, res) => {
   }
 
   try {
-    // await notificationController.createNotification({
-    //   notificationFor: "Vendor",
-    //   vendorId: booking.vendorId, // vendor's user account receives notification
-    //   clientId: booking.userId, // 
-    //   bookingId: booking._id,
-    //   message: `Booking against ${booking.trackingId} has been accepted`,
-    // });
     await notificationController.createNotification({
       title: {
         en: "Booking Status",
@@ -312,7 +312,7 @@ const rejectBooking = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { rejectionReason } = req.body;
 
-  const vendor = await Vendor.findOne({ userId: req.user.id });
+  const vendor = await User.findOne({ _id: req.user.id });
   if (!vendor) {
     return res.status(404).json({
       success: false,
@@ -322,7 +322,7 @@ const rejectBooking = asyncHandler(async (req, res) => {
 
   const booking = await BookingRequest.findOne({
     _id: id,
-    vendorId: vendor.userId,
+    vendorId: vendor._id,
     status: "pending",
   });
 
@@ -339,11 +339,16 @@ const rejectBooking = asyncHandler(async (req, res) => {
 
   try {
     await createActivityLog({
-      vendorId: vendor.userId,
-      heading: "Booking Rejected",
+      vendorId: req.user.id,
+      heading: {
+        en: "Booking Rejected",
+        nl: "Boeking Geweigerd"
+      },
       type: "booking_rejected",
-      description: `Booking ${booking.trackingId} has been rejected. Reason: ${rejectionReason || "No reason provided"
-        }`,
+      description: {
+        en: `Booking ${booking.trackingId} has been rejected`,
+        nl: `Boeking ${booking.trackingId} is Geweigerd`
+      },
       bookingId: booking._id,
       userId: req.user?.id,
     });
@@ -352,11 +357,29 @@ const rejectBooking = asyncHandler(async (req, res) => {
   }
 
   try {
-    await notificationController.createNotification({
-      user: booking.userId,
-      bookingId: booking._id,
-      message: `Your booking has been rejected.`,
-    });
+    // await notificationController.createNotification({
+    //   user: booking.userId,
+    //   bookingId: booking._id,
+    //   message: `Your booking has been rejected.`,
+    // });
+    console.log(vendor, "vendorvendorvendorvendor");
+
+    if (vendor?.notifications?.push === true) {
+      await notificationController.createNotification({
+        title: {
+          en: "Booking Status",
+          nl: "Boekingstatus"
+        },
+        notificationFor: "Vendor",
+        vendorId: booking.vendorId, // vendor's user account receives notification
+        clientId: booking.userId, // 
+        bookingId: booking._id,
+        message: {
+          en: `Booking against ${booking.trackingId} has been rejected`,
+          nl: `Boeking met betrekking tot ${booking.trackingId} is Geweigerd.`,
+        },
+      });
+    }
   } catch (e) {
     console.error(
       "Failed to create client notification for rejected booking:",

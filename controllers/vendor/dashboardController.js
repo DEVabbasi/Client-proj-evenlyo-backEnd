@@ -236,7 +236,7 @@ const getDashboardAnalytics = async (req, res) => {
     });
     console.log(req.user, "req.user.idreq.user.idreq.user.id");
 
-    const activityLog = await ActivityLog.find({ vendorId: req.user.vendorId ? req.user.vendorId : req.user.id })
+    const activityLog = await ActivityLog.find({ vendorId: req.user.id }).sort({ createdAt: -1 })
     console.log(activityLog, "activityLogactivityLogactivityLogactivityLog");
     console.log(vendorId, "vendorIdvendorIdvendorIdvendorId");
 

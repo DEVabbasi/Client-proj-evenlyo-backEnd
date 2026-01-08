@@ -93,11 +93,18 @@ const markBookingOnTheWay = asyncHandler(async (req, res) => {
   // Notify client (user) that booking is on the way
   try {
     await notificationController.createNotification({
+      title: {
+        en: "Your booking is on the way!",
+        nl: "Uw boeking is onderweg!"
+      },
       notificationFor: "Vendor",
       vendorId: booking?.vendorId, // vendor's user account receives notification
       clientId: booking?.userId, // 
       bookingId: booking?._id,
-      message: `booking against ${booking.trackingId} is on the way`,
+      message: {
+        en: `booking against ${booking.trackingId} is on the way`,
+        nl: `Boeking met tracking ID ${booking.trackingId} is onderweg`
+      }
     });
   } catch (e) {
     console.error(
@@ -249,13 +256,20 @@ const markBookingPickedUp = asyncHandler(async (req, res) => {
   // Notify vendor that booking is picked up
   try {
     const vendor = await Vendor.findById(booking.vendorId);
-    if (vendor && vendor.userId) {
-      await notificationController.createNotification({
-        user: vendor.userId,
-        bookingId: booking._id,
-        message: `A booking has been marked as picked up.`,
-      });
-    }
+    await notificationController.createNotification({
+      title: {
+        en: "Booking Status",
+        nl: "Boekingstatus"
+      },
+      notificationFor: "Vendor",
+      vendorId: booking?.vendorId, // vendor's user account receives notification
+      clientId: booking?.userId, //
+      bookingId: booking?._id,
+      message: {
+        en: `booking against ${booking.trackingId} has been marked as picked-up`,
+        nl: `Boeking met betrekking tot ${booking.trackingId} is gemarkeerd als opgehaald.`,
+      }
+    });
   } catch (e) {
     console.error(
       "Failed to create vendor notification for picked up booking:",
@@ -351,9 +365,18 @@ const markBookingCompleted = asyncHandler(async (req, res) => {
   // Notify client that booking is completed
   try {
     await notificationController.createNotification({
-      user: booking.userId,
-      bookingId: booking._id,
-      message: `Your booking has been marked as completed.`,
+      title: {
+        en: "Tracking Status",
+        nl: "Trackingstatus"
+      },
+      notificationFor: "Vendor",
+      vendorId: booking?.vendorId, // vendor's user account receives notification
+      clientId: booking?.userId, //
+      bookingId: booking?._id,
+      message: {
+        en: `booking against ${booking.trackingId} has been marked as completed`,
+        nl: `Boeking met betrekking tot ${booking.trackingId} is gemarkeerd als voltooid.`,
+      }
     });
   } catch (e) {
     console.error(
@@ -419,9 +442,18 @@ const markAsReceivedBack = asyncHandler(async (req, res) => {
   // Notify client (user) of received back
   try {
     await notificationController.createNotification({
-      user: booking.userId,
-      bookingId: booking._id,
-      message: `Your booking item has been received back.`,
+      title: {
+        en: "Tracking Status",
+        nl: "Trackingstatus"
+      },
+      notificationFor: "Vendor",
+      vendorId: booking?.vendorId, // vendor's user account receives notification
+      clientId: booking?.userId, //
+      bookingId: booking?._id,
+      message: {
+        en: `booking against ${booking.trackingId} has been marked as received-back`,
+        nl: `Boeking met betrekking tot ${booking.trackingId} is gemarkeerd als terugontvangen`,
+      }
     });
   } catch (e) {
     console.error(

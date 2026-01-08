@@ -18,6 +18,8 @@ const { toMultilingualText } = require("../../utils/textUtils");
 const stripe = require("../../config/stripe");
 const Booking = require("../../models/Booking");
 const mongoose = require("mongoose");
+const { createActivityLog } = require("../../utils/activityLogger");
+const SupportTicket = require("../../models/SupportTicket");
 // @desc    Create Stripe PaymentIntent for a booking
 // @route   POST /api/booking/:id/create-payment-intent
 // @access  Private (User)
@@ -517,6 +519,21 @@ const createBookingRequest = asyncHandler(async (req, res) => {
             .isEvenlyoProtectEnabled,
           "req.body.details.pricingBreakdown.paymentPolicy.isEvenlyoProtectEnabled"
         );
+        console.log(vendor.notifications, "vendor.notificationsvendor.notificationsvendor.notifications");
+
+        await createActivityLog({
+          heading: {
+            en: "New Booking Request",
+            nl: "Nieuwe boekingsaanvraag"
+          },
+          type: 'booking_created',
+          description: {
+            en: `New booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
+            nl: `Nieuwe boekingsaanvraag van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
+          },
+          vendorId: bookingRequest?.vendorId,
+          ActivityType: "booking"
+        });
         if (vendor.notifications.push === true) {
           await notificationController.createNotification({
             title: {
@@ -538,6 +555,10 @@ const createBookingRequest = asyncHandler(async (req, res) => {
             .isEvenlyoProtectEnabled === true
         ) {
           await notificationController.createNotification({
+            title: {
+              en: "Evenlyo protected booking",
+              nl: "Door Evenlyo beschermde boeking"
+            },
             notificationFor: "Admin",
             vendorId: vendor._id, // vendor's user account receives notification
             clientId: client._id, // vendor's user account receives notification
@@ -996,15 +1017,20 @@ const markBookingReceived = asyncHandler(async (req, res) => {
   try {
     const vendor = await Vendor.findById(booking.vendorId);
     console.log(vendor, "vendorvendorvendor");
-    if (vendor) {
-      await notificationController.createNotification({
-        notificationFor: "Vendor",
-        vendorId: booking?.vendorId, // vendor's user account receives notification
-        clientId: booking?.userId, //
-        bookingId: booking?._id,
-        message: `booking against ${booking.trackingId} has been received by the client`,
-      });
-    }
+    await notificationController.createNotification({
+      title: {
+        en: "Booking Received by Client",
+        nl: "Boeking ontvangen door klant"
+      },
+      notificationFor: "Vendor",
+      vendorId: booking?.vendorId, // vendor's user account receives notification
+      clientId: booking?.userId, //
+      bookingId: booking?._id,
+      message: {
+        en: `booking against ${booking.trackingId} has been received by the client`,
+        nl: `Boeking met tracking-ID ${booking.trackingId} is ontvangen door de klant`,
+      }
+    });
   } catch (e) {
     console.error(
       "Failed to create vendor notification for received booking:",
@@ -1041,13 +1067,20 @@ const markBookingFinished = asyncHandler(async (req, res) => {
   // Notify vendor that booking is completed
   try {
     const vendor = await Vendor.findById(booking.vendorId);
-    if (vendor && vendor.userId) {
-      await notificationController.createNotification({
-        user: vendor.userId,
-        bookingId: booking._id,
-        message: `A booking has been marked as completed.`,
-      });
-    }
+    await notificationController.createNotification({
+      title: {
+        en: "Booking Completed By the client",
+        nl: "Boeking voltooid door de klant"
+      },
+      notificationFor: "Vendor",
+      vendorId: booking?.vendorId, // vendor's user account receives notification
+      clientId: booking?.userId, //
+      bookingId: booking?._id,
+      message: {
+        en: `booking against ${booking.trackingId} has been completed by the client`,
+        nl: `Boeking met betrekking tot ${booking.trackingId} is voltooid door de klant`,
+      }
+    });
   } catch (e) {
     console.error(
       "Failed to create vendor notification for completed booking:",
@@ -1055,18 +1088,6 @@ const markBookingFinished = asyncHandler(async (req, res) => {
     );
   }
 
-  // Notify admins that booking is completed
-  try {
-    await notificationController.createAdminNotification({
-      message: `A booking has been marked as completed by the client.`,
-      bookingId: booking._id,
-    });
-  } catch (e) {
-    console.error(
-      "Failed to create admin notification for completed booking:",
-      e
-    );
-  }
   res.json({
     success: true,
     message: "Booking marked as complete",
@@ -1080,7 +1101,7 @@ const markBookingFinished = asyncHandler(async (req, res) => {
 const createClaim = asyncHandler(async (req, res) => {
   const { reason, claimType } = req.body;
 
-  if (!reason || !reason.en) {
+  if (!reason) {
     return res.status(400).json({
       success: false,
       message: "Claim reason is required",
@@ -1099,6 +1120,12 @@ const createClaim = asyncHandler(async (req, res) => {
     userId: req.user.id,
     status: { $in: ["received", "finished", "paid"] },
   });
+  console.log(req.user, booking, " req.user req.user req.user");
+  // return res.json({
+  //   success: true,
+  //   message: "TEST",
+  //   data: { booking },
+  // });
 
   if (!booking) {
     return res.status(404).json({
@@ -1117,6 +1144,46 @@ const createClaim = asyncHandler(async (req, res) => {
   };
 
   await booking.save();
+
+  const supportTicket = new SupportTicket({
+    userEmail: req.user.email,
+    userId: req.user.id,
+    issueRelatedto: "booking",
+    details: reason
+  });
+
+  await notificationController.createNotification({
+    title: {
+      en: "New Support Ticket Created",
+      nl: "Nieuw supportticket aangemaakt"
+    },
+    notificationFor: "Admin",
+    vendorId: booking.vendorId, // vendor's user account receives notification
+    clientId: booking.userId,// vendor's user account receives notification
+    bookingId: booking._id,
+    message: {
+      en: `A new Support ticket has been created`,
+      nl: `Er is een nieuw supportticket aangemaakt`,
+    }
+  });
+
+  await notificationController.createNotification({
+    title: {
+      en: "New Support Ticket Created By Client",
+      nl: "Nieuw supportticket aangemaakt door de klant"
+    },
+    notificationFor: "Vendor",
+    vendorId: booking.vendorId, // vendor's user account receives notification
+    clientId: booking.userId,// vendor's user account receives notification
+    bookingId: booking._id,
+    message: {
+      en: `A new Support ticket has been created by the client against bookingId ${booking.trackingId}`,
+      nl: `Nieuw supportticket aangemaakt door de klant met betrekking tot boekings-ID ${booking.trackingId}`
+    }
+  });
+
+
+  await supportTicket.save();
 
   // TODO: Send email notification to admin about the claim
 
