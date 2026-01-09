@@ -1,7 +1,8 @@
 const AdminEmployee = require('../../models/AdminEmployee');
 const bcrypt = require('bcryptjs');
-const { signToken, successHelper } = require('../../utils/jwtUtils');
-const AdminDesignation = require("../../models/AdminDesignation")
+const { signToken, successHelper, signPasswordResetToken, verifyPasswordResetToken } = require('../../utils/jwtUtils');
+const AdminDesignation = require("../../models/AdminDesignation");
+const { generateAndSendOTP, verifyOTP } = require('../../utils/otpUtils');
 // Create employee
 exports.createAdmin = async (req, res) => {
   try {
@@ -12,6 +13,132 @@ exports.createAdmin = async (req, res) => {
     res.status(201).json(employee);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+};
+
+exports.sendForgotPasswordforAdmin = async (req, res) => {
+  try {
+    let { email } = req.body;
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    // Normalize email to avoid case-sensitivity issues
+    email = String(email).trim().toLowerCase();
+
+    // Check if user exists and is active
+    const user = await AdminEmployee.findOne({ email });
+    if (!user) {
+      // Do NOT send OTP when user does not exist for forgot-password flow
+      return res.status(404).json({
+        success: false,
+        message: "No account found with this email",
+      });
+    }
+    await generateAndSendOTP(email);
+
+    res.json({
+      success: true,
+      message: "OTP sent to email",
+    });
+  } catch (err) {
+    console.error("Send OTP (forgot) error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to send OTP",
+    });
+  }
+};
+
+exports.verifyOtpForAdmin = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and OTP are required",
+      });
+    }
+
+    // Check if user exists and is not a social login user
+    const user = await AdminEmployee.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "No account found with this email",
+      });
+    }
+
+    const valid = await verifyOTP(email, otp);
+    if (!valid) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired OTP",
+      });
+    }
+
+    // Issue short-lived password reset token
+    const resetToken = signPasswordResetToken({ email });
+
+    res.json({
+      success: true,
+      message: "OTP verified. You may now reset your password.",
+      resetToken,
+    });
+  } catch (err) {
+    console.error("Verify OTP (forgot) error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: err.message,
+    });
+  }
+};
+
+exports.resetPasswordForAdmin = async (req, res) => {
+  try {
+    const { password, resetToken } = req.body;
+
+    if (!resetToken) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Reset token is required" });
+    }
+    if (!password) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Password is required" });
+    }
+
+    let decoded;
+    try {
+      decoded = verifyPasswordResetToken(resetToken);
+    } catch (e) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or expired reset token" });
+    }
+
+    const email = decoded.email;
+    const user = await AdminEmployee.findOne({ email });
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.json({ success: true, message: "Password reset successful" });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: err.message });
   }
 };
 
@@ -27,7 +154,6 @@ exports.loginAdmin = async (req, res) => {
       });
     }
 
-    // Check if admin exists
     const admin = await AdminEmployee.findOne({ email, status: "active" });
     console.log(admin, "adminadminadminadminadmin");
 
@@ -47,7 +173,6 @@ exports.loginAdmin = async (req, res) => {
       });
     }
 
-    // Generate JWT Token
     const token = signToken({
       id: admin._id,
       name: admin.name,

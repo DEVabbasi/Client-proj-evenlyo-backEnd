@@ -1,5 +1,5 @@
 const OTP = require('../models/OTP');
-const { sendOTPEmail } = require('./mailer');
+const { sendOTPEmail, sendForgotOTPADMIN } = require('./mailer');
 
 /**
  * Generate a 6-digit OTP and send it to the specified email
@@ -10,7 +10,7 @@ async function generateAndSendOTP(email) {
   const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000);// 60 sec
   await OTP.create({ email, code: otpCode, expiresAt });
-  await sendOTPEmail(email, otpCode);
+  await sendForgotOTPADMIN(email, otpCode);
 }
 
 /**
