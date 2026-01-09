@@ -170,6 +170,7 @@ const reviewBooking = asyncHandler(async (req, res) => {
     vendorId: details.vendorId,
     rating,
     review: review || "",
+    userId: req.user.id
   });
   // Append review to vendor
   res.json({

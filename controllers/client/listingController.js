@@ -9,6 +9,7 @@ const { verifyAccessToken } = require("../../utils/jwtUtils");
 const Item = require("../../models/Item");
 const User = require("../../models/User");
 const Settings = require("../../models/Settings");
+const Review = require("../../models/Review")
 const { default: mongoose } = require("mongoose");
 // @desc    Get calendar data (booked and available days/times) for a listing
 // @route   GET /api/listing/:id/calendar
@@ -261,6 +262,49 @@ const getListingById = async (req, res) => {
       .populate("reviews.clientId", "firstName lastName profileImage");
     console.log(listing, "listinglistinglisting");
 
+    const bookings = await BookingRequest
+      .find({ listingId: req.params.id })
+      .select("_id");
+
+    const bookingIds = bookings.map(b => b._id);
+
+    const ddd = await Review.aggregate([
+      {
+        $match: {
+          bookingId: { $in: bookingIds }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "vendorId",
+          foreignField: "_id",
+          as: "vendor"
+        }
+      },
+      { $unwind: "$vendor" },
+      {
+        $group: {
+          _id: null,
+          averageRating: { $avg: "$rating" },
+          totalReviews: { $sum: 1 },
+          reviews: {
+            $push: {
+              rating: "$rating",
+              review: "$review",
+              vendor: {
+                firstName: "$vendor.firstName",
+                lastName: "$vendor.lastName",
+                image: "$vendor.image"
+              }
+            }
+          }
+        }
+      }
+    ]);
+    console.log(ddd, "ddddddddd");
+
+
     if (listing.status !== "active") {
       return res.status(404).json({
         success: false,
@@ -277,11 +321,12 @@ const getListingById = async (req, res) => {
     const sc = data.subCategory || {};
     console.log(sc, "scscscscscsc");
 
+
     let settings = await Settings.findOne()
 
     data.paymentPolicy = sc
     data.settings = settings
-
+    data.reviews = ddd
     res.json({
       success: true,
       data,

@@ -72,7 +72,7 @@ router.post('/:id/claim', requireAuth, createClaim);
 // @access  Private (Client)
 router.post('/:id/cancel', requireAuth, requireClient, cancelBooking);
 
-router.post('/:id/review', requireAuth, requireClient, reviewBooking);
+router.post('/:id/review', requireAuth, reviewBooking);
 
 
 // ========================= VENDOR ROUTES ========================= //

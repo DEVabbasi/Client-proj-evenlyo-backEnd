@@ -60,9 +60,9 @@ exports.getStockTable = async (req, res) => {
     if (!['checkin', 'checkout', 'missing', 'stockin'].includes(type)) {
       return res.status(400).json({ error: 'Invalid stock event type.' });
     }
-    const vendorId = req.user?.vendorId || null;
-    console.log(vendorId,type, "vendorIdvendorIdvendorId");
-    logger.info(vendorId,type);
+    const vendorId = req.user?.id || null;
+    console.log(vendorId, type, "vendorIdvendorIdvendorId");
+    // logger.info(vendorId,type);
 
     // For 'stockin', list all items of this vendor with current quantity
     if (type === 'stockin' && vendorId) {
@@ -77,9 +77,13 @@ exports.getStockTable = async (req, res) => {
     }
 
     let logs = await ServiceItemStockLog.find({ type }).populate('item');
+    console.log(vendorId, "vendorIdvendorIdvendorId");
+    console.log(logs, "logslogslogs1111");
     if (vendorId) {
       logs = logs.filter((log) => log.item && String(log.item.vendor) === String(vendorId));
     }
+    console.log(logs, "logslogslogs2222");
+
     const table = logs.map((log, idx) => {
       const item = log.item;
       const name = getItemName(item) || '(Unknown)';

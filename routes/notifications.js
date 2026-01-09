@@ -51,10 +51,14 @@ router.patch('/:id/client-read', requireAuth, async (req, res) => {
   const notification = await Notification.findByIdAndUpdate(req.params.id, { isClientRead: true }, { new: true });
   res.json({ success: true, data: notification });
 });
+router.patch('/:id/read', requireAuth, async (req, res) => {
+  const notification = await Notification.findByIdAndUpdate(req.params.id, { isRead: true }, { new: true });
+  res.json({ success: true, data: notification });
+});
 
 // Mark all notifications as read
-router.patch('/read-all', requireAuth, async (req, res) => {
-  await markAllAsRead(req.user.id);
+router.patch('/read-all', async (req, res) => {
+  await markAllAsRead();
   res.json({ success: true, message: 'All notifications marked as read' });
 });
 

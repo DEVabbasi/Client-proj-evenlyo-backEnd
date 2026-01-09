@@ -179,10 +179,7 @@ const markBookingPickedUp = asyncHandler(async (req, res) => {
     // booking.pricing.claimAmount = 0;
     // Store in claimDetails for admin review
     booking.claimDetails = {
-      reason: {
-        en: "Fair condition - security fee deduction",
-        nl: "Redelijke staat - aftrek van borg",
-      },
+      reason: "Redelijke staat - aftrek van borg",
       claimedBy: "vendor",
       claimedAt: new Date(),
       status: "pending",
@@ -217,10 +214,7 @@ const markBookingPickedUp = asyncHandler(async (req, res) => {
     //     : 0;
     // booking.pricing.securityFee = safeSecurityFee;
     booking.claimDetails = {
-      reason: {
-        en: "Claim requested by vendor",
-        nl: "Claim aangevraagd door leverancier",
-      },
+      reason: "Claim aangevraagd door leverancier",
       claimedBy: "vendor",
       claimedAt: new Date(),
       status: "pending",
@@ -230,9 +224,16 @@ const markBookingPickedUp = asyncHandler(async (req, res) => {
     // Send request/notification to admin for claim approval
     try {
       await notificationController.createNotification({
+        title: {
+          en: "Claim Request",
+          nl: "Uw claimaanvraag is ontvangen"
+        },
         notificationFor: "Admin",
         bookingId: booking._id,
-        message: `Claim request submitted by vendor for booking. Claim Amount is ${parsedClaimAmount} against the tracking id ${booking.trackingId}`,
+        message: {
+          en: `Claim request submitted by vendor for booking. Claim Amount is ${parsedClaimAmount} against the tracking id ${booking.trackingId}`,
+          nl: `Claimverzoek ingediend door de leverancier voor de boeking. Het claimbedrag is ${parsedClaimAmount} voor tracking-ID ${booking.trackingId}`
+        }
       });
       const supportTicket = new SupportTicket({
         userEmail: booking.vendorId.email,

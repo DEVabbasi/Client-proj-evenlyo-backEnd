@@ -66,7 +66,7 @@ const markAsRead = async (notificationId) => {
 
 // Mark all notifications as read for a user
 const markAllAsRead = async (userId) => {
-  return Notification.updateMany({ user: userId, isRead: false }, { isRead: true });
+  return Notification.updateMany({ isRead: false }, { isRead: true });
 };
 
 module.exports = {
