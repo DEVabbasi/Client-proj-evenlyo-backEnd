@@ -19,7 +19,6 @@ const getVendorFullDetails = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Invalid vendor ID" });
     }
-
     // ✅ Try finding vendor by _id first, if not found, search by userId
     let vendor = await Vendor.findById(vendorId).populate(
       "userId",
@@ -31,20 +30,24 @@ const getVendorFullDetails = async (req, res) => {
         "firstName lastName email profileImage userType description"
       );
     }
-
     console.log(vendor, "vendorvendorvendorvendorvendor");
-
     if (!vendor) {
       return res
         .status(404)
         .json({ success: false, message: "Vendor not found" });
     }
-
     // ✅ Prepare reviews with client details
+    console.log(vendorId, "vendorIdvendorIdvendorId");
 
     const saleItems = await ServiceItem.find({ vendor: vendorId }).lean();
     const listingItems = await Listing.find({ vendor: vendorId }).lean();
-    const reviews = await Review.find({ vendorId }).lean();
+    const reviews = await Review.find({ vendorId })
+      .populate({
+        path: "vendorId",
+        select: "firstName lastName email image"
+      })
+      .lean();
+    console.log(reviews, "reviewsreviewsreviews")
     const totalReviews = reviews.length;
 
     const averageRating =
@@ -844,8 +847,8 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
       (vendor.userId?.firstName && vendor.userId?.lastName
         ? `${vendor.userId.firstName} ${vendor.userId.lastName}`
         : "Business Name Not Set");
-        console.log(vendor,"vendorvendorvendor");
-        
+    console.log(vendor, "vendorvendorvendor");
+
     return {
       _id: vendor._id,
       userId: vendor?.userId?._id,
