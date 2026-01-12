@@ -13,9 +13,10 @@ function getItemName(item) {
 // Create stock event for service items
 exports.createStockEvent = async (req, res) => {
   try {
-    const vendorId = req.user?.vendorId;
+    const vendorId = req.user?.id;
     const { itemId, type, quantity, note } = req.body;
-
+    console.log(req.body,vendorId,"req.bodyreq.bodyreq.body");
+    
     if (!vendorId) return res.status(403).json({ error: 'Vendor access required' });
     if (!itemId || typeof quantity !== 'number' || quantity <= 0) {
       return res.status(400).json({ error: 'itemId and positive numeric quantity are required' });
@@ -101,7 +102,7 @@ exports.getStockTable = async (req, res) => {
           SNo: idx + 1,
           ItemID: itemId,
           Name: name,
-          'Reserved for purchase': log.quantity,
+          'Check Out (Quantity)': log.quantity,
           'Stock In (Date Time)': log.dateTime
         };
       } else if (type === 'missing') {

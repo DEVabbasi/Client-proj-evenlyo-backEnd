@@ -43,7 +43,7 @@ const getVendorFullDetails = async (req, res) => {
     const listingItems = await Listing.find({ vendor: vendorId }).lean();
     const reviews = await Review.find({ vendorId })
       .populate({
-        path: "vendorId",
+        path: "userId",
         select: "firstName lastName email image"
       })
       .lean();
@@ -105,6 +105,7 @@ const getVendorFullDetails = async (req, res) => {
       bannerImage: vendor.bannerImage || "",
       profileImage: vendor.userId?.profileImage || "",
       buisnessLogo: vendor.businessLogo || "",
+      businessImage: vendor.businessImage || "",
     };
 
     // ✅ User details

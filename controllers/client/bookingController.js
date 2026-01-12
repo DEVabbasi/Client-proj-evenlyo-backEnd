@@ -1318,6 +1318,7 @@ const getBookingDetails = asyncHandler(async (req, res) => {
     : getClientActionButtons(booking.status);
 
   const bookingData = {
+    ...booking.toObject(),
     _id: booking._id,
     trackingId: booking.trackingId,
     bookingDateTime: {
@@ -1326,7 +1327,7 @@ const getBookingDetails = asyncHandler(async (req, res) => {
       startTime: booking.details.startTime,
       endTime: booking.details.endTime,
     },
-    totalPrice: booking.pricing.totalPrice,
+    totalPrice: booking?.pricingBreakdown?.total,
     status: booking.status,
     client: booking.userId,
     vendor: booking.vendorId,

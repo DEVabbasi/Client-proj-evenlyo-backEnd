@@ -2,6 +2,7 @@ const SaleItem = require('../../models/SaleItemPurchase');
 const Item = require('../../models/Item');
 const mongoose = require('mongoose');
 const { createActivityLog } = require('../../utils/activityLogger');
+const ServiceItemStockLog = require('../../models/ServiceItemStockLog');
 
 
 const createSaleItemOrder = async (req, res) => {
@@ -10,10 +11,13 @@ const createSaleItemOrder = async (req, res) => {
 
         const { items, paymentIntentId } = req.body;
 
-        if (!items || items.length === 0)
+        if (!items || items.length === 0) {
             return res.status(400).send({ message: "Items required" });
+        }
 
-        // 🔹 1. Validate stock for all items first
+        // 🔹 1. Validate stock first
+        const itemDocs = [];
+
         for (const item of items) {
             const product = await Item.findById(item.itemId);
 
@@ -26,14 +30,26 @@ const createSaleItemOrder = async (req, res) => {
                     message: `Not enough stock for item: ${product.title?.en || product.title}`
                 });
             }
+
+            itemDocs.push({ product, orderQty: item.quantity });
         }
 
-        // 🔹 2. If all good → subtract stock
-        for (const item of items) {
+        // 🔹 2. Deduct stock + create stock logs
+        for (const { product, orderQty } of itemDocs) {
+            // Update stock
             await Item.updateOne(
-                { _id: item.itemId },
-                { $inc: { stockQuantity: -item.quantity } }
+                { _id: product._id },
+                { $inc: { stockQuantity: -orderQty } }
             );
+
+            // Create stock log
+            await ServiceItemStockLog.create({
+                item: product._id,
+                type: "checkout",
+                quantity: orderQty,
+                note: `Stock reduced by ${orderQty} due to sale order`,
+                createdBy: req.user?.id
+            });
         }
 
         // 🔹 3. Create order
@@ -44,23 +60,30 @@ const createSaleItemOrder = async (req, res) => {
             paymentIntentId
         });
 
-        awaitingActivityLog = await createActivityLog({
-            heading: 'New Sale Order Placed',
-            type: 'sale_item_order_placed',
-            description: `Added new sale item: Order has been placed`,
+        await createActivityLog({
+            heading: {
+                en: "New Sale Order Placed",
+                nl: "Nieuwe verkooporder geplaatst"
+            },
+            type: "sale_item_order_placed",
+            description: {
+                en: "New Sale Item Order has been placed",
+                nl: "Nieuwe verkoopitembestelling is geplaatst"
+            },
             vendorId: req.user.id,
             ActivityType: "sale"
         });
 
         res.status(200).send({
             message: "Order Created Successfully",
-            order: newOrder,
+            order: newOrder
         });
 
     } catch (err) {
         res.status(500).send({ message: err.message });
     }
 };
+
 
 
 const getSaleItemHistory = async (req, res) => {
