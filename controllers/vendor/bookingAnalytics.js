@@ -11,7 +11,7 @@ const {
   checkAvailability,
 } = require("../../utils/bookingUtils");
 const { createActivityLog } = require("../../utils/activityLogger");
-const stripe = require('../../config/stripe');
+const stripe = require("../../config/stripe");
 // GET /api/vendor/bookings/analytics
 const getVendorBookingAnalytics = async (req, res) => {
   console.log("HAHAHAHHA");
@@ -66,6 +66,7 @@ const getVendorBookingAnalytics = async (req, res) => {
       trackingId: b.trackingId,
       statusHistory: b.statusHistory,
       createdAt: b.createdAt,
+      listingDetails: bookings[0]?.listingDetails,
     }));
 
     res.json({
@@ -145,9 +146,6 @@ const acceptBooking = asyncHandler(async (req, res) => {
   //   });
   // }
 
-
-
-
   console.log(`Accepting booking ${id} for vendor ${vendor.userId}`);
 
   const decrementBy = 1;
@@ -207,12 +205,12 @@ const acceptBooking = asyncHandler(async (req, res) => {
       vendorId: vendor.userId,
       heading: {
         en: "Booking Accepted",
-        nl: "Boeking Geaccepteerd"
+        nl: "Boeking Geaccepteerd",
       },
       type: "booking_accepted",
       description: {
         en: `Booking ${booking.trackingId} has been accepted`,
-        nl: `Boeking ${booking.trackingId} is Geaccepteerd`
+        nl: `Boeking ${booking.trackingId} is Geaccepteerd`,
       },
       bookingId: booking._id,
       userId: req.user?._id,
@@ -225,11 +223,11 @@ const acceptBooking = asyncHandler(async (req, res) => {
     await notificationController.createNotification({
       title: {
         en: "Booking Status",
-        nl: "Boekingstatus"
+        nl: "Boekingstatus",
       },
       notificationFor: "Vendor",
       vendorId: booking.vendorId, // vendor's user account receives notification
-      clientId: booking.userId, // 
+      clientId: booking.userId, //
       bookingId: booking._id,
       message: {
         en: `Booking against ${booking.trackingId} has been accepted`,
@@ -257,7 +255,6 @@ const acceptBooking = asyncHandler(async (req, res) => {
   });
 });
 
-
 const getAmountToPay = async (req, res) => {
   try {
     const { id } = req.params;
@@ -283,7 +280,6 @@ const getAmountToPay = async (req, res) => {
     }
 
     res.json({ amountToPay });
-
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -298,7 +294,7 @@ const createPaymentIntent = async (req, res) => {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // convert to cents
       currency,
-      automatic_payment_methods: { enabled: true }
+      automatic_payment_methods: { enabled: true },
     });
     res.json({
       clientSecret: paymentIntent.client_secret,
@@ -334,7 +330,7 @@ const rejectBooking = asyncHandler(async (req, res) => {
   }
 
   booking.status = "rejected";
-  booking.rejectionReason = rejectionReason || "No reason provided"
+  booking.rejectionReason = rejectionReason || "No reason provided";
   await booking.save();
 
   try {
@@ -342,12 +338,12 @@ const rejectBooking = asyncHandler(async (req, res) => {
       vendorId: req.user.id,
       heading: {
         en: "Booking Rejected",
-        nl: "Boeking Geweigerd"
+        nl: "Boeking Geweigerd",
       },
       type: "booking_rejected",
       description: {
         en: `Booking ${booking.trackingId} has been rejected`,
-        nl: `Boeking ${booking.trackingId} is Geweigerd`
+        nl: `Boeking ${booking.trackingId} is Geweigerd`,
       },
       bookingId: booking._id,
       userId: req.user?.id,
@@ -368,11 +364,11 @@ const rejectBooking = asyncHandler(async (req, res) => {
       await notificationController.createNotification({
         title: {
           en: "Booking Status",
-          nl: "Boekingstatus"
+          nl: "Boekingstatus",
         },
         notificationFor: "Vendor",
         vendorId: booking.vendorId, // vendor's user account receives notification
-        clientId: booking.userId, // 
+        clientId: booking.userId, //
         bookingId: booking._id,
         message: {
           en: `Booking against ${booking.trackingId} has been rejected`,
@@ -410,7 +406,7 @@ const paymentConfirmation = async (req, res) => {
     if (!bookingId || !paymentIntent || !amount) {
       return res.status(400).json({
         success: false,
-        message: "bookingId, paymentIntent and amount are required."
+        message: "bookingId, paymentIntent and amount are required.",
       });
     }
 
@@ -419,7 +415,7 @@ const paymentConfirmation = async (req, res) => {
     if (!booking) {
       return res.status(404).json({
         success: false,
-        message: "Booking not found."
+        message: "Booking not found.",
       });
     }
 
@@ -428,7 +424,7 @@ const paymentConfirmation = async (req, res) => {
     if (isNaN(paidAmount) || paidAmount <= 0) {
       return res.status(400).json({
         success: false,
-        message: "Amount must be a valid positive number."
+        message: "Amount must be a valid positive number.",
       });
     }
     console.log(booking, "bookingbookingbookingbookingbooking");
@@ -451,64 +447,67 @@ const paymentConfirmation = async (req, res) => {
     if (booking.paymentStatus === "fully_paid") {
       return res.status(400).json({
         success: false,
-        message: "This booking is already fully paid."
+        message: "This booking is already fully paid.",
       });
     }
-
 
     // Update amounts
     booking.paymentIntentId = paymentIntent;
     booking.AmountPaid = (booking.AmountPaid || 0) + paidAmount;
-    booking.AmountLeft = Number(booking.pricingBreakdown?.total || 0) - Number(paidAmount);
+    booking.AmountLeft =
+      Number(booking.pricingBreakdown?.total || 0) - Number(paidAmount);
 
     // Fully paid check
-    console.log(booking.AmountPaid, booking.pricingBreakdown, "bookingbookingbooking");
+    console.log(
+      booking.AmountPaid,
+      booking.pricingBreakdown,
+      "bookingbookingbooking"
+    );
 
     if (booking.AmountPaid >= (booking.pricingBreakdown?.total || 0)) {
       booking.isFullyPaid = true;
       booking.AmountLeft = 0;
-      booking.paymentStatus = "paid" // safety
+      booking.paymentStatus = "paid"; // safety
 
       // await notificationController.createNotification({
       //   notificationFor: "Vendor",
       //   vendorId: booking?.vendorId, // vendor's user account receives notification
-      //   clientId: booking?.userId, // 
+      //   clientId: booking?.userId, //
       //   bookingId: booking?._id,
       //   message: `full payment against ${booking.trackingId} has been paid`,
       // });
       await notificationController.createNotification({
         title: {
           en: "Payment Status",
-          nl: "Betalingstatus"
+          nl: "Betalingstatus",
         },
         notificationFor: "Vendor",
         vendorId: booking?.vendorId, // vendor's user account receives notification
-        clientId: booking?.userId, // 
+        clientId: booking?.userId, //
         bookingId: booking?._id,
         message: {
           en: `full payment against ${booking.trackingId} has been paid`,
           nl: `De volledige betaling voor ${booking.trackingId} is voldaan`,
         },
       });
-    }
-    else {
-      booking.paymentStatus = "upfront_paid"
-      booking.isUpfrontPaid = true
+    } else {
+      booking.paymentStatus = "upfront_paid";
+      booking.isUpfrontPaid = true;
       // await notificationController.createNotification({
       //   notificationFor: "Vendor",
       //   vendorId: booking?.vendorId, // vendor's user account receives notification
-      //   clientId: booking?.userId, // 
+      //   clientId: booking?.userId, //
       //   bookingId: booking?._id,
       //   message: `Upfront payment against ${booking.trackingId} has been paid`,
       // });
       await notificationController.createNotification({
         title: {
           en: "Payment Status",
-          nl: "Betalingstatus"
+          nl: "Betalingstatus",
         },
         notificationFor: "Vendor",
         vendorId: booking?.vendorId, // vendor's user account receives notification
-        clientId: booking?.userId, // 
+        clientId: booking?.userId, //
         bookingId: booking?._id,
         message: {
           en: `Upfront payment against ${booking.trackingId} has been paid.`,
@@ -528,16 +527,15 @@ const paymentConfirmation = async (req, res) => {
         bookingId: booking._id,
         amountPaid: booking.AmountPaid,
         amountLeft: booking.AmountLeft,
-        isFullyPaid: booking.isFullyPaid
-      }
+        isFullyPaid: booking.isFullyPaid,
+      },
     });
-
   } catch (error) {
     console.error("Payment confirmation error:", error);
     res.status(500).json({
       success: false,
       message: error.message,
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -548,5 +546,5 @@ module.exports = {
   getVendorBookingAnalytics,
   createPaymentIntent,
   paymentConfirmation,
-  getAmountToPay
+  getAmountToPay,
 };
