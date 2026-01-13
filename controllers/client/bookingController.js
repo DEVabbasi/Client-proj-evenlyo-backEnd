@@ -1270,7 +1270,13 @@ const cancelBooking = asyncHandler(async (req, res) => {
 const getBookingDetails = asyncHandler(async (req, res) => {
   const booking = await BookingRequest.findById(req.params.id)
     .populate("userId", "firstName lastName email contactNumber")
-    .populate("vendorId", "businessName businessEmail businessPhone");
+
+  console.log(booking.vendorId, "booking.vendorIdbooking.vendorId");
+
+  const vendorDetails = await User.findById(booking.vendorId).select("firstName lastName email image fullName")
+  console.log("vendor exists:", vendorDetails);
+
+  console.log(booking, "bookingbookingbookingbookingbooking");
 
   if (!booking) {
     return res.status(404).json({
@@ -1278,9 +1284,17 @@ const getBookingDetails = asyncHandler(async (req, res) => {
       message: "Booking not found",
     });
   }
+  console.log(req.user.id, "req.user.idreq.user.idreq.user.id");
 
   // Check if user has access to this booking
-  const vendor = await Vendor.findOne({ userId: req.user.id });
+  const vendor = await Vendor.findOne({ userId: booking.vendorId });
+  console.log(vendor, "vendorvendorvendorvendor");
+
+  let vendorDetailsss = {
+    ...vendorDetails.toObject(),
+    businessLogo: vendor.businessLogo
+  }
+
   const bookingUserIdStr =
     booking.userId && booking.userId._id
       ? booking.userId._id.toString()
@@ -1320,6 +1334,7 @@ const getBookingDetails = asyncHandler(async (req, res) => {
   const bookingData = {
     ...booking.toObject(),
     _id: booking._id,
+    vendorDetails: vendorDetailsss,
     trackingId: booking.trackingId,
     bookingDateTime: {
       start: booking.details.startDate,

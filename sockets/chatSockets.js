@@ -158,24 +158,28 @@ function chatSocket(io) {
           });
         }
 
-        const finalItems = offerObject.items.map((item) => ({
-          userId: offerObject.userId,
-          listingId: item._id,
-          vendorId: item.vendor,
-          startDate: item.startDate,
-          endDate: item.endDate,
-          startTime: item.startTime,
-          endTime: item.endTime,
-          eventLocation: item.eventLocation,
-          eventType: item.eventType || "",
-          guestCount: item.guestCount || 0,
-          distanceKm: item.distanceKm || 0,
-          specialRequests: item.specialRequest || "",
-          totalAmount: item.total,
-          securityFee: item.securityFee,
-          status: item.offerStatus,
-          pricingBreakdown: item.pricingBreakdown
-        }));
+
+        const finalItems = offerObject.items.map((item, index) => {
+          console.log(`Item ${index}:`, item);
+          return {
+            userId: offerObject.userId,
+            listingId: item._id,
+            vendorId: item.vendor,
+            startDate: item.startDate,
+            endDate: item.endDate,
+            startTime: item.startTime,
+            endTime: item.endTime,
+            eventLocation: item.eventLocation,
+            eventType: item.eventType || "",
+            guestCount: item.guestCount || 0,
+            distanceKm: item.distanceKm || 0,
+            specialRequests: item.specialRequest || "",
+            totalAmount: item.total,
+            securityFee: item.securityFee,
+            status: item.offerStatus,
+            pricingBreakdown: item.pricingBreakdown
+          };
+        });
 
         console.log("finalItemsfinalItems", finalItems);
 

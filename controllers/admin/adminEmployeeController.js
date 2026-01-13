@@ -242,6 +242,13 @@ exports.loginEmployee = async (req, res) => {
       });
     }
 
+    if (employee.status == "inactive") {
+      return res.status(401).json({
+        success: false,
+        message: "user is inactive! Contact Admin"
+      });
+    }
+
     // Only fetch pages if Employee role
     let pages = [];
     if (employee.role === "Employee" && employee.designationID) {
