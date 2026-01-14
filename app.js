@@ -78,10 +78,10 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
+    if (!origin) return callback(null, true); // allow curl / mobile apps
 
     if (allowedOrigins.includes(origin)) {
-      return callback(null, origin); // echo the origin
+      return callback(null, true); // allow this origin
     }
     return callback(new Error("CORS blocked"));
   },
@@ -94,6 +94,7 @@ const corsOptions = {
     "Accept",
   ],
 };
+
 
 
 app.use(cors(corsOptions));
