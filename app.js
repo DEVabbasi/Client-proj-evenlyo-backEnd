@@ -199,7 +199,7 @@ app.use((err, req, res, next) => {
 //       {},
 //       {
 //         $set: {
-//           reminderSent: false
+//           orderType: "normal"
 //         }
 //       }
 //     );
@@ -209,7 +209,7 @@ app.use((err, req, res, next) => {
 //   }
 // }
 
-// addCreatedByIdToUsers()
+//   addCreatedByIdToUsers()
 
 
 module.exports = app;

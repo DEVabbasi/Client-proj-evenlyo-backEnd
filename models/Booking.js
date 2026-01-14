@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 // BookingRequest Schema - Updated to match requirements
 const bookingRequestSchema = new mongoose.Schema(
   {
+    orderType: { type: String, default: "normal" },
     trackingId: {
       condition: {
         type: String,

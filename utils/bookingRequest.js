@@ -10,7 +10,7 @@ const {
 } = require("../utils/bookingUtils");
 const SubCategory = require("../models/SubCategory");
 const notificationController = require("../controllers/notificationController");
-
+const { createActivityLog } = require("../utils/activityLogger");
 // Helper function to calculate day count
 function getDayCount(startDate, endDate) {
   const start = new Date(startDate);
@@ -213,7 +213,7 @@ const createBookingRequest = async (data, session) => {
   console.log(data.pricingBreakdown, "pricingBreakdownpricingBreakdownpricingBreakdown");
 
   const bookingRequest = new BookingRequest({
-    willPayUpfront: data.willPayUpfront,
+    orderType:"custom",
     AmountLeft: data?.pricingBreakdown?.total,
     userId: data.userId,
     pricingBreakdown: data.pricingBreakdown,
@@ -303,15 +303,19 @@ const createBookingRequest = async (data, session) => {
         dailyRate: Math.round(bookingPrice / diffDays),
       }),
     },
-    platformFee,
+    platformFee: data?.pricingBreakdown?.platformFee,
   });
+
+  let resss = null
 
   // Save with session for transaction support
   if (session) {
-    await bookingRequest.save({ session });
+    resss = await bookingRequest.save({ session });
   } else {
-    await bookingRequest.save();
+    resss = await bookingRequest.save();
   }
+
+  console.log(resss, "bookingRequestbookingRequestbookingRequestbookingRequest");
 
   // Notify vendor of new booking request
   try {
@@ -320,6 +324,9 @@ const createBookingRequest = async (data, session) => {
       "firstName lastName"
     );
 
+    console.log(client, "clientclientclientclientclient");
+
+
     if (vendor && vendor.userId) {
       const clientName = client
         ? `${client.firstName} ${client.lastName}`
@@ -327,12 +334,54 @@ const createBookingRequest = async (data, session) => {
       const listingTitle = listing.title || "your listing";
       const bookingDates = `${startDate}${endDate !== startDate ? ` to ${endDate}` : ""
         }`;
-
-      await notificationController.createNotification({
-        user: vendor.userId, // vendor's user account receives notification
-        bookingId: bookingRequest._id,
-        message: `New booking request from ${clientName} for "${listingTitle}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
+      await createActivityLog({
+        heading: {
+          en: "New Booking Request",
+          nl: "Nieuwe boekingsaanvraag"
+        },
+        type: 'booking_created',
+        description: {
+          en: `New booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
+          nl: `Nieuwe boekingsaanvraag van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
+        },
+        vendorId: bookingRequest?.vendorId,
+        ActivityType: "booking"
       });
+      if (vendor.notifications.push === true) {
+        await notificationController.createNotification({
+          title: {
+            en: "New booking request",
+            nl: "Nieuwe boekingsaanvraag"
+          },
+          notificationFor: "Vendor",
+          vendorId: vendor?._id, // vendor's user account receives notification
+          clientId: client?._id, // vendor's user account receives notification
+          bookingId: bookingRequest?._id,
+          message: {
+            en: `New booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
+            nl: `Nieuwe boekingsaanvraag van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
+          },
+        });
+      }
+      if (
+        data?.pricingBreakdown?.paymentPolicy
+          .isEvenlyoProtectEnabled === true
+      ) {
+        await notificationController.createNotification({
+          title: {
+            en: "Evenlyo protected booking",
+            nl: "Door Evenlyo beschermde boeking"
+          },
+          notificationFor: "Admin",
+          vendorId: vendor?._id, // vendor's user account receives notification
+          clientId: client?._id, // vendor's user account receives notification
+          bookingId: bookingRequest?._id,
+          message: {
+            en: `A evenlyo protected booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
+            nl: `Een beschermde boekingsaanvraag op Evenlyo van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
+          },
+        });
+      }
     }
   } catch (e) {
     console.error("Failed to create vendor notification for new booking:", e);

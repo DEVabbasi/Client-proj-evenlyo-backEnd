@@ -180,13 +180,10 @@ function chatSocket(io) {
             pricingBreakdown: item.pricingBreakdown
           };
         });
-
         console.log("finalItemsfinalItems", finalItems);
-
         for (let item of finalItems) {
           await createBookingRequest(item, session);
         }
-
         // All booking requests created successfully - commit transaction
         await session.commitTransaction();
         await session.endSession();
