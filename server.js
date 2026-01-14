@@ -5,7 +5,7 @@ const chatSocket = require('./sockets/chatSockets');
 const logger = require('./utils/logger');
 require('./corn/paymentReminder');
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Create HTTP server
 const server = http.createServer(app);

@@ -83,7 +83,6 @@ const corsOptions = {
     if (allowedOrigins.includes(origin)) {
       return callback(null, origin); // echo the origin
     }
-
     return callback(new Error("CORS blocked"));
   },
   credentials: true,
