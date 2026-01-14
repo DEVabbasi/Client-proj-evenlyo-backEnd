@@ -3,14 +3,14 @@ const http = require('http');
 const { Server } = require('socket.io');
 const chatSocket = require('./sockets/chatSockets');
 const logger = require('./utils/logger');
-require("./corn/paymentReminder");
+require('./corn/paymentReminder');
+
 const PORT = process.env.PORT || 5000;
+
+// Create HTTP server
 const server = http.createServer(app);
-const express = require("express")
 
-// Shared allowed origins
-const cors = require('cors');
-
+// Allowed origins (used ONLY for socket.io)
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
@@ -25,46 +25,29 @@ const allowedOrigins = [
   'https://www.evenlyo.nl',
 ];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // allow server-to-server or Postman
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('CORS not allowed'));
-      }
-    },
-    credentials: true,
-  })
-);
-
-// ⚠️ MUST be before routes
-app.use(express.json());
-
-
-// Initialize Socket.io
+// Initialize Socket.IO
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
-    methods: ['GET', 'POST', 'OPTIONS'], // OPTIONS useful for preflight
+    methods: ['GET', 'POST', 'OPTIONS'],
     credentials: true,
-  }
+  },
 });
 
+// Make io available to routes/controllers
 app.set('socketio', io);
-// Attach socket logic
+
+// Attach socket handlers
 chatSocket(io);
 
+// Start server
 server.listen(PORT, () => {
   logger.info(`🚀 Server started on port ${PORT}`);
   logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`📝 Logging level: ${process.env.LOG_LEVEL || 'info'}`);
 });
 
-// Optional: catch server errors
+// Catch server errors
 server.on('error', (err) => {
-  logger.error('Server error:', err);
+  logger.error('❌ Server error:', err);
 });
