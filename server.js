@@ -23,6 +23,7 @@ const allowedOrigins = [
   'https://evenlyo.nl',
   'https://staging.evenlyo.nl',
   'https://www.evenlyo.nl',
+  'https://www.staging.evenlyo.nl',
 ];
 
 // Initialize Socket.IO
