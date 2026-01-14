@@ -62,6 +62,9 @@ const allowedOrigins = [
   "https://staging-evenlyo-admin.web.app",
   "https://cp5h187s-5173.inc1.devtunnels.ms",
   "https://cp5h187s-3000.inc1.devtunnels.ms",
+  "https://www.evenlyo.nl",
+  "https://evenlyo.nl",
+  "https://staging.evenlyo.nl"
 ];
 
 app.use(
