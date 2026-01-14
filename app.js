@@ -79,8 +79,12 @@ const allowedOrigins = [
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(null, false);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, origin); // echo the origin
+    }
+
+    return callback(new Error("CORS blocked"));
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -91,6 +95,7 @@ const corsOptions = {
     "Accept",
   ],
 };
+
 
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
