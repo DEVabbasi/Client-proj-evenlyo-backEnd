@@ -44,16 +44,17 @@ const getVendorFullDetails = async (req, res) => {
     const reviews = await Review.find({ vendorId })
       .populate({
         path: "userId",
-        select: "firstName lastName email image"
+        select: "firstName lastName email image",
       })
       .lean();
-    console.log(reviews, "reviewsreviewsreviews")
+    console.log(reviews, "reviewsreviewsreviews");
     const totalReviews = reviews.length;
 
     const averageRating =
       totalReviews === 0
         ? 0
-        : reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews;
+        : reviews.reduce((sum, review) => sum + review.rating, 0) /
+          totalReviews;
 
     console.log(averageRating);
     // let vendorReviews = [];
@@ -67,8 +68,6 @@ const getVendorFullDetails = async (req, res) => {
     //   clients.forEach((c) => {
     //     clientMap[c._id.toString()] = c;
     //   });
-
-
 
     //   vendorReviews = vendor.reviews.map((r) => {
     //     const client = clientMap[r.clientId?.toString()] || {};
@@ -129,7 +128,7 @@ const getVendorFullDetails = async (req, res) => {
         reviews,
         businessDetails,
         userDetails,
-        averageRating
+        averageRating,
         // reviews: vendorReviews,
         // rating: vendor.rating || {},
       },
@@ -221,19 +220,19 @@ const getVendorProfile = asyncHandler(async (req, res) => {
     },
     personalInfo: isPublicAccess
       ? {
-        firstName: vendor.userId?.firstName,
-        lastName: vendor.userId?.lastName,
-        profileImage: vendor.userId?.profileImage,
-      }
+          firstName: vendor.userId?.firstName,
+          lastName: vendor.userId?.lastName,
+          profileImage: vendor.userId?.profileImage,
+        }
       : {
-        firstName: vendor.userId?.firstName,
-        lastName: vendor.userId?.lastName,
-        email: vendor.userId?.email,
-        contactNumber: vendor.userId?.contactNumber,
-        address: vendor.userId?.address,
-        profileImage: vendor.userId?.profileImage,
-        isActive: vendor.userId?.isActive,
-      },
+          firstName: vendor.userId?.firstName,
+          lastName: vendor.userId?.lastName,
+          email: vendor.userId?.email,
+          contactNumber: vendor.userId?.contactNumber,
+          address: vendor.userId?.address,
+          profileImage: vendor.userId?.profileImage,
+          isActive: vendor.userId?.isActive,
+        },
     timestamps: {
       createdAt: vendor.createdAt,
       updatedAt: vendor.updatedAt,
@@ -355,9 +354,9 @@ const getVendorBusinessDetails = asyncHandler(async (req, res) => {
   const averagePrice =
     listings.length > 0
       ? listings.reduce(
-        (sum, listing) => sum + (listing.pricing?.amount || 0),
-        0
-      ) / listings.length
+          (sum, listing) => sum + (listing.pricing?.amount || 0),
+          0
+        ) / listings.length
       : 0;
 
   const businessDetails = {
@@ -475,8 +474,8 @@ const getVendorDashboard = asyncHandler(async (req, res) => {
         completionRate:
           vendor.totalBookings > 0
             ? ((vendor.completedBookings / vendor.totalBookings) * 100).toFixed(
-              1
-            )
+                1
+              )
             : 0,
       },
       rating: {
@@ -686,9 +685,9 @@ const getFeaturedVendors = asyncHandler(async (req, res) => {
           completionRate:
             vendor.totalBookings > 0
               ? (
-                (vendor.completedBookings / vendor.totalBookings) *
-                100
-              ).toFixed(1)
+                  (vendor.completedBookings / vendor.totalBookings) *
+                  100
+                ).toFixed(1)
               : 0,
         },
       },
@@ -832,7 +831,6 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
     .limit(parseInt(limit));
 
   const total = await Vendor.countDocuments(query);
-  console.log(vendors, "vendorsvendorsvendors");
 
   // Format data with requested information
   const formattedVendors = vendors.map((vendor) => {
@@ -848,7 +846,6 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
       (vendor.userId?.firstName && vendor.userId?.lastName
         ? `${vendor.userId.firstName} ${vendor.userId.lastName}`
         : "Business Name Not Set");
-    console.log(vendor, "vendorvendorvendor");
 
     return {
       _id: vendor._id,

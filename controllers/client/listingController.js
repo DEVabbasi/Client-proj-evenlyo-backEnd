@@ -5,11 +5,11 @@ const Vendor = require("../../models/Vendor");
 const BookingRequest = require("../../models/Booking");
 const ServiceItem = require("../../models/Item");
 const Cart = require("../../models/Cart");
-const { verifyAccessToken } = require("../../utils/jwtUtils");
+const { verifyAccessToken, successHelper } = require("../../utils/jwtUtils");
 const Item = require("../../models/Item");
 const User = require("../../models/User");
 const Settings = require("../../models/Settings");
-const Review = require("../../models/Review")
+const Review = require("../../models/Review");
 const { default: mongoose } = require("mongoose");
 // @desc    Get calendar data (booked and available days/times) for a listing
 // @route   GET /api/listing/:id/calendar
@@ -211,8 +211,6 @@ const getListings = async (req, res) => {
 
     // Attach payment policy (from subcategory) to each listing
     const listings = listingsDocs.map((doc) => {
-      console.log(doc, "docdocdocdoc");
-
       const obj = doc.toObject();
       const sc = obj.subCategory || {};
       obj.paymentPolicy = {
@@ -262,25 +260,25 @@ const getListingById = async (req, res) => {
       .populate("reviews.clientId", "firstName lastName profileImage");
     console.log(listing, "listinglistinglisting");
 
-    const bookings = await BookingRequest
-      .find({ listingId: req.params.id })
-      .select("_id");
+    const bookings = await BookingRequest.find({
+      listingId: req.params.id,
+    }).select("_id");
 
-    const bookingIds = bookings.map(b => b._id);
+    const bookingIds = bookings.map((b) => b._id);
 
     const ddd = await Review.aggregate([
       {
         $match: {
-          bookingId: { $in: bookingIds }
-        }
+          bookingId: { $in: bookingIds },
+        },
       },
       {
         $lookup: {
           from: "users",
           localField: "vendorId",
           foreignField: "_id",
-          as: "vendor"
-        }
+          as: "vendor",
+        },
       },
       { $unwind: "$vendor" },
       {
@@ -295,15 +293,14 @@ const getListingById = async (req, res) => {
               vendor: {
                 firstName: "$vendor.firstName",
                 lastName: "$vendor.lastName",
-                image: "$vendor.image"
-              }
-            }
-          }
-        }
-      }
+                image: "$vendor.image",
+              },
+            },
+          },
+        },
+      },
     ]);
     console.log(ddd, "ddddddddd");
-
 
     if (listing.status !== "active") {
       return res.status(404).json({
@@ -321,12 +318,11 @@ const getListingById = async (req, res) => {
     const sc = data.subCategory || {};
     console.log(sc, "scscscscscsc");
 
+    let settings = await Settings.findOne();
 
-    let settings = await Settings.findOne()
-
-    data.paymentPolicy = sc
-    data.settings = settings
-    data.reviews = ddd
+    data.paymentPolicy = sc;
+    data.settings = settings;
+    data.reviews = ddd;
     res.json({
       success: true,
       data,
@@ -973,7 +969,7 @@ const filterListings = async (req, res) => {
 
     // Get total count for pagination
     const total = await Listing.countDocuments(query);
-    let settings = await Settings.findOne()
+    let settings = await Settings.findOne();
     // Format the response data
     const formattedListings = listings.map((listing) => {
       // Get the main pricing (prefer per event, then per day, then per hour)
@@ -992,10 +988,6 @@ const filterListings = async (req, res) => {
       const sc = data.subCategory || {};
       console.log(sc, "scscscscscsc");
 
-
-
-
-
       return {
         id: listing._id,
         title: listing.title,
@@ -1004,14 +996,15 @@ const filterListings = async (req, res) => {
         rating: listing.ratings?.average || 0,
         ratingCount: listing.ratings?.count || 0,
         pricingPerEvent,
-        location: `${listing.location.city}${listing.location.region ? ", " + listing.location.region : ""
-          }`,
+        location: `${listing.location.city}${
+          listing.location.region ? ", " + listing.location.region : ""
+        }`,
         featuredImage: listing.images?.[0] || "",
         images: listing.images || [],
         category: listing.category?.name,
         subCategory: listing.subCategory?.name,
         settings,
-        paymentPolicy: sc
+        paymentPolicy: sc,
       };
     });
 
@@ -1044,342 +1037,38 @@ const filterListings = async (req, res) => {
 // @desc    Get listings, vendors, and sale items by category and subcategory
 // @route   GET /api/listings/by-category
 // @access  Public
-const getListingsAndVendorsByCategory = async (req, res) => {
+const getHomeData = async (req, res) => {
+  console.log(req?.body, "alsdbasdbjasdaksjdkasjdhkashdjahskjdhk");
+  // return;
+  const { categoryId, subCategoryId } = req.body;
+
   try {
-    const {
-      categoryId,
-      subCategoryId,
-      subcategoryId, // Alternative parameter name for compatibility
-      page = 1,
-      limit = 12,
-      includeListings = true,
-      includeVendors = true,
-      includeSaleItems = true,
-      sortBy = "createdAt",
-      sortOrder = "desc",
-    } = req.query;
+    const BookingItems = await Listing.find({
+      category: categoryId,
+      subCategory: subCategoryId,
+    });
+    const saleItems = await ServiceItem.find({
+      mainCategory: categoryId,
+      subCategory: subCategoryId,
+    });
+    const otherSaleItemms = await ServiceItem.find({
+      linkedListing: null,
+    });
+    const releventVendors = await Vendor.find({
+      mainCategories: categoryId,
+      subCategories: subCategoryId,
+    });
 
-    // Use either subCategoryId or subcategoryId (for compatibility)
-    const finalSubCategoryId = subCategoryId || subcategoryId;
-
-    // Validate input
-    if (!categoryId && !finalSubCategoryId) {
-      return res.status(400).json({
-        success: false,
-        message: "Either categoryId or subCategoryId/subcategoryId is required",
-      });
-    }
-
-    // Validate that at least one type of data is requested
-    if (
-      includeListings === "false" &&
-      includeVendors === "false" &&
-      includeSaleItems === "false"
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "At least one of includeListings, includeVendors, or includeSaleItems must be true",
-      });
-    }
-
-    // Build query object for listings
-    const listingQuery = {
-      status: "active",
-      isActive: true,
+    let data = {
+      BookingItems,
+      saleItems,
+      otherSaleItemms,
+      releventVendors,
     };
 
-    // Filter by category
-    if (categoryId) {
-      listingQuery.category = categoryId;
-    }
-
-    // Filter by subcategory
-    if (finalSubCategoryId) {
-      listingQuery.subCategory = finalSubCategoryId;
-    }
-
-    // Calculate pagination
-    const skip = (page - 1) * limit;
-
-    // Build sort object
-    const sortOptions = {};
-    if (sortBy === "rating") {
-      sortOptions["ratings.average"] = sortOrder === "desc" ? -1 : 1;
-    } else if (sortBy === "popularity") {
-      sortOptions["bookings.completed"] = sortOrder === "desc" ? -1 : 1;
-    } else {
-      sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
-    }
-
-    const results = {};
-
-    // Resolve current user id (public route: optionally from req.user or Bearer token)
-    let currentUserId = null;
-    if (req.user && (req.user.id || req.user._id)) {
-      currentUserId = req.user.id || req.user._id;
-    } else if (req.userId) {
-      currentUserId = req.userId;
-    } else {
-      const authHeader =
-        req.headers["authorization"] || req.headers["Authorization"];
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        try {
-          const token = authHeader.substring(7);
-          const decoded = verifyAccessToken(token);
-          if (decoded && decoded.id) currentUserId = decoded.id;
-        } catch (e) {
-          // ignore invalid token on public route
-        }
-      }
-    }
-
-    // Fetch cart for logged-in user (if any)
-    let cartItems = [];
-    if (currentUserId) {
-      const cartDoc = await Cart.findOne({ userId: currentUserId }).select(
-        "items"
-      );
-      if (cartDoc && Array.isArray(cartDoc.items)) {
-        cartItems = [cartDoc];
-      }
-    }
-
-    // Flatten cart items for easier consumption
-    let cartItemList = [];
-    let cartListingIdSet = new Set();
-    if (cartItems && cartItems.length > 0) {
-      cartItems.forEach((cart) => {
-        if (Array.isArray(cart.items)) {
-          cart.items.forEach((item) => {
-            // Use raw listingId for matching
-            if (item.listingId) {
-              cartListingIdSet.add(String(item.listingId));
-            }
-            cartItemList.push({
-              listingId: item.listingId?._id || item.listingId || null,
-              serviceItemId:
-                item.serviceItemId?._id || item.serviceItemId || null,
-              quantity: item.quantity || 1,
-              title: item.listingId?.title || item.serviceItemId?.title || "",
-              image:
-                item.listingId?.images?.[0] ||
-                item.serviceItemId?.images?.[0] ||
-                "",
-              price:
-                item.listingId?.pricing?.perEvent ||
-                item.serviceItemId?.sellingPrice ||
-                "",
-            });
-          });
-        }
-      });
-    }
-
-    // Fetch listings if requested
-    if (includeListings === "true" || includeListings === true) {
-      const listings = await Listing.find(listingQuery)
-        .populate(
-          "vendor",
-          "firstName lastName _id businessName businessLocation businessLogo bannerImage userId"
-        )
-        .populate("category", "name icon")
-        .populate("subCategory", "name icon")
-        .sort(sortOptions)
-        .skip(skip)
-        .limit(parseInt(limit))
-        .select("-seo -__v -contact.email -contact.phone");
-
-      // Use cartListingIdSet for quick lookup
-      console.log("Cart listing IDs:", Array.from(cartListingIdSet));
-      console.log(
-        "Listings returned:",
-        listings.map((l) => String(l._id))
-      );
-
-      // Add isFavourite boolean to each listing (compare as strings)
-      const listingsWithCartFlag = listings.map((listing) => {
-        const obj = listing.toObject();
-        obj.isFavourite = cartListingIdSet.has(String(listing._id));
-        if ("isFavorite" in obj) {
-          delete obj.isFavorite;
-        }
-        if (!obj.isFavourite) {
-          console.log(`Listing ${obj._id} is NOT in cart.`);
-        } else {
-          console.log(`Listing ${obj._id} is in cart.`);
-        }
-        return obj;
-      });
-
-      const totalListings = await Listing.countDocuments(listingQuery);
-
-      results.listings = {
-        data: listingsWithCartFlag,
-        pagination: {
-          current: parseInt(page),
-          pages: Math.ceil(totalListings / limit),
-          total: totalListings,
-          limit: parseInt(limit),
-        },
-      };
-    }
-
-    // Fetch vendors if requested
-    if (includeVendors === "true" || includeVendors === true) {
-      // Build vendor query based on their mainCategories and subCategories fields
-      const vendorQuery = {
-        isApproved: true, // Use isApproved instead of isActive for vendors
-      };
-
-      // Build query conditions
-      const queryConditions = [];
-
-      // If both category and subcategory are provided
-      if (categoryId && finalSubCategoryId) {
-        queryConditions.push({
-          $and: [
-            { mainCategories: { $in: [categoryId] } },
-            { subCategories: { $in: [finalSubCategoryId] } },
-          ],
-        });
-      }
-      // If only category is provided
-      else if (categoryId) {
-        queryConditions.push({
-          mainCategories: { $in: [categoryId] },
-        });
-      }
-      // If only subcategory is provided
-      else if (finalSubCategoryId) {
-        queryConditions.push({
-          subCategories: { $in: [finalSubCategoryId] },
-        });
-      }
-
-      // Add the conditions to the main query
-      if (queryConditions.length > 0) {
-        vendorQuery.$or = queryConditions;
-      }
-
-      console.log("Vendor Query:", JSON.stringify(vendorQuery, null, 2));
-
-      const vendorSortOptions = {};
-      vendorSortOptions[sortBy === "rating" ? "rating.average" : sortBy] =
-        sortOrder === "desc" ? -1 : 1;
-      console.log(vendorQuery, "vendorQueryvendorQueryvendorQueryvendorQuery");
-      const vendors = await Vendor.find(vendorQuery)
-        .populate("userId", "firstName lastName email profileImage")
-        .populate("mainCategories", "name icon")
-        .populate("subCategories", "name icon")
-        .sort(vendorSortOptions)
-        .skip(skip)
-        .limit(parseInt(limit))
-        .select(
-          "-__v -businessEmail -businessPhone -passportDetails -kvkNumber"
-        ); // Hide sensitive info
-
-      console.log("Found Vendors:", vendors.length);
-
-      const totalVendors = await Vendor.countDocuments(vendorQuery);
-
-      results.vendors = {
-        data: vendors,
-        pagination: {
-          current: parseInt(page),
-          pages: Math.ceil(totalVendors / limit),
-          total: totalVendors,
-          limit: parseInt(limit),
-        },
-      };
-    }
-
-    // Fetch sale items if requested
-    if (includeSaleItems === "true" || includeSaleItems === true) {
-      // Build sale items query based on mainCategory and subCategory fields
-      const saleItemsQuery = {};
-
-      // Filter by category
-      if (categoryId) {
-        saleItemsQuery.mainCategory = categoryId;
-      }
-
-      // Filter by subcategory
-      if (finalSubCategoryId) {
-        saleItemsQuery.subCategory = finalSubCategoryId;
-      }
-
-      // Build sort options for sale items
-      const saleItemsSortOptions = {};
-      if (sortBy === "price") {
-        saleItemsSortOptions["sellingPrice"] = sortOrder === "desc" ? -1 : 1;
-      } else {
-        saleItemsSortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
-      }
-
-      console.log("Sale Items Query:", JSON.stringify(saleItemsQuery, null, 2));
-
-      const saleItems = await ServiceItem.find(saleItemsQuery)
-        .populate({
-          path: "vendor",
-          select: "-password", // vendor ka sab kuch except password
-        })
-        .populate({
-          path: "linkedListing",
-          select: "title",
-        })
-        .sort(saleItemsSortOptions)
-        .skip(skip)
-        .limit(Number(limit))
-        .select("-__v");
-
-      const totalSaleItems = await ServiceItem.countDocuments(saleItemsQuery);
-
-      results.saleItems = {
-        data: saleItems,
-        pagination: {
-          current: parseInt(page),
-          pages: Math.ceil(totalSaleItems / limit),
-          total: totalSaleItems,
-          limit: parseInt(limit),
-        },
-      };
-    }
-
-    // Get category and subcategory info for context
-    const categoryInfo = categoryId
-      ? await Category.findById(categoryId).select("name icon description")
-      : "";
-    const subCategoryInfo = finalSubCategoryId
-      ? await SubCategory.findById(finalSubCategoryId)
-        .populate("mainCategory", "name")
-        .select("name icon description mainCategory")
-      : "";
-    const otherSaleItems = await Item.find({
-      mainCategory: null,
-      subCategory: null,
-    }).populate({
-      path: "vendor",
-      select: "-password", // sab kuch aayega except password
-    });
-    console.log(otherSaleItems, "otherSaleItemsotherSaleItems");
-    const settings = await Settings.findOne()
-    res.json({
-      success: true,
-      data: results,
-      cartItems: cartItemList,
-      categoryInfo,
-      subCategoryInfo,
-      otherSaleItems,
-      saleItemPlatformFees: settings.salesItemPlatformFee
-    });
+    successHelper(res, data);
   } catch (error) {
-    console.error("Error fetching listings and vendors by category:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error fetching listings and vendors by category",
-      error: error.message,
-    });
+    console.log(error, "errorerrorerrorerrorerror");
   }
 };
 
@@ -1393,5 +1082,5 @@ module.exports = {
   checkListingAvailability,
   getListingCalendar,
   filterListings,
-  getListingsAndVendorsByCategory,
+  getHomeData,
 };
