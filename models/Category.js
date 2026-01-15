@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 
 // Main Category Schema
 const categorySchema = new mongoose.Schema({
-
   name: {
     en: {
       type: String,
@@ -17,7 +16,6 @@ const categorySchema = new mongoose.Schema({
       trim: true
     }
   },
-
   icon: {
     type: String,
     validate: {
@@ -46,7 +44,6 @@ const categorySchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-
 }, { timestamps: true });
 
 // Pre-save middleware
