@@ -174,7 +174,7 @@ app.use("/api/chatrooms", require("./routes/chatRoomRoutes"));
 
 // Root
 app.get("/", (req, res) => {
-  res.send(req.t("ok"));
+  res.send(req.t("okay on production"));
 });
 
 // Error handler
