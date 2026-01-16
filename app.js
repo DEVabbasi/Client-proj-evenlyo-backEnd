@@ -64,11 +64,10 @@ const allowedOrigins = [
   "https://cp5h187s-3000.inc1.devtunnels.ms",
   "https://www.evenlyo.nl",
   "https://evenlyo.nl",
+  "https://www.vendor.evenlyo.nl",
   'https://vendor.evenlyo.nl',
   'https://admin.evenlyo.nl',
-  "https://staging.evenlyo.nl",
   "https://www.admin.evenlyo.nl",
-  "https://www.vendor.evenlyo.nl"
 ];
 
 app.use(
