@@ -18,8 +18,8 @@ exports.sendEmailToTicketUser = async (req, res) => {
         // Use nodemailer directly for custom message
         const nodemailer = require('nodemailer');
         const transporter = nodemailer.createTransport({
-            host: "smtp.zoho.eu",
-            port: 587,
+            host: process.env.EMAIL_HOST,
+            port: process.env.EMAIL_PORT,
             secure: false,
             auth: {
                 user: process.env.EMAIL_USER, // info@evenlyo.nl
