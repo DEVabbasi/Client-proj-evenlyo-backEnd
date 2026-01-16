@@ -66,8 +66,8 @@ const allowedOrigins = [
   "https://www.staging.evenlyo.nl",
   "https://staging.vendor.evenlyo.nl",
   "https://www.staging.vendor.evenlyo.nl",
-  "https://staging.admin.evenlyo.nl/",
-  "https://www.staging.admin.evenlyo.nl/",
+  "https://staging.admin.evenlyo.nl",
+  "https://www.staging.admin.evenlyo.nl",
 ];
 
 app.use(
