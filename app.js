@@ -190,25 +190,62 @@ app.use((err, req, res, next) => {
 });
 
 
-const Booking = require("./models/Booking");
+// const Admin = require("./models/AdminEmployee");
 
-async function addCreatedByIdToUsers() {
-  try {
-    const result = await Booking.updateMany(
-      {},
-      {
-        $set: {
-          orderType: "normal"
-        }
-      }
-    );
-  } catch (error) {
-    console.error("❌ Error:", error);
-    process.exit(1);
-  }
-}
+// async function createCategory({
+//   name,
+//   email,
+//   password,
+//   role,
+//   status
+// }) {
+//   try {
+//     const category = new Admin({
+//       name,
+//       email,
+//       password,
+//       role,
+//       status,
+//     });
 
-  addCreatedByIdToUsers()
+//     const savedCategory = await category.save();
+//     console.log("✅ Category created:", savedCategory);
+//     return savedCategory;
+//   } catch (err) {
+//     console.error("❌ Error creating category:", err);
+//     throw err;
+//   }
+// }
+
+// async function run() {
+//   await createCategory({
+//     name: "admin",
+//     email: "sinan.lakhani09@gmail.com",
+//     password: "$2b$10$yvm9/WNFTCGhp4LY7DmT7eblBA86kZrILaVnCnaRf/xY5qs584DBa",
+//     role: "Admin",
+//     status: "active"
+//   });
+
+//   process.exit(0);
+// }
+// // run();
+// // async function addCreatedByIdToUsers() {
+// //   try {
+// //     const result = await Booking.updateMany(
+// //       {},
+// //       {
+// //         $set: {
+// //           orderType: "normal"
+// //         }
+// //       }
+// //     );
+// //   } catch (error) {
+// //     console.error("❌ Error:", error);
+// //     process.exit(1);
+// //   }
+// // }
+
+// // addCreatedByIdToUsers()
 
 
 module.exports = app;

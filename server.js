@@ -24,6 +24,8 @@ const allowedOrigins = [
   'https://staging.evenlyo.nl',
   'https://www.evenlyo.nl',
   'https://www.staging.evenlyo.nl',
+  'https://vendor.evenlyo.nl',
+  'https://admin.evenlyo.nl'
 ];
 
 // Initialize Socket.IO
