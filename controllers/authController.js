@@ -4,7 +4,7 @@ const Vendor = require("../models/Vendor");
 const Admin = require("../models/Admin");
 const Employee = require("../models/Employee");
 const VendorDesignations = require("../models/vendorDesignations");
-const { generateAndSendOTP, verifyOTP } = require("../utils/otpUtils");
+const { generateAndSendOTP, verifyOTP, generateAndSendOTPonRegister } = require("../utils/otpUtils");
 const { auth } = require("../config/firebase");
 const { signAccessToken, signToken } = require("../utils/jwtUtils");
 const logger = require("../utils/logger");
@@ -646,7 +646,7 @@ const sendOtpForRegister = async (req, res) => {
       });
     }
 
-    await generateAndSendOTP(email);
+    await generateAndSendOTPonRegister(email);
     res.json({
       success: true,
       message: "OTP sent to email",
