@@ -8,7 +8,7 @@ const employeeSchema = new mongoose.Schema({
   password: { type: String, required: true },
   designation: { type: mongoose.Schema.Types.ObjectId, ref: 'VendorDesignation', required: true },
   vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Employee', employeeSchema);

@@ -61,6 +61,7 @@ const getAllBookingsTracking = async (req, res) => {
       return {
         id: b._id,
         trackingId: b.trackingId,
+        statusHistory:b.statusHistory,
         orderDateTime: b.createdAt, // ISO date
         buyer: {
           id: buyer._id || null,

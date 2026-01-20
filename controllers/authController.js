@@ -1368,9 +1368,12 @@ const vendorLogin = async (req, res) => {
     }
     let user = await User.findOne({ email });
     let isEmployee = false;
+    console.log(user, "useruseruseruser");
 
     if (!user) {
       user = await Employee.findOne({ email }).populate("vendor");
+      console.log(user, "USERRRR");
+
       if (!user) {
         return res.status(401).json({
           success: false,
@@ -1379,8 +1382,9 @@ const vendorLogin = async (req, res) => {
       }
       isEmployee = true;
     }
+    console.log(user.isActive, "user.statususer.status");
 
-    if (!user.status == "active") {
+    if (!user.isActive) {
       return res.status(400).json({
         success: false,
         message: "Account not active! Please contact support",
