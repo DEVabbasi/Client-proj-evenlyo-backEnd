@@ -10,8 +10,8 @@ const sendNotification = async ({ token, title, body, data = {} }) => {
     const message = {
       token,
       notification: {
-        title: title?.en,
-        body: body?.en,
+        title: title?.nl,
+        body: body?.nl,
       },
       data,
     };
