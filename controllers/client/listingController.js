@@ -30,7 +30,7 @@ const getListingCalendar = async (req, res) => {
       listingId: id,
       status: { $nin: ["rejected", "cancelled"] },
     }).select(
-      "details.startDate details.endDate details.startTime details.endTime"
+      "details.startDate details.endDate details.startTime details.endTime",
     );
 
     // Collect all booked date ranges with time
@@ -55,8 +55,8 @@ const getListingCalendar = async (req, res) => {
         bookedSlots.map((slot) => [
           slot.date + slot.startTime + slot.endTime,
           slot,
-        ])
-      ).values()
+        ]),
+      ).values(),
     );
 
     // Prepare available days with time slots
@@ -147,7 +147,7 @@ const getListings = async (req, res) => {
         priceQuery.$or.push(
           { "pricing.perHour": { $gte: parseFloat(minPrice) } },
           { "pricing.perDay": { $gte: parseFloat(minPrice) } },
-          { "pricing.perEvent": { $gte: parseFloat(minPrice) } }
+          { "pricing.perEvent": { $gte: parseFloat(minPrice) } },
         );
       }
 
@@ -155,7 +155,7 @@ const getListings = async (req, res) => {
         priceQuery.$or.push(
           { "pricing.perHour": { $lte: parseFloat(maxPrice) } },
           { "pricing.perDay": { $lte: parseFloat(maxPrice) } },
-          { "pricing.perEvent": { $lte: parseFloat(maxPrice) } }
+          { "pricing.perEvent": { $lte: parseFloat(maxPrice) } },
         );
       }
 
@@ -202,7 +202,7 @@ const getListings = async (req, res) => {
       .populate("category", "name icon")
       .populate(
         "subCategory",
-        "name icon escrowEnabled upfrontFeePercent upfrontHour evenlyoProtectFeePercent"
+        "name icon escrowEnabled upfrontFeePercent upfrontHour evenlyoProtectFeePercent",
       )
       .sort(sortOptions)
       .skip(skip)
@@ -250,12 +250,12 @@ const getListingById = async (req, res) => {
     const listing = await Listing.findById(req.params.id)
       .populate(
         "vendor",
-        "_id email contactNumber firstName lastName accountType address"
+        "_id email contactNumber firstName lastName accountType address",
       )
       .populate("category", "name icon description")
       .populate(
         "subCategory",
-        "name icon description isUpfrontEnabled upfrontFeePercent escrowHours isEvenlyoProtectEnabled evenlyoProtectFeePercent"
+        "name icon description isUpfrontEnabled upfrontFeePercent escrowHours isEvenlyoProtectEnabled evenlyoProtectFeePercent",
       )
       .populate("reviews.clientId", "firstName lastName profileImage");
     console.log(listing, "listinglistinglisting");
@@ -812,7 +812,7 @@ const checkListingAvailability = async (req, res) => {
         },
       ],
     }).select(
-      "details.startDate details.endDate status trackingId details.duration"
+      "details.startDate details.endDate status trackingId details.duration",
     );
 
     const isAvailable = overlappingBookings.length === 0;
@@ -964,7 +964,7 @@ const filterListings = async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit))
       .select(
-        "title description pricing location ratings images media.featuredImage"
+        "title description pricing location ratings images media.featuredImage",
       );
 
     // Get total count for pagination
@@ -1038,8 +1038,6 @@ const filterListings = async (req, res) => {
 // @route   GET /api/listings/by-category
 // @access  Public
 const getHomeData = async (req, res) => {
-  console.log(req?.body, "alsdbasdbjasdaksjdkasjdhkashdjahskjdhk");
-  // return;
   const { categoryId, subCategoryId } = req.body;
 
   try {
@@ -1047,13 +1045,22 @@ const getHomeData = async (req, res) => {
       category: categoryId,
       subCategory: subCategoryId,
     });
+
     const saleItems = await ServiceItem.find({
       mainCategory: categoryId,
       subCategory: subCategoryId,
+    }).populate({
+      path: "vendor",
+      // select: "firstName lastName deliveryCharges email isActive contactNumber",
     });
+
     const otherSaleItemms = await ServiceItem.find({
       linkedListing: null,
+    }).populate({
+      path: "vendor",
+      // select: "firstName lastName deliveryCharges email isActive contactNumber",
     });
+
     const releventVendors = await Vendor.find({
       mainCategories: categoryId,
       subCategories: subCategoryId,
@@ -1069,6 +1076,7 @@ const getHomeData = async (req, res) => {
     successHelper(res, data);
   } catch (error) {
     console.log(error, "errorerrorerrorerrorerror");
+    res.status(500).json({ message: "Server error" });
   }
 };
 

@@ -17,13 +17,13 @@ require("dotenv").config();
 connectDB();
 
 mongoose.connection.on("connected", () =>
-  logger.info("Mongoose connected to database")
+  logger.info("Mongoose connected to database"),
 );
 mongoose.connection.on("disconnected", () =>
-  logger.warn("Mongoose disconnected from database")
+  logger.warn("Mongoose disconnected from database"),
 );
 mongoose.connection.on("error", (err) =>
-  logger.error("Mongoose connection error:", err)
+  logger.error("Mongoose connection error:", err),
 );
 
 const app = express();
@@ -65,8 +65,8 @@ const allowedOrigins = [
   "https://www.evenlyo.nl",
   "https://evenlyo.nl",
   "https://www.vendor.evenlyo.nl",
-  'https://vendor.evenlyo.nl',
-  'https://admin.evenlyo.nl',
+  "https://vendor.evenlyo.nl",
+  "https://admin.evenlyo.nl",
   "https://www.admin.evenlyo.nl",
 ];
 
@@ -74,7 +74,11 @@ app.use(
   cors({
     origin: function (origin, callback) {
       // allow requests with no origin (like mobile apps, Postman)
-      if (!origin || allowedOrigins.includes(origin) || origin.endsWith("vercel.app")) {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        origin.endsWith("vercel.app")
+      ) {
         return callback(null, true);
       } else {
         return callback(new Error("Not allowed by CORS"));
@@ -82,8 +86,13 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-  })
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+    ],
+  }),
 );
 
 // ==========================
@@ -96,7 +105,7 @@ app.use(
     stream: {
       write: (message) => logger.info(message.trim()),
     },
-  })
+  }),
 );
 
 // Custom request logging
@@ -112,7 +121,7 @@ app.use(
         req.rawBody = buf;
       }
     },
-  })
+  }),
 );
 app.use(cookieParser());
 app.use(i18nextMiddleware.handle(i18next));
@@ -192,7 +201,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-
 // const Admin = require("./models/AdminEmployee");
 
 // async function createCategory({
@@ -249,6 +257,5 @@ app.use((err, req, res, next) => {
 // // }
 
 // // addCreatedByIdToUsers()
-
 
 module.exports = app;

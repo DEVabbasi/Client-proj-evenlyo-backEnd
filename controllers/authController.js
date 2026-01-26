@@ -4,7 +4,11 @@ const Vendor = require("../models/Vendor");
 const Admin = require("../models/Admin");
 const Employee = require("../models/Employee");
 const VendorDesignations = require("../models/vendorDesignations");
-const { generateAndSendOTP, verifyOTP, generateAndSendOTPonRegister } = require("../utils/otpUtils");
+const {
+  generateAndSendOTP,
+  verifyOTP,
+  generateAndSendOTPonRegister,
+} = require("../utils/otpUtils");
 const { auth } = require("../config/firebase");
 const { signAccessToken, signToken } = require("../utils/jwtUtils");
 const logger = require("../utils/logger");
@@ -26,7 +30,7 @@ const getModelByUserType = (userType) => {
 // --- Client Login ---
 const clientLogin = async (req, res) => {
   try {
-    const { email, password, provider } = req.body;
+    const { email, password, provider, fcm } = req.body;
 
     if (!email) {
       return res.status(400).json({
@@ -35,7 +39,7 @@ const clientLogin = async (req, res) => {
       });
     }
 
-    // Find admin
+    // Find user
     const user = await User.findOne({ email, isActive: true });
     if (!user) {
       return res.status(401).json({
@@ -54,24 +58,29 @@ const clientLogin = async (req, res) => {
         });
       }
 
-      // ✅ Google login success
+      // Update FCM token if provided
+      if (fcm) {
+        user.fcm = fcm;
+        await user.save();
+      }
+
       const token = signToken({
         id: user._id,
         name: user.name,
       });
-      console.log(user, "useruseruseruseruser");
 
       return res.json({
         success: true,
         message: "Google login successful",
         token,
-        admin: {
+        user: {
           id: user._id,
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
           profileImage: user.profileImage,
-          role: "client",
+          userType: "client",
+          fcm: user.fcm || null,
         },
       });
     }
@@ -101,11 +110,16 @@ const clientLogin = async (req, res) => {
       });
     }
 
+    // Update FCM token if provided
+    if (fcm) {
+      user.fcm = fcm;
+      await user.save();
+    }
+
     const token = signToken({
       id: user._id,
       name: user.name,
     });
-    console.log(user, "useruseruseruseruser");
 
     return res.json({
       success: true,
@@ -118,10 +132,168 @@ const clientLogin = async (req, res) => {
         email: user.email,
         profileImage: user.profileImage,
         userType: "client",
+        fcm: user.fcm || null,
       },
     });
   } catch (err) {
-    console.error("Admin Login Error:", err);
+    console.error("Client Login Error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+// --- Vendor Login ---
+const vendorLogin = async (req, res) => {
+  try {
+    const { email, password, provider, fcm } = req.body; // fcm added
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    let user = await User.findOne({ email });
+    let isEmployee = false;
+    console.log(user, "useruseruseruser");
+
+    if (!user) {
+      user = await Employee.findOne({ email }).populate("vendor");
+      console.log(user, "USERRRR");
+
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "Account not found",
+        });
+      }
+      isEmployee = true;
+    }
+
+    if (!user.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: "Account not active! Please contact support",
+      });
+    }
+
+    // --- GOOGLE LOGIN ---
+    if (provider === "google") {
+      if (user.provider && user.provider !== "google") {
+        return res.status(403).json({
+          success: false,
+          message:
+            "This email is registered with password. Please login using email/password.",
+        });
+      }
+
+      // Update FCM token if provided
+      if (fcm) {
+        user.fcm = fcm;
+        await user.save();
+      }
+
+      const token = signToken({
+        id: user.createdById != null ? user.createdById : user._id,
+        name: user.name,
+      });
+
+      const responseUser = {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        profileImage: user.profileImage,
+        userType: "customer",
+        vendorId: isEmployee ? user.vendorId?._id : null,
+        fcm: user.fcm || null,
+      };
+
+      return res.json({
+        success: true,
+        message: "Google login successful",
+        token,
+        user: responseUser,
+      });
+    }
+
+    // --- EMAIL LOGIN ---
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: "Password is required for email login",
+      });
+    }
+
+    if (user.provider === "google") {
+      return res.status(403).json({
+        success: false,
+        message:
+          "This account was created with Google. Please login using Google.",
+      });
+    }
+
+    // Compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    // Update FCM token if provided
+    if (fcm) {
+      user.fcm = fcm;
+      await user.save();
+    }
+
+    let pages = [];
+    let vendorId = null;
+    const vendor = await Vendor.findOne({ userId: user._id }).populate(
+      "userId",
+      "-password",
+    );
+    vendorId = vendor?._id;
+
+    const designation = await VendorDesignations.findOne({
+      vendorId: isEmployee ? user.vendor.id : user.createdById,
+    });
+    pages = designation?.permissions?.map((p) => p.module) || [];
+
+    const token = signToken({
+      id: isEmployee ? user.vendor.id : user._id,
+      name: user.name,
+    });
+
+    const vendorDetails = await Vendor.findOne({ userId: user._id });
+
+    const responseUser = {
+      id: isEmployee ? user.vendor.id : user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      profileImage: user.profileImage,
+      userType: "vendor",
+      vendorId,
+      vendorDetails,
+      fcm: user.fcm || null, // Include FCM token in response
+    };
+
+    if (pages.length > 0) {
+      responseUser.pages = pages;
+    }
+
+    return res.json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: responseUser,
+    });
+  } catch (err) {
+    console.error("Vendor Login Error:", err);
     res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -530,9 +702,8 @@ const getCurrentUser = async (req, res) => {
         base._isEmployeeLogin === true
       ) {
         const Employee = require("../models/Employee");
-        const employee = await Employee.findById(id).populate(
-          "designation vendor"
-        );
+        const employee =
+          await Employee.findById(id).populate("designation vendor");
         if (!employee)
           return res
             .status(404)
@@ -556,7 +727,7 @@ const getCurrentUser = async (req, res) => {
       } else {
         const vendor = await Vendor.findOne({ userId: id }).populate(
           "userId",
-          "-password"
+          "-password",
         );
         if (!vendor)
           return res
@@ -595,7 +766,7 @@ const getCurrentUser = async (req, res) => {
       } else {
         const admin = await Admin.findOne({ userId: id }).populate(
           "userId",
-          "-password"
+          "-password",
         );
         if (!admin)
           return res
@@ -760,7 +931,7 @@ const verifyOtpAndRegister = async (req, res, userType = "client") => {
     } catch (e) {
       console.error(
         "Failed to create admin notification for new client registration:",
-        e
+        e,
       );
     }
 
@@ -846,6 +1017,7 @@ const {
   signPasswordResetToken,
   verifyPasswordResetToken,
 } = require("../utils/jwtUtils");
+const { log } = require("winston");
 
 const verifyOtpForForgotPassword = async (req, res) => {
   try {
@@ -1334,13 +1506,14 @@ const registerVendor = async (req, res) => {
     try {
       const notificationController = require("./notificationController");
       await notificationController.createAdminNotification({
-        message: `A new vendor has registered: ${accountType === "personal" ? firstName + " " + lastName : businessName
-          }`,
+        message: `A new vendor has registered: ${
+          accountType === "personal" ? firstName + " " + lastName : businessName
+        }`,
       });
     } catch (e) {
       console.error(
         "Failed to create admin notification for new vendor registration:",
-        e
+        e,
       );
     }
 
@@ -1353,149 +1526,6 @@ const registerVendor = async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Server error", error: err.message });
-  }
-};
-
-// --- Vendor Login ---
-const vendorLogin = async (req, res) => {
-  try {
-    const { email, password, provider } = req.body;
-    if (!email) {
-      return res.status(400).json({
-        success: false,
-        message: "Email is required",
-      });
-    }
-    let user = await User.findOne({ email });
-    let isEmployee = false;
-    console.log(user, "useruseruseruser");
-
-    if (!user) {
-      user = await Employee.findOne({ email }).populate("vendor");
-      console.log(user, "USERRRR");
-
-      if (!user) {
-        return res.status(401).json({
-          success: false,
-          message: "Account not found",
-        });
-      }
-      isEmployee = true;
-    }
-    console.log(user.isActive, "user.statususer.status");
-
-    if (!user.isActive) {
-      return res.status(400).json({
-        success: false,
-        message: "Account not active! Please contact support",
-      });
-    }
-
-    // --- GOOGLE LOGIN ---
-    if (provider === "google") {
-      if (user.provider && user.provider !== "google") {
-        return res.status(403).json({
-          success: false,
-          message:
-            "This email is registered with password. Please login using email/password.",
-        });
-      }
-
-      const token = signToken({
-        id: user.createdById != null ? user.createdById : user._id,
-        name: user.name,
-      });
-      const responseUser = {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        profileImage: user.profileImage,
-        userType: "customer",
-        vendorId: isEmployee ? user.vendorId?._id : null,
-      };
-
-      return res.json({
-        success: true,
-        message: "Google login successful",
-        token,
-        user: responseUser,
-      });
-    }
-
-    // --- EMAIL LOGIN ---
-    if (!password) {
-      return res.status(400).json({
-        success: false,
-        message: "Password is required for email login",
-      });
-    }
-
-    if (user.provider === "google") {
-      return res.status(403).json({
-        success: false,
-        message:
-          "This account was created with Google. Please login using Google.",
-      });
-    }
-
-    // Compare password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
-    }
-
-    // If it's a regular User, fetch vendor and permissions
-    let pages = [];
-    let vendorId = null;
-    const vendor = await Vendor.findOne({ userId: user._id }).populate(
-      "userId",
-      "-password"
-    );
-    vendorId = vendor?._id;
-    console.log(user, "useruseruseruser");
-    const designation = await VendorDesignations.findOne({
-      vendorId: isEmployee ? user.vendor.id : user.createdById,
-    });
-    pages = designation?.permissions?.map((p) => p.module) || [];
-    console.log(user, "useruseruseruser");
-    const token = signToken({
-      id: isEmployee ? user.vendor.id : user._id,
-      name: user.name,
-    });
-
-    const vendorDetails = await Vendor.findOne({ userId: user._id });
-
-    const responseUser = {
-      id: isEmployee ? user.vendor.id : user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      profileImage: user.profileImage,
-      userType: "vendor",
-      vendorId,
-      vendorDetails
-    };
-
-    if (pages.length > 0) {
-      responseUser.pages = pages;
-    }
-
-    return res.json({
-      success: true,
-      message: "Login successful",
-      token,
-      user: responseUser,
-    });
-  } catch (err) {
-    console.error("Vendor Login Error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
   }
 };
 
@@ -1587,7 +1617,7 @@ const registerVendor2 = async (req, res) => {
       tagline,
       description,
       postalCode,
-      city
+      city,
     } = req.body;
 
     // ✅ Basic Validation
@@ -1622,7 +1652,6 @@ const registerVendor2 = async (req, res) => {
       subCategories,
     ];
 
-
     // ✅ Choose email
     const registrationEmail =
       accountType === "business" ? businessEmail : email;
@@ -1656,7 +1685,7 @@ const registerVendor2 = async (req, res) => {
       tagline: toMultilingualText(tagline),
       description: toMultilingualText(description),
       postalCode,
-      city
+      city,
     });
 
     // ✅ Vendor Data

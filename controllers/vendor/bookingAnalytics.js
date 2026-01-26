@@ -12,6 +12,7 @@ const {
 } = require("../../utils/bookingUtils");
 const { createActivityLog } = require("../../utils/activityLogger");
 const stripe = require("../../config/stripe");
+const { default: mongoose } = require("mongoose");
 // GET /api/vendor/bookings/analytics
 const getVendorBookingAnalytics = async (req, res) => {
   console.log("HAHAHAHHA");
@@ -43,7 +44,6 @@ const getVendorBookingAnalytics = async (req, res) => {
             "details status trackingId userId listingId description eventLocation createdAt statusHistory listingDetails"
           ),
       ]);
-    console.log(bookings, "bookingsbookingsbookingsbookingsbookings");
 
     // Get unique listing IDs
     const listingIds = [
@@ -86,6 +86,58 @@ const getVendorBookingAnalytics = async (req, res) => {
       .json({ success: false, message: "Server error", error: err.message });
   }
 };
+
+const getVendorBookingById = async (req, res) => {
+  try {
+    const vendorId = req.user?.id;
+    const { bookingId } = req.params;
+    console.log(bookingId, "bookingIdbookingIdbookingIdbookingId12323");
+
+    if (!vendorId) {
+      return res.status(400).json({
+        success: false,
+        message: "Vendor not found in request",
+      });
+    }
+
+    if (!bookingId || !mongoose.Types.ObjectId.isValid(bookingId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid bookingId",
+      });
+    }
+
+    const booking = await Booking.findOne({
+      _id: bookingId,
+      vendorId: vendorId,
+    })
+      .populate("userId", "firstName lastName email phone")
+      .populate("listingId")
+      .populate("vendorId", "firstName lastName email")
+      .lean();
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found for this vendor",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Booking details fetched successfully",
+      data: booking,
+    });
+  } catch (error) {
+    console.error("Get vendor booking by ID error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
 // @desc    Accept booking request
 // @route   POST /api/booking/:id/accept
 // @access  Private (Vendor)
@@ -547,4 +599,5 @@ module.exports = {
   createPaymentIntent,
   paymentConfirmation,
   getAmountToPay,
+  getVendorBookingById,
 };
