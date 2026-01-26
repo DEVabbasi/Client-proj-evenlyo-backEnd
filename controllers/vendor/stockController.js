@@ -14,7 +14,7 @@ function getListingName(listing) {
 exports.createStockEvent = async (req, res) => {
   try {
     const { listingId, type, quantity, note, itemType } = req.body;
-    if (!['checkin', 'checkout', 'missing', 'stockin'].includes(type)) {
+    if (!['checkin', 'checkout', 'missing', 'stockin','stockout'].includes(type)) {
       return res.status(400).json({ error: 'Invalid stock event type.' });
     }
     const listing = await Listing.findById(listingId);
@@ -28,6 +28,10 @@ exports.createStockEvent = async (req, res) => {
     // For checkin, increase quantity
     if (type === 'checkin') {
       listing.quantity += quantity;
+      await listing.save();
+    }
+    if (type === 'stockout') {
+      listing.quantity -= quantity;
       await listing.save();
     }
     // For checkout or missing, decrease quantity
@@ -56,7 +60,7 @@ exports.createStockEvent = async (req, res) => {
 exports.getStockTable = async (req, res) => {
   try {
     const { type } = req.params;
-    if (!['checkin', 'checkout', 'missing', 'stockin'].includes(type)) {
+    if (!['checkin', 'checkout', 'missing', 'stockin','stockout'].includes(type)) {
       return res.status(400).json({ error: 'Invalid stock event type.' });
     }
     const vendorId = req.user.id || null;
@@ -117,6 +121,14 @@ exports.getStockTable = async (req, res) => {
           ListingID: listingId,
           Name: name,
           'In Stock (Quantity)': log.quantity
+        };
+      }
+      else if (type === 'stockout') {
+        return {
+          SNo: idx + 1,
+          ListingID: listingId,
+          Name: name,
+          'Out Stock (Quantity)': log.quantity
         };
       }
     });

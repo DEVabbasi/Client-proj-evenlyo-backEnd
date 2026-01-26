@@ -68,7 +68,6 @@ const getVendorBookingAnalytics = async (req, res) => {
       createdAt: b.createdAt,
       listingDetails: bookings[0]?.listingDetails,
     }));
-
     res.json({
       success: true,
       stats: {

@@ -8,7 +8,7 @@ const stockLogSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['checkin', 'checkout', 'missing', 'stockin'],
+    enum: ['checkin', 'checkout', 'missing', 'stockin','stockout'],
     required: true
   },
   quantity: {
