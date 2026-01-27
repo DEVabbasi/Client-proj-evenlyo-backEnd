@@ -322,8 +322,9 @@ const markBookingCompleted = asyncHandler(async (req, res) => {
       message: "Booking not found or not eligible for this action",
     });
   }
-
+  console.log(booking, "bookingbookingbooking");
   booking.status = "completed";
+  // return res.status(200).json({ success: true, message: "Booking marked as complete", data: { booking } });
 
   // Atomically increment listing quantity by 1 (item returned to stock)
   try {
@@ -332,6 +333,7 @@ const markBookingCompleted = asyncHandler(async (req, res) => {
       { $inc: { quantity: 1 } },
       { new: true }
     );
+    console.log(updatedListing, "updatedListingupdatedListing");
     if (updatedListing) {
       // Log check-in
       try {

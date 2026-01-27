@@ -14,7 +14,7 @@ function getListingName(listing) {
 exports.createStockEvent = async (req, res) => {
   try {
     const { listingId, type, quantity, note, itemType } = req.body;
-    if (!['checkin', 'checkout', 'missing', 'stockin','stockout'].includes(type)) {
+    if (!['checkin', 'checkout', 'missing', 'stockin', 'stockout'].includes(type)) {
       return res.status(400).json({ error: 'Invalid stock event type.' });
     }
     const listing = await Listing.findById(listingId);
@@ -60,7 +60,7 @@ exports.createStockEvent = async (req, res) => {
 exports.getStockTable = async (req, res) => {
   try {
     const { type } = req.params;
-    if (!['checkin', 'checkout', 'missing', 'stockin','stockout'].includes(type)) {
+    if (!['checkin', 'checkout', 'missing', 'stockin', 'stockout'].includes(type)) {
       return res.status(400).json({ error: 'Invalid stock event type.' });
     }
     const vendorId = req.user.id || null;
@@ -77,7 +77,7 @@ exports.getStockTable = async (req, res) => {
       return res.json({ table });
     }
 
-    let logs = await StockLog.find({ type }).populate('listing');
+    let logs = await StockLog.find({ type }).populate('listing').sort({ createdAt: -1 });
     // If vendor context, keep only logs for this vendor's listings
     if (vendorId) {
       logs = logs.filter((log) => log.listing && String(log.listing.vendor) === String(vendorId));
