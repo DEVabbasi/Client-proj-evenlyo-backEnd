@@ -123,7 +123,7 @@ const markBookingOnTheWay = asyncHandler(async (req, res) => {
 // @route   POST /api/booking/:id/mark-picked-up
 // @access  Private (Vendor)
 const markBookingPickedUp = asyncHandler(async (req, res) => {
-  const { condition, securityFee, claimAmount } = req.body;
+  const { claimedBy, condition, securityFee, claimAmount, reason } = req.body;
   // condition: 'Good', 'Fair', 'Claim'
   // securityFee: number (required for Fair/Claim)
   // claimAmount: number (required for Claim)
@@ -180,11 +180,11 @@ const markBookingPickedUp = asyncHandler(async (req, res) => {
     // Store in claimDetails for admin review
     booking.claimDetails = {
       reason: "Redelijke staat - aftrek van borg",
-      claimedBy: "vendor",
+      claimedBy: claimedBy,
       claimedAt: new Date(),
       status: "pending",
       amount: parsedSecurityFee,
-      stockUpdated: false
+      stockUpdated: false,
     };
     // await notificationController.createNotification({
     //   notificationFor: "Admin",
@@ -214,14 +214,14 @@ const markBookingPickedUp = asyncHandler(async (req, res) => {
     //     : 0;
     // booking.pricing.securityFee = safeSecurityFee;
     booking.claimDetails = {
-      reason: "Claim aangevraagd door leverancier",
+      reason: reason,
       claimedBy: "vendor",
       claimedAt: new Date(),
       status: "pending",
       amount: parsedClaimAmount,
-      stockUpdated: false
+      stockUpdated: false,
     };
-    // Send request/notification to admin for claim approval
+
     try {
       await notificationController.createNotification({
         title: {

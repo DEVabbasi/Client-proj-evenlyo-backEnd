@@ -1127,7 +1127,6 @@ const createClaim = asyncHandler(async (req, res) => {
   //   message: "TEST",
   //   data: { booking },
   // });
-
   if (!booking) {
     return res.status(404).json({
       success: false,
@@ -1138,10 +1137,10 @@ const createClaim = asyncHandler(async (req, res) => {
   booking.status = "claim";
   booking.claimDetails = {
     reason: reason,
-    claimType: claimType,
     claimedBy: "client",
     claimedAt: new Date(),
     status: "pending",
+    claimType
   };
 
   await booking.save();
@@ -1150,7 +1149,7 @@ const createClaim = asyncHandler(async (req, res) => {
     userEmail: req.user.email,
     userId: req.user.id,
     issueRelatedto: "booking",
-    details: reason
+    details: reason,
   });
 
   await notificationController.createNotification({

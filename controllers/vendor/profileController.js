@@ -90,8 +90,8 @@ const getProfile = async (req, res) => {
 // Update vendor profile (fields depend on account type)
 const updateProfile = async (req, res) => {
   try {
-    const updatedData = await Vendor.findOneAndUpdate(
-      { userId: req.user.id },
+    const updatedData = await User.findOneAndUpdate(
+      { _id: req.user.id },
       req.body,
       {
         new: true,

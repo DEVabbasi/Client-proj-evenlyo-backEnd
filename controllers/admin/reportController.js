@@ -282,12 +282,9 @@ exports.getStatsCard = async (req, res) => {
         const chartData = await getMonthlyPlatformEarnings();
         const pieChartData = await getCategoryChartData();
 
-        const allBookings = await Booking.find()
-
+        const allBookings = await Booking.find().sort({ createdAt: -1 })
         const allSale = await SaleItemPurchase.aggregate([
-            
             { $unwind: "$items" },
-
             // Convert itemId to ObjectId
             {
                 $addFields: {
@@ -330,7 +327,7 @@ exports.getStatsCard = async (req, res) => {
                     items: {
                         $push: {
                             itemId: "$items.itemId",
-                             itemName: "$itemData.title",
+                            itemName: "$itemData.title",
                             quantity: "$items.quantity",
                             purchasePrice: "$itemData.purchasePrice",
                             sellingPrice: "$itemData.sellingPrice",

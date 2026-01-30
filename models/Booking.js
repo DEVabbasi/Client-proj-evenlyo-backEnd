@@ -244,6 +244,9 @@ const bookingRequestSchema = new mongoose.Schema(
         type: String,
         enum: ["client", "vendor"],
       },
+      claimType: {
+        type: String,
+      },
       claimedAt: Date,
       status: {
         type: String,

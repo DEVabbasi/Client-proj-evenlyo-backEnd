@@ -137,7 +137,7 @@ const getAllRoleUsers = async (req, res) => {
 			password: '********', // never return real password
 			designation: e.designation ? e.designation.name : null,
 			designationID: e.designation ? e.designation._id : null,
-			status: e.status,
+			status: e.isActive ? 'active' : 'inactive',
 			createdAt: e.createdAt
 		}));
 		res.json({ employees: result });
@@ -214,12 +214,12 @@ const editDesignation = async (req, res) => {
 const editRoleUser = async (req, res) => {
 	try {
 		const vendorId = req.user && req.user.id;
-		console.log(req.user, vendorId, "vendorIdvendorIdvendorId");
+		console.log(req.body, req.user, vendorId, "vendorIdvendorIdvendorId");
 
 		if (!vendorId) return res.status(401).json({ error: 'Unauthorized: vendor authentication required' });
 
 		const { employeeId } = req.params;
-		const { firstName, lastName, email, contactNumber, password, designationId, status } = req.body;
+		const { firstName, lastName, email, contactNumber, password, designationId, isActive } = req.body;
 		if (!employeeId) return res.status(400).json({ error: 'employeeId is required' });
 
 		const update = {};
@@ -228,13 +228,14 @@ const editRoleUser = async (req, res) => {
 		if (email) update.email = email;
 		if (contactNumber) update.contactNumber = contactNumber;
 		if (designationId) update.designation = designationId;
-		if (status) update.status = status;
+		if (isActive != null) update.isActive = isActive;
 
 		if (password) {
 			const hashedPassword = await bcrypt.hash(password, 10);
 			update.password = hashedPassword;
 		}
 
+		console.log(update, "updateupdateupdateupdate");
 		const employee = await Employee.findOneAndUpdate(
 			{ _id: employeeId, vendor: vendorId },
 			{ $set: update },
