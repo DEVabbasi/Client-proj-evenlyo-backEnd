@@ -405,7 +405,7 @@ bookingRequestSchema.pre("save", function (next) {
     }
   }
 
-  // Add status to history if status changed
+  // Add status to history if statuss changed
   if (this.isModified("status") && !this.isNew) {
     this.statusHistory.push({
       status: this.status,

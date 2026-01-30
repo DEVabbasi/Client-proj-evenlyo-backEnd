@@ -14,6 +14,36 @@ const SaleOrderPurchase = new mongoose.Schema(
         totalAmount: { type: Number, required: true },
         deliveryAmount: { type: Number, required: true },
         platformFee: { type: Number, required: true },
+        statusHistory: [
+            {
+                status: {
+                    type: String,
+                    required: true,
+                },
+                timestamp: {
+                    type: Date,
+                    default: Date.now,
+                },
+                updatedBy: {
+                    userId: {
+                        type: mongoose.Schema.Types.ObjectId,
+                        ref: "User",
+                    },
+                    userType: String,
+                    name: String,
+                },
+                notes: {
+                    en: {
+                        type: String,
+                        trim: true,
+                    },
+                    nl: {
+                        type: String,
+                        trim: true,
+                    },
+                },
+            },
+        ],
         itemLocation: {
             type: {
                 fullAddress: String,
@@ -30,6 +60,7 @@ const SaleOrderPurchase = new mongoose.Schema(
                 }
             }
         },
+
         deliveryLocation: {
             type: {
                 fullAddress: String,
