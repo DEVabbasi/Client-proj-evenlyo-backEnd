@@ -1,16 +1,24 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { getNotifications, markAsRead, markAllAsRead } = require('../controllers/notificationController');
-const { requireAuth } = require('../middleware/authMiddleware');
+const BookingRequest = require("../models/Booking");
+const {
+  getNotifications,
+  markAsRead,
+  markAllAsRead,
+} = require("../controllers/notificationController");
+const { requireAuth } = require("../middleware/authMiddleware");
 
 // Get all notifications for the logged-in user
-const Vendor = require('../models/Vendor');
-const Notification = require('../models/Notification');
+const Vendor = require("../models/Vendor");
+const Notification = require("../models/Notification");
+const { default: mongoose } = require("mongoose");
 
-router.get('/', requireAuth, async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   console.log(req.user.id, " req.user.id req.user.id");
 
-  const notifications = await Notification.find({ clientId: req.user.id }).sort({ createdAt: -1 });
+  const notifications = await Notification.find({ clientId: req.user.id }).sort(
+    { createdAt: -1 },
+  );
   // let userIdToQuery = req.user.id;
   // console.log(userIdToQuery,"userIdToQueryuserIdToQuery");
 
@@ -25,41 +33,71 @@ router.get('/', requireAuth, async (req, res) => {
   res.json({ success: true, data: notifications });
 });
 
-router.get('/admin-notifications', async (req, res) => {
+router.get("/admin-notifications", async (req, res) => {
   try {
-    const notifications = await Notification.find({ notificationFor: "Admin" }).sort({ createdAt: -1 })
+    const notifications = await Notification.find({
+      notificationFor: "Admin",
+    }).sort({ createdAt: -1 });
     res.json({ success: true, data: notifications });
-
   } catch (error) {
-    res.send(error)
+    res.send(error);
   }
 });
 
-router.get('/vendor-notifications', requireAuth, async (req, res) => {
-  console.log(req.user, "HAHAHAAHAH");
+router.get("/vendor-notifications", requireAuth, async (req, res) => {
   try {
-    const notifications = await Notification.find({ notificationFor: "Vendor", vendorId: req.user.id }).sort({ createdAt: -1 })
-    res.json({ success: true, data: notifications });
+    const notifications = await Notification.find({
+      notificationFor: "Vendor",
+      vendorId: req.user.id,
+    }).sort({ createdAt: -1 });
 
+    const finalNotifications = await Promise.all(
+      notifications.map(async (notification) => {
+        let trackingId = null;
+
+        if (notification.bookingId) {
+          const booking = await BookingRequest.findById(
+            notification.bookingId,
+          ).select("trackingId");
+
+          trackingId = booking?.trackingId || null;
+        }
+
+        return {
+          ...notification.toObject(),
+          trackingId,
+        };
+      }),
+    );
+
+    res.json({ success: true, data: finalNotifications });
   } catch (error) {
-    res.send(error)
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
 // Mark a notification as read
-router.patch('/:id/client-read', requireAuth, async (req, res) => {
-  const notification = await Notification.findByIdAndUpdate(req.params.id, { isClientRead: true }, { new: true });
+router.patch("/:id/client-read", requireAuth, async (req, res) => {
+  const notification = await Notification.findByIdAndUpdate(
+    req.params.id,
+    { isClientRead: true },
+    { new: true },
+  );
   res.json({ success: true, data: notification });
 });
-router.patch('/:id/read', requireAuth, async (req, res) => {
-  const notification = await Notification.findByIdAndUpdate(req.params.id, { isRead: true }, { new: true });
+router.patch("/:id/read", requireAuth, async (req, res) => {
+  const notification = await Notification.findByIdAndUpdate(
+    req.params.id,
+    { isRead: true },
+    { new: true },
+  );
   res.json({ success: true, data: notification });
 });
 
 // Mark all notifications as read
-router.patch('/read-all', async (req, res) => {
+router.patch("/read-all", async (req, res) => {
   await markAllAsRead();
-  res.json({ success: true, message: 'All notifications marked as read' });
+  res.json({ success: true, message: "All notifications marked as read" });
 });
 
 module.exports = router;
