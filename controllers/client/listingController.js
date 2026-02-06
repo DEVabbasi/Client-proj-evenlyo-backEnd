@@ -996,9 +996,8 @@ const filterListings = async (req, res) => {
         rating: listing.ratings?.average || 0,
         ratingCount: listing.ratings?.count || 0,
         pricingPerEvent,
-        location: `${listing.location.city}${
-          listing.location.region ? ", " + listing.location.region : ""
-        }`,
+        location: `${listing.location.city}${listing.location.region ? ", " + listing.location.region : ""
+          }`,
         featuredImage: listing.images?.[0] || "",
         images: listing.images || [],
         category: listing.category?.name,
@@ -1037,38 +1036,134 @@ const filterListings = async (req, res) => {
 // @desc    Get listings, vendors, and sale items by category and subcategory
 // @route   GET /api/listings/by-category
 // @access  Public
-const getHomeData = async (req, res) => {
-  console.log(req?.body, "alsdbasdbjasdaksjdkasjdhkashdjahskjdhk");
-  // return;
-  const { categoryId, subCategoryId } = req.body;
 
+const getSubCategoryByName = async (req, res) => {
   try {
-    const BookingItems = await Listing.find({
-      category: categoryId,
-      subCategory: subCategoryId,
-    });
-    const saleItems = await ServiceItem.find({
-      mainCategory: categoryId,
-      subCategory: subCategoryId,
-    });
-    const otherSaleItemms = await ServiceItem.find({
-      linkedListing: null,
-    });
-    const releventVendors = await Vendor.find({
-      mainCategories: categoryId,
-      subCategories: subCategoryId,
-    });
+    console.log(req.query, "req.queryreq.queryreq.query");
+    const { q, mainCategory } = req.query;
 
-    let data = {
-      BookingItems,
-      saleItems,
-      otherSaleItemms,
-      releventVendors,
+    // Debounce safety
+    if (!q || q.trim().length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: []
+      });
+    }
+
+    const matchQuery = {
+      isActive: true,
+      $or: [
+        { "name.en": { $regex: q, $options: "i" } },
+        { "name.nl": { $regex: q, $options: "i" } }
+      ]
     };
 
-    successHelper(res, data);
+    // Optional main category filter
+    if (mainCategory) {
+      matchQuery.mainCategory = mainCategory;
+    }
+
+    const subCategories = await SubCategory.find(matchQuery)
+      .select("name mainCategory icon sortOrder")
+      .sort({ sortOrder: 1 })
+      .limit(10);
+
+    res.status(200).json({
+      success: true,
+      data: subCategories
+    });
+
   } catch (error) {
-    console.log(error, "errorerrorerrorerrorerror");
+    console.error("SubCategory search failed:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to search subcategories"
+    });
+  }
+}
+
+const getDayKey = (date) => {
+  const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+  return days[new Date(date).getDay()];
+};
+
+const getDistanceInKm = (lat1, lon1, lat2, lon2) => {
+  const toRad = (value) => (value * Math.PI) / 180;
+
+  const R = 6371; // Earth radius in KM
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+    Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+const getHomeData = async (req, res) => {
+  try {
+    const { subCategoryId, latitude, longitude, date } = req.body;
+
+    const query = {
+      isActive: true
+    };
+
+    // Subcategory filter (optional)
+    if (
+      subCategoryId &&
+      mongoose.Types.ObjectId.isValid(subCategoryId)
+    ) {
+      query.subCategory = subCategoryId;
+    }
+
+    // Availability day filter (optional)
+    if (date) {
+      const dayKey = getDayKey(date);
+      query["availability.availableDays"] = dayKey;
+    }
+
+    // Step 1: Fetch listings (DB-level filters)
+    const listings = await Listing.find(query);
+
+    // Step 2: Location filtering (only if lat & long provided)
+    let filteredListings = listings;
+
+    if (latitude && longitude) {
+      filteredListings = listings.filter((listing) => {
+        const lat = listing.location?.coordinates?.latitude;
+        const lng = listing.location?.coordinates?.longitude;
+
+        if (!lat || !lng) return false;
+
+        const distance = getDistanceInKm(
+          latitude,
+          longitude,
+          lat,
+          lng
+        );
+
+        const allowedRadius = listing.radius || 100; // default 100km
+
+        return distance <= allowedRadius;
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      count: filteredListings.length,
+      data: filteredListings
+    });
+  } catch (error) {
+    console.error("Search listings error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to search listings"
+    });
   }
 };
 
@@ -1083,4 +1178,5 @@ module.exports = {
   getListingCalendar,
   filterListings,
   getHomeData,
+  getSubCategoryByName
 };
