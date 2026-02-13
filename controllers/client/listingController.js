@@ -1107,7 +1107,7 @@ const getDistanceInKm = (lat1, lon1, lat2, lon2) => {
 
 const getHomeData = async (req, res) => {
   try {
-    const { subCategoryId, latitude, longitude, date } = req.body;
+    const { subCategoryId, latitude, longitude, date, radius } = req.body;
 
     const query = {
       isActive: true
@@ -1128,27 +1128,30 @@ const getHomeData = async (req, res) => {
     }
 
     // Step 1: Fetch listings (DB-level filters)
-    const listings = await Listing.find(query);
+    const listings = await Listing.find(query)
+      .populate("vendor", "firstName lastName rating") 
+      .populate("category", "name")
+      .populate("subCategory", "name")
+      .select(
+        "title description pricing location ratings images media.featuredImage availability"
+      );
 
     // Step 2: Location filtering (only if lat & long provided)
     let filteredListings = listings;
 
     if (latitude && longitude) {
+      const allowedRadius = radius || 100;
       filteredListings = listings.filter((listing) => {
         const lat = listing.location?.coordinates?.latitude;
         const lng = listing.location?.coordinates?.longitude;
-
         if (!lat || !lng) return false;
-
         const distance = getDistanceInKm(
           latitude,
           longitude,
           lat,
           lng
         );
-
-        const allowedRadius = listing.radius || 100; // default 100km
-
+        console.log(distance, allowedRadius, "distancedistancedistancedistancedistance");
         return distance <= allowedRadius;
       });
     }

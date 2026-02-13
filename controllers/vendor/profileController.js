@@ -5,7 +5,8 @@ const Category = require("../../models/Category");
 const SubCategory = require("../../models/SubCategory");
 const { toMultilingualText } = require("../../utils/textUtils");
 const mongoose = require("mongoose");
-const { successHelper } = require("../../utils/jwtUtils");
+const { successHelper, errorHelper } = require("../../utils/jwtUtils");
+const { sendKvkUpdateEmail } = require("../../utils/mailer");
 // Get vendor profile (fields depend on account type)
 const getProfile = async (req, res) => {
   try {
@@ -86,6 +87,29 @@ const getProfile = async (req, res) => {
       .json({ message: "Server error", error: err.message });
   }
 };
+
+const updateProfileByAdmin = async (req, res) => {
+  console.log(req.params, "req.paramsreq.params");
+  try {
+    const updatedData = await Vendor.findOneAndUpdate(
+      { _id: req.params.id },
+      req.body,
+      {
+        new: true,
+      }
+    );
+    return res.json({
+      data: updatedData,
+      message: "kvk updated successfully",
+    });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
+  }
+
+}
+
 
 // Update vendor profile (fields depend on account type)
 const updateProfile = async (req, res) => {
@@ -280,6 +304,18 @@ const getMainCategoriesbyVendorId = async (req, res) => {
   }
 };
 
+const sendKVKRequest = async (req, res) => {
+  const result = await sendKvkUpdateEmail(req.body);
+  if (result.success) {
+    // Email was sent successfully
+    return successHelper(res, null, "Request sent successfully");
+  } else {
+    // Email failed
+    console.error("KVK email failed:", result.error || result.info);
+    return errorHelper(res, result.error || "Email could not be sent");
+  }
+};
+
 const subCategoryFromCategory = async (req, res) => {
   const { categoryIds } = req.body;
   console.log(categoryIds, "categoryIdscategoryIdscategoryIdscategoryIds");
@@ -332,4 +368,6 @@ module.exports = {
   subCategoryFromCategory,
   getMainCategoriesbyVendorId,
   updateDeliveryCharges,
+  sendKVKRequest,
+  updateProfileByAdmin
 };

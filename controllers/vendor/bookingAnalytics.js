@@ -37,10 +37,10 @@ const getVendorBookingAnalytics = async (req, res) => {
         }),
         Booking.find({ vendorId })
           .sort({ createdAt: -1 })
-          .populate("userId", "firstName lastName email")
+          .populate("userId", "firstName lastName email contactNumber address")
           .populate("listingId", "title")
           .select(
-            "details status trackingId userId listingId description eventLocation createdAt statusHistory listingDetails"
+            "pricingBreakdown details status trackingId userId listingId description eventLocation createdAt statusHistory listingDetails"
           ),
       ]);
     console.log(bookings, "bookingsbookingsbookingsbookingsbookings");
@@ -51,6 +51,7 @@ const getVendorBookingAnalytics = async (req, res) => {
     ];
 
     const bookingsList = bookings.map((b) => ({
+      pricingBreakdown:b.pricingBreakdown,
       id: b._id,
       startDate: b.details?.startDate,
       endDate: b.details?.endDate,
@@ -58,7 +59,7 @@ const getVendorBookingAnalytics = async (req, res) => {
       endTime: b.details?.endTime,
       status: b.status,
       title: b.listingDetails?.title || "",
-      customer: b.userId ? `${b.userId.firstName} ${b.userId.lastName}` : "",
+      customer: b.userId,
       description:
         b.details?.specialRequests?.en || b.details?.specialRequests || "",
       ListingId: b.listingId?._id,

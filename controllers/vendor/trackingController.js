@@ -26,7 +26,11 @@ const getVendorBookings = async (req, res) => {
     const bookings = await Booking.find({ vendorId: vendor.userId })
       .populate({
         path: "userId",
-        select: "firstName lastName profileImage address",
+        select: "firstName lastName profileImage address contactNumber",
+      })
+      .populate({
+        path: "vendorId",
+        select: "firstName lastName profileImage address contactNumber",
       })
       .populate({
         path: "listingId",
@@ -39,10 +43,8 @@ const getVendorBookings = async (req, res) => {
       trackingId: b.trackingId,
       eventDate: b.details?.startDate,
       pricingBreakdown: b?.pricingBreakdown,
-      buyer: {
-        name: b.userId?.firstName + " " + b.userId?.lastName,
-        profileImage: b.userId?.profileImage,
-      },
+      buyer: b.userId,
+      vendor: b.vendorId,
       title: b.listingDetails?.title || "",
       deliveryDate: b.details?.endDate,
       location: b.details?.eventLocation || b.userId?.address?.city,
