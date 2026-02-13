@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getNotifications, markAsRead, markAllAsRead } = require('../controllers/notificationController');
 const { requireAuth } = require('../middleware/authMiddleware');
+const BookingRequest = require("../models/Booking");
 
 // Get all notifications for the logged-in user
 const Vendor = require('../models/Vendor');
