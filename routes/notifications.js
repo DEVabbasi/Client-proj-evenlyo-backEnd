@@ -67,14 +67,35 @@ router.get("/admin-notifications", async (req, res) => {
   }
 });
 
-router.get('/vendor-notifications', requireAuth, async (req, res) => {
-  console.log(req.user, "HAHAHAAHAH");
+router.get("/vendor-notifications", requireAuth, async (req, res) => {
   try {
-    const notifications = await Notification.find({ notificationFor: "Vendor", vendorId: req.user.id }).sort({ createdAt: -1 })
-    res.json({ success: true, data: notifications });
+    const notifications = await Notification.find({
+      notificationFor: "Vendor",
+      vendorId: req.user.id,
+    }).sort({ createdAt: -1 });
 
+    const finalNotifications = await Promise.all(
+      notifications.map(async (notification) => {
+        let trackingId = null;
+
+        if (notification.bookingId) {
+          const booking = await BookingRequest.findById(
+            notification.bookingId,
+          ).select("trackingId");
+
+          trackingId = booking?.trackingId || null;
+        }
+
+        return {
+          ...notification.toObject(),
+          trackingId,
+        };
+      }),
+    );
+
+    res.json({ success: true, data: finalNotifications });
   } catch (error) {
-    res.send(error)
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
