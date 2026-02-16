@@ -152,6 +152,7 @@ app.use("/api/vendor/earnings", require("./routes/vendor/earnings"));
 app.use("/api/vendor/stock", require("./routes/vendor/stock"));
 app.use("/api/vendor/items", require("./routes/vendor/items"));
 app.use("/api/vendor/itemstock", require("./routes/vendor/itemStock"));
+app.use("/api/vendor/language", require("./routes/vendor/langaugeRoute"));
 // Payments
 app.use("/api/payments", require("./routes/payments"));
 

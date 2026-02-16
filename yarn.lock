@@ -2116,6 +2116,11 @@ one-time@^1.0.0:
   dependencies:
     fn.name "1.x.x"
 
+openai@^6.21.0:
+  version "6.21.0"
+  resolved "https://registry.yarnpkg.com/openai/-/openai-6.21.0.tgz#ab6b73211546ef973cdd91a8af327b313578b29e"
+  integrity sha512-26dQFi76dB8IiN/WKGQOV+yKKTTlRCxQjoi2WLt0kMcH8pvxVyvfdBDkld5GTl7W1qvBpwVOtFcsqktj3fBRpA==
+
 p-limit@^3.0.1:
   version "3.1.0"
   resolved "https://registry.npmjs.org/p-limit/-/p-limit-3.1.0.tgz"
