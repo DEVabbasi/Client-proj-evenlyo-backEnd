@@ -148,7 +148,7 @@ const markBookingPickedUp = asyncHandler(async (req, res) => {
     // status: "finished",
   }).populate("vendorId", "email _id");
 
-  console.log(booking.vendorId, "bookingbookingbookingbooking")
+  console.log(booking.trackingId, "bookingbookingbookingbooking")
 
   if (!booking) {
     return res.status(404).json({
@@ -238,6 +238,7 @@ const markBookingPickedUp = asyncHandler(async (req, res) => {
         }
       });
       const supportTicket = new SupportTicket({
+        trackingId: booking.trackingId,
         userEmail: booking.vendorId.email,
         userId: booking.vendorId.id,
         issueRelatedto: "Claim",

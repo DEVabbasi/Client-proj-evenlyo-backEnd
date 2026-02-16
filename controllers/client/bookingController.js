@@ -1150,20 +1150,21 @@ const createClaim = asyncHandler(async (req, res) => {
     userId: req.user.id,
     issueRelatedto: "booking",
     details: reason,
+    trackingId: booking.trackingId,
   });
 
   await notificationController.createNotification({
     title: {
-      en: "New Support Ticket Created",
-      nl: "Nieuw supportticket aangemaakt"
+      en: `New Support Ticket Created, Against Tracking ID ${booking.trackingId}`,
+      nl: `Nieuw supportticket aangemaakt, met betrekking tot tracking-ID ${booking.trackingId}`
     },
     notificationFor: "Admin",
     vendorId: booking.vendorId, // vendor's user account receives notification
     clientId: booking.userId,// vendor's user account receives notification
     bookingId: booking._id,
     message: {
-      en: `A new Support ticket has been created`,
-      nl: `Er is een nieuw supportticket aangemaakt`,
+      en: `New Support Ticket Created, Against Tracking ID ${booking.trackingId}`,
+      nl: `Nieuw supportticket aangemaakt, met betrekking tot tracking-ID ${booking.trackingId}`
     }
   });
 

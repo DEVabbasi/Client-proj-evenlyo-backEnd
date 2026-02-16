@@ -45,19 +45,20 @@ exports.sendEmailToTicketUser = async (req, res) => {
 exports.getAllSupportTickets = async (req, res) => {
     try {
         const tickets = await SupportTicket.find({})
-            .select('ticketId createdAt issueRelatedTo issueRelatedto details status userEmail')
+            .select('trackingId userId ticketId createdAt issueRelatedTo issueRelatedto details status userEmail')
+            .populate('userId', 'firstName lastName email')
             .sort({ createdAt: -1 })
 
-        const formattedTickets = tickets.map(ticket => ({
-            ticketId: ticket.ticketId,
-            time: ticket.createdAt,
-            issueRelatedTo: ticket.issueRelatedTo || ticket.issueRelatedto || '',
-            details: ticket.details,
-            status: ticket.status,
-            email: ticket.userEmail
-        }));
+        // const formattedTickets = tickets.map(ticket => ({
+        //     ticketId: ticket.ticketId,
+        //     time: ticket.createdAt,
+        //     issueRelatedTo: ticket.issueRelatedTo || ticket.issueRelatedto || '',
+        //     details: ticket.details,
+        //     status: ticket.status,
+        //     email: ticket.userEmail
+        // }));
 
-        res.status(200).json({ success: true, tickets: formattedTickets });
+        res.status(200).json({ success: true, tickets });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }

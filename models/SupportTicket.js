@@ -7,6 +7,9 @@ const supportTicketSchema = new mongoose.Schema({
     unique: true,
     default: () => `TICKET-${uuidv4().substring(0, 8).toUpperCase()}`,
   },
+  trackingId: {
+    type: String,
+  },
   userEmail: {
     type: String,
     required: true,
