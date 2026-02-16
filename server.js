@@ -22,6 +22,7 @@ const allowedOrigins = [
   'https://cp5h187s-3000.inc1.devtunnels.ms',
   'https://evenlyo.nl',
   'https://staging.evenlyo.nl',
+  'https://staging.vendor.evenlyo.nl',
   'https://www.evenlyo.nl',
   'https://www.staging.evenlyo.nl',
   'https://vendor.evenlyo.nl',
