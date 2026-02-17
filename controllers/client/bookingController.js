@@ -390,6 +390,15 @@ const createBookingRequest = asyncHandler(async (req, res) => {
 
     // return
     const bookingRequest = new BookingRequest({
+      statusHistory: [
+        {
+          status: "pending",
+          notes: {
+            en: "New Request",
+            nl: "Nieuwe aanvraag",
+          }
+        },
+      ],
       willPayUpfront: req?.body?.details.willPayUpfront,
       AmountLeft: req?.body?.details?.pricingBreakdown?.total,
       userId: req.user.id,
@@ -590,6 +599,17 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       Math.round((totalPrice - upfrontAmount) * 100) / 100,
       0
     );
+
+    // bookingRequest.statusHistory.push({
+    //   status: "cancelled",
+    //   updatedBy: {
+    //     userId: req.user.id,
+    //     userType: "client",
+    //     name: req.user.firstName + " " + req.user.lastName,
+    //   },
+    //   notes: notes,
+    // });
+    // await bookingRequest.save();
 
     res.status(201).json({
       success: true,
