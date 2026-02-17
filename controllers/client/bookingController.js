@@ -232,6 +232,24 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       });
     }
 
+    const now = new Date();
+
+    let bookingStartDateTime;
+
+    if (startTime) {
+      bookingStartDateTime = new Date(`${startDate}T${startTime}`);
+    } else {
+      // If no time provided (multi-day without time)
+      bookingStartDateTime = new Date(`${startDate}T00:00:00`);
+    }
+
+    if (bookingStartDateTime < now) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot create a booking for a past date or time.",
+      });
+    }
+
     // Check if listing exists and is active
     const listing = await Listing.findOne({
       _id: listingId,
