@@ -670,12 +670,7 @@ const getBookingStatusHistory = async (req, res) => {
 
     const booking = await Booking.findOne({ trackingId })
       .select('trackingId statusHistory status createdAt updatedAt')
-      .populate({
-        path: 'statusHistory.updatedBy.userId',
-        select: 'firstName lastName profileImage'
-      })
       .lean();
-
     if (!booking) {
       return res.status(404).json({
         success: false,

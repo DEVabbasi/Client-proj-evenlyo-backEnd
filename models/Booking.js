@@ -199,6 +199,14 @@ const bookingRequestSchema = new mongoose.Schema(
           type: Date,
           default: Date.now,
         },
+        updatedBy: {
+          userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+          },
+          userType: String,
+          name: String,
+        },
         notes: {
           en: {
             type: String,
