@@ -54,7 +54,7 @@ const getVendorFullDetails = async (req, res) => {
       totalReviews === 0
         ? 0
         : reviews.reduce((sum, review) => sum + review.rating, 0) /
-          totalReviews;
+        totalReviews;
 
     console.log(averageRating);
     // let vendorReviews = [];
@@ -92,6 +92,8 @@ const getVendorFullDetails = async (req, res) => {
 
     // ✅ Business details
     const businessDetails = {
+      _id: vendor._id,
+      kvkNumber: vendor.kvkNumber,
       email: vendor.businessEmail,
       phone: vendor.businessPhone,
       rating: parseFloat((vendor.rating?.average || 0).toFixed(1)),
@@ -220,19 +222,19 @@ const getVendorProfile = asyncHandler(async (req, res) => {
     },
     personalInfo: isPublicAccess
       ? {
-          firstName: vendor.userId?.firstName,
-          lastName: vendor.userId?.lastName,
-          profileImage: vendor.userId?.profileImage,
-        }
+        firstName: vendor.userId?.firstName,
+        lastName: vendor.userId?.lastName,
+        profileImage: vendor.userId?.profileImage,
+      }
       : {
-          firstName: vendor.userId?.firstName,
-          lastName: vendor.userId?.lastName,
-          email: vendor.userId?.email,
-          contactNumber: vendor.userId?.contactNumber,
-          address: vendor.userId?.address,
-          profileImage: vendor.userId?.profileImage,
-          isActive: vendor.userId?.isActive,
-        },
+        firstName: vendor.userId?.firstName,
+        lastName: vendor.userId?.lastName,
+        email: vendor.userId?.email,
+        contactNumber: vendor.userId?.contactNumber,
+        address: vendor.userId?.address,
+        profileImage: vendor.userId?.profileImage,
+        isActive: vendor.userId?.isActive,
+      },
     timestamps: {
       createdAt: vendor.createdAt,
       updatedAt: vendor.updatedAt,
@@ -354,9 +356,9 @@ const getVendorBusinessDetails = asyncHandler(async (req, res) => {
   const averagePrice =
     listings.length > 0
       ? listings.reduce(
-          (sum, listing) => sum + (listing.pricing?.amount || 0),
-          0
-        ) / listings.length
+        (sum, listing) => sum + (listing.pricing?.amount || 0),
+        0
+      ) / listings.length
       : 0;
 
   const businessDetails = {
@@ -474,8 +476,8 @@ const getVendorDashboard = asyncHandler(async (req, res) => {
         completionRate:
           vendor.totalBookings > 0
             ? ((vendor.completedBookings / vendor.totalBookings) * 100).toFixed(
-                1
-              )
+              1
+            )
             : 0,
       },
       rating: {
@@ -685,9 +687,9 @@ const getFeaturedVendors = asyncHandler(async (req, res) => {
           completionRate:
             vendor.totalBookings > 0
               ? (
-                  (vendor.completedBookings / vendor.totalBookings) *
-                  100
-                ).toFixed(1)
+                (vendor.completedBookings / vendor.totalBookings) *
+                100
+              ).toFixed(1)
               : 0,
         },
       },

@@ -12,7 +12,7 @@ router.patch('/:id/toggle-status', requireAuth, toggleListingStatus);
 router.post('/create', requireAuth, createListing);
 router.delete('/delete/:id', requireAuth, deleteListing);
 router.put('/update/:id', requireAuth, updateListing);
-router.get("/listings/filter", filterByCategory);
+router.get("/listings/filter", requireAuth, filterByCategory);
 
 module.exports = router;
 

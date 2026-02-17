@@ -6,28 +6,38 @@ const Settings = require("../../models/Settings");
 const { toMultilingualText } = require("../../utils/textUtils");
 const { createActivityLog } = require("../../utils/activityLogger");
 const mongoose = require("mongoose");
+
+
 const filterByCategory = async (req, res) => {
+  console.log(req.user, "USSSSS");
+
+  const vendorId = req.user?.id;
+
   try {
     const { category, subCategory } = req.query;
 
     let query = {};
 
+    // add filters only if they exist
     if (category) query.category = category;
     if (subCategory) query.subCategory = subCategory;
 
-    // Fetch listings + populate subCategory details
+    // 🔥 add vendorId only if present
+    if (vendorId) query.vendor = vendorId;
+
+    console.log(query, "vendorvendorvendor");
+
     const results = await Listing.find(query)
-      .populate("subCategory")    // full subCategory detail
+      .populate("subCategory")
       .lean();
 
-    // Fetch settings (assuming only 1 settings document)
     const settings = await Settings.findOne().lean();
 
     if (!results || results.length === 0) {
       return res.status(404).json({
         success: false,
         message: "No results found",
-        settings: settings || null, // still return settings
+        settings: settings || null,
       });
     }
 
@@ -47,7 +57,6 @@ const filterByCategory = async (req, res) => {
     });
   }
 };
-
 
 const toggleListingStatus = async (req, res) => {
   try {
@@ -224,10 +233,10 @@ const getVendorListingsOverview = async (req, res) => {
       }
     ]);
 
-    console.log(topBookedItems,"topBookedItemstopBookedItems");
+    console.log(topBookedItems, "topBookedItemstopBookedItems");
 
 
-    
+
     res.json({
       success: true,
       stats: {

@@ -219,10 +219,82 @@ async function sendReportEmail(to, reportedBy, reportedPerson, reportReason) {
   }
 }
 
+async function sendKvkUpdateEmail(body) {
+  console.log(body, "bodybodybodybodybody");
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: process.env.EMAIL_USER,
+    subject: "Request to Update KVK Number",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; background-color: #f4f6f8;">
+        <div style="background-color: #ffffff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          
+          <h2 style="color: #1976d2; margin-bottom: 20px;">
+            📄 KVK Number Update Request
+          </h2>
+
+          <p style="color: #333; font-size: 16px;">
+            A vendor has requested an update to their KVK number. Please review the details below.
+          </p>
+
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+
+          <p style="color: #333; font-size: 16px; margin: 8px 0;">
+            <strong>Vendor Name:</strong> ${body.vendorName}
+          </p>
+
+          <p style="color: #333; font-size: 16px; margin: 8px 0;">
+            <strong>Vendor Email:</strong> ${body.vendorEmail}
+          </p>
+
+          <p style="color: #333; font-size: 16px; margin: 15px 0;">
+            <strong>Request Description:</strong>
+          </p>
+
+          <div style="background-color: #f1f8ff; border-left: 4px solid #1976d2; padding: 15px; border-radius: 4px;">
+            <p style="color: #333; margin: 0;">
+              ${body.description}
+            </p>
+          </div>
+
+          <p style="color: #666; font-size: 14px; margin-top: 25px;">
+            Kindly verify the request and update the KVK details if everything is in order.
+          </p>
+
+        </div>
+      </div>
+    `,
+    text: `
+KVK Number Update Request
+
+Vendor Name: ${body.vendorName}
+Vendor Email: ${body.vendorEmail}
+
+Description:
+${body.description}
+
+Please review and process this request accordingly.
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    return {
+      success: info.accepted && info.accepted.length > 0,
+      info, // keep original nodemailer info in case you want it
+    };
+  } catch (err) {
+    console.error("Error sending KVK update email:", err);
+    throw err;
+  }
+}
+
 module.exports = {
   sendOTPEmail,
   sendPromotionalEmail,
   sendContactEmail,
   sendReportEmail,
-  sendForgotOTPADMIN
+  sendForgotOTPADMIN,
+  sendKvkUpdateEmail
 };

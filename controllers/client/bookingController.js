@@ -232,6 +232,24 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       });
     }
 
+    const now = new Date();
+
+    let bookingStartDateTime;
+
+    if (startTime) {
+      bookingStartDateTime = new Date(`${startDate}T${startTime}`);
+    } else {
+      // If no time provided (multi-day without time)
+      bookingStartDateTime = new Date(`${startDate}T00:00:00`);
+    }
+
+    if (bookingStartDateTime < now) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot create a booking for a past date or time.",
+      });
+    }
+
     // Check if listing exists and is active
     const listing = await Listing.findOne({
       _id: listingId,
@@ -390,6 +408,15 @@ const createBookingRequest = asyncHandler(async (req, res) => {
 
     // return
     const bookingRequest = new BookingRequest({
+      statusHistory: [
+        {
+          status: "pending",
+          notes: {
+            en: "New Request",
+            nl: "Nieuwe aanvraag",
+          }
+        },
+      ],
       willPayUpfront: req?.body?.details.willPayUpfront,
       AmountLeft: req?.body?.details?.pricingBreakdown?.total,
       userId: req.user.id,
@@ -594,6 +621,17 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       Math.round((totalPrice - upfrontAmount) * 100) / 100,
       0,
     );
+
+    // bookingRequest.statusHistory.push({
+    //   status: "cancelled",
+    //   updatedBy: {
+    //     userId: req.user.id,
+    //     userType: "client",
+    //     name: req.user.firstName + " " + req.user.lastName,
+    //   },
+    //   notes: notes,
+    // });
+    // await bookingRequest.save();
 
     res.status(201).json({
       success: true,
@@ -1131,7 +1169,6 @@ const createClaim = asyncHandler(async (req, res) => {
   //   message: "TEST",
   //   data: { booking },
   // });
-
   if (!booking) {
     return res.status(404).json({
       success: false,
@@ -1142,10 +1179,10 @@ const createClaim = asyncHandler(async (req, res) => {
   booking.status = "claim";
   booking.claimDetails = {
     reason: reason,
-    claimType: claimType,
     claimedBy: "client",
     claimedAt: new Date(),
     status: "pending",
+    claimType
   };
 
   await booking.save();
@@ -1155,21 +1192,22 @@ const createClaim = asyncHandler(async (req, res) => {
     userId: req.user.id,
     issueRelatedto: "booking",
     details: reason,
+    trackingId: booking.trackingId,
   });
 
   await notificationController.createNotification({
     title: {
-      en: "New Support Ticket Created",
-      nl: "Nieuw supportticket aangemaakt",
+      en: `New Support Ticket Created, Against Tracking ID ${booking.trackingId}`,
+      nl: `Nieuw supportticket aangemaakt, met betrekking tot tracking-ID ${booking.trackingId}`
     },
     notificationFor: "Admin",
     vendorId: booking.vendorId, // vendor's user account receives notification
     clientId: booking.userId, // vendor's user account receives notification
     bookingId: booking._id,
     message: {
-      en: `A new Support ticket has been created`,
-      nl: `Er is een nieuw supportticket aangemaakt`,
-    },
+      en: `New Support Ticket Created, Against Tracking ID ${booking.trackingId}`,
+      nl: `Nieuw supportticket aangemaakt, met betrekking tot tracking-ID ${booking.trackingId}`
+    }
   });
 
   await notificationController.createNotification({

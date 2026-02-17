@@ -26,7 +26,11 @@ const getVendorBookings = async (req, res) => {
     const bookings = await Booking.find({ vendorId: vendor.userId })
       .populate({
         path: "userId",
-        select: "firstName lastName profileImage address",
+        select: "firstName lastName profileImage address contactNumber",
+      })
+      .populate({
+        path: "vendorId",
+        select: "firstName lastName profileImage address contactNumber",
       })
       .populate({
         path: "listingId",
@@ -39,10 +43,8 @@ const getVendorBookings = async (req, res) => {
       trackingId: b.trackingId,
       eventDate: b.details?.startDate,
       pricingBreakdown: b?.pricingBreakdown,
-      buyer: {
-        name: b.userId?.firstName + " " + b.userId?.lastName,
-        profileImage: b.userId?.profileImage,
-      },
+      buyer: b.userId,
+      vendor: b.vendorId,
       title: b.listingDetails?.title || "",
       deliveryDate: b.details?.endDate,
       location: b.details?.eventLocation || b.userId?.address?.city,
@@ -123,7 +125,7 @@ const markBookingOnTheWay = asyncHandler(async (req, res) => {
 // @route   POST /api/booking/:id/mark-picked-up
 // @access  Private (Vendor)
 const markBookingPickedUp = asyncHandler(async (req, res) => {
-  const { condition, securityFee, claimAmount } = req.body;
+  const { claimedBy, condition, securityFee, claimAmount, reason } = req.body;
   // condition: 'Good', 'Fair', 'Claim'
   // securityFee: number (required for Fair/Claim)
   // claimAmount: number (required for Claim)
@@ -146,7 +148,7 @@ const markBookingPickedUp = asyncHandler(async (req, res) => {
     // status: "finished",
   }).populate("vendorId", "email _id");
 
-  console.log(booking.vendorId, "bookingbookingbookingbooking")
+  console.log(booking.trackingId, "bookingbookingbookingbooking")
 
   if (!booking) {
     return res.status(404).json({
@@ -180,11 +182,11 @@ const markBookingPickedUp = asyncHandler(async (req, res) => {
     // Store in claimDetails for admin review
     booking.claimDetails = {
       reason: "Redelijke staat - aftrek van borg",
-      claimedBy: "vendor",
+      claimedBy: claimedBy,
       claimedAt: new Date(),
       status: "pending",
       amount: parsedSecurityFee,
-      stockUpdated: false
+      stockUpdated: false,
     };
     // await notificationController.createNotification({
     //   notificationFor: "Admin",
@@ -214,14 +216,14 @@ const markBookingPickedUp = asyncHandler(async (req, res) => {
     //     : 0;
     // booking.pricing.securityFee = safeSecurityFee;
     booking.claimDetails = {
-      reason: "Claim aangevraagd door leverancier",
+      reason: reason,
       claimedBy: "vendor",
       claimedAt: new Date(),
       status: "pending",
       amount: parsedClaimAmount,
-      stockUpdated: false
+      stockUpdated: false,
     };
-    // Send request/notification to admin for claim approval
+
     try {
       await notificationController.createNotification({
         title: {
@@ -236,6 +238,7 @@ const markBookingPickedUp = asyncHandler(async (req, res) => {
         }
       });
       const supportTicket = new SupportTicket({
+        trackingId: booking.trackingId,
         userEmail: booking.vendorId.email,
         userId: booking.vendorId.id,
         issueRelatedto: "Claim",
@@ -322,8 +325,9 @@ const markBookingCompleted = asyncHandler(async (req, res) => {
       message: "Booking not found or not eligible for this action",
     });
   }
-
+  console.log(booking, "bookingbookingbooking");
   booking.status = "completed";
+  // return res.status(200).json({ success: true, message: "Booking marked as complete", data: { booking } });
 
   // Atomically increment listing quantity by 1 (item returned to stock)
   try {
@@ -332,6 +336,7 @@ const markBookingCompleted = asyncHandler(async (req, res) => {
       { $inc: { quantity: 1 } },
       { new: true }
     );
+    console.log(updatedListing, "updatedListingupdatedListing");
     if (updatedListing) {
       // Log check-in
       try {

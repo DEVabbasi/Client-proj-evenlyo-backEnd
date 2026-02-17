@@ -1,12 +1,8 @@
 const express = require("express");
 const router = express.Router();
+const { getNotifications, markAsRead, markAllAsRead } = require('../controllers/notificationController');
+const { requireAuth } = require('../middleware/authMiddleware');
 const BookingRequest = require("../models/Booking");
-const {
-  getNotifications,
-  markAsRead,
-  markAllAsRead,
-} = require("../controllers/notificationController");
-const { requireAuth } = require("../middleware/authMiddleware");
 
 // Get all notifications for the logged-in user
 const Vendor = require("../models/Vendor");
@@ -33,14 +29,45 @@ router.get("/", requireAuth, async (req, res) => {
   res.json({ success: true, data: notifications });
 });
 
+
 router.get("/admin-notifications", async (req, res) => {
   try {
-    const notifications = await Notification.find({
-      notificationFor: "Admin",
-    }).sort({ createdAt: -1 });
+    const notifications = await Notification.aggregate([
+      {
+        $match: { notificationFor: "Admin" },
+      },
+      {
+        $lookup: {
+          from: "bookingrequests",      // MongoDB collection name
+          localField: "bookingId",
+          foreignField: "_id",
+          as: "booking",
+        },
+      },
+      {
+        $unwind: {
+          path: "$booking",
+          preserveNullAndEmptyArrays: true, // In case notification has no booking
+        },
+      },
+      {
+        $project: {
+          message: 1,
+          type: 1,
+          createdAt: 1,
+          bookingId: 1,
+          trackingId: "$booking.trackingId", // get trackingId from booking
+        },
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+    ]);
+
     res.json({ success: true, data: notifications });
   } catch (error) {
-    res.send(error);
+    console.error(error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

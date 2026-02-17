@@ -168,8 +168,8 @@ const getSubCategoriesByMainCategory = async (req, res) => {
     const result = subcategories.map(sub => ({
       id: sub._id,
       icon: sub.icon || '',
-      name: sub.name.en,
-      description: sub.description.en,
+      name: sub.name,
+      description: sub.description,
       isActive: sub.isActive,
       isUpfrontEnabled: sub.isUpfrontEnabled,
       upfrontFeePercent: sub.upfrontFeePercent,
@@ -227,9 +227,9 @@ const createSubCategory = async (req, res) => {
       return res.status(400).json({ message: "escrowHours is required." });
     }
 
-    if (typeof escrowHours !== "number" || escrowHours <= 0) {
+    if (typeof escrowHours !== "number" || escrowHours < 0) {
       return res.status(400).json({
-        message: "escrowHours must be greater than 0."
+        message: "escrow Hours must be greater than 0."
       });
     }
 

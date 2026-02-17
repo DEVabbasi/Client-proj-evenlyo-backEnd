@@ -68,6 +68,12 @@ const allowedOrigins = [
   "https://vendor.evenlyo.nl",
   "https://admin.evenlyo.nl",
   "https://www.admin.evenlyo.nl",
+  "https://www.staging.evenlyo.nl",
+  "https://staging.evenlyo.nl",
+  "https://www.staging.vendor.evenlyo.nl",
+  'https://staging.vendor.evenlyo.nl',
+  'https://staging.admin.evenlyo.nl',
+  "https://www.staging.admin.evenlyo.nl",
 ];
 
 app.use(
@@ -161,6 +167,7 @@ app.use("/api/vendor/earnings", require("./routes/vendor/earnings"));
 app.use("/api/vendor/stock", require("./routes/vendor/stock"));
 app.use("/api/vendor/items", require("./routes/vendor/items"));
 app.use("/api/vendor/itemstock", require("./routes/vendor/itemStock"));
+app.use("/api/vendor/language", require("./routes/vendor/langaugeRoute"));
 // Payments
 app.use("/api/payments", require("./routes/payments"));
 
