@@ -90,6 +90,7 @@ const getListingCalendar = async (req, res) => {
 // @route   GET /api/listings
 // @access  Public
 const getListings = async (req, res) => {
+  console.log("CALLEDDDDDDDD");
   try {
     const {
       page = 1,
@@ -125,76 +126,76 @@ const getListings = async (req, res) => {
     }
 
     // Filter by city
-    if (city) {
-      query["location.city"] = { $regex: city, $options: "i" };
-    }
+    // if (city) {
+    //   query["location.city"] = { $regex: city, $options: "i" };
+    // }
 
     // Search by title, description, or tags
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-        { shortDescription: { $regex: search, $options: "i" } },
-        { tags: { $in: [new RegExp(search, "i")] } },
-      ];
-    }
+    // if (search) {
+    //   query.$or = [
+    //     { title: { $regex: search, $options: "i" } },
+    //     { description: { $regex: search, $options: "i" } },
+    //     { shortDescription: { $regex: search, $options: "i" } },
+    //     { tags: { $in: [new RegExp(search, "i")] } },
+    //   ];
+    // }
 
     // Filter by price range (check all pricing options)
-    if (minPrice || maxPrice) {
-      const priceQuery = { $or: [] };
+    // if (minPrice || maxPrice) {
+    //   const priceQuery = { $or: [] };
 
-      if (minPrice) {
-        priceQuery.$or.push(
-          { "pricing.perHour": { $gte: parseFloat(minPrice) } },
-          { "pricing.perDay": { $gte: parseFloat(minPrice) } },
-          { "pricing.perEvent": { $gte: parseFloat(minPrice) } }
-        );
-      }
+    //   if (minPrice) {
+    //     priceQuery.$or.push(
+    //       { "pricing.perHour": { $gte: parseFloat(minPrice) } },
+    //       { "pricing.perDay": { $gte: parseFloat(minPrice) } },
+    //       { "pricing.perEvent": { $gte: parseFloat(minPrice) } }
+    //     );
+    //   }
 
-      if (maxPrice) {
-        priceQuery.$or.push(
-          { "pricing.perHour": { $lte: parseFloat(maxPrice) } },
-          { "pricing.perDay": { $lte: parseFloat(maxPrice) } },
-          { "pricing.perEvent": { $lte: parseFloat(maxPrice) } }
-        );
-      }
+    //   if (maxPrice) {
+    //     priceQuery.$or.push(
+    //       { "pricing.perHour": { $lte: parseFloat(maxPrice) } },
+    //       { "pricing.perDay": { $lte: parseFloat(maxPrice) } },
+    //       { "pricing.perEvent": { $lte: parseFloat(maxPrice) } }
+    //     );
+    //   }
 
-      if (priceQuery.$or.length > 0) {
-        query.$and = query.$and || [];
-        query.$and.push(priceQuery);
-      }
-    }
+    //   if (priceQuery.$or.length > 0) {
+    //     query.$and = query.$and || [];
+    //     query.$and.push(priceQuery);
+    //   }
+    // }
 
     // Filter by pricing type
-    if (pricingType) {
-      query["pricing.type"] = pricingType;
-    }
+    // if (pricingType) {
+    //   query["pricing.type"] = pricingType;
+    // }
 
-    // Filter by featured status
-    if (isFeatured !== undefined) {
-      query.isFeatured = isFeatured === "true";
-    }
+    // // Filter by featured status
+    // if (isFeatured !== undefined) {
+    //   query.isFeatured = isFeatured === "true";
+    // }
 
-    // Filter by availability
-    if (isAvailable !== undefined) {
-      query["availability.isAvailable"] = isAvailable === "true";
-    }
+    // // Filter by availability
+    // if (isAvailable !== undefined) {
+    //   query["availability.isAvailable"] = isAvailable === "true";
+    // }
 
     // Calculate pagination
     const skip = (page - 1) * limit;
 
     // Build sort object
-    const sortOptions = {};
-    if (sortBy === "price") {
-      // Sort by lowest available price option
-      sortOptions["pricing.perHour"] = sortOrder === "desc" ? -1 : 1;
-    } else if (sortBy === "rating") {
-      sortOptions["ratings.average"] = sortOrder === "desc" ? -1 : 1;
-    } else if (sortBy === "popularity") {
-      sortOptions["bookings.completed"] = sortOrder === "desc" ? -1 : 1;
-    } else {
-      sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
-    }
+    // const sortOptions = {};
+    // if (sortBy === "price") {
+    //   // Sort by lowest available price option
+    //   sortOptions["pricing.perHour"] = sortOrder === "desc" ? -1 : 1;
+    // } else if (sortBy === "rating") {
+    //   sortOptions["ratings.average"] = sortOrder === "desc" ? -1 : 1;
+    // } else if (sortBy === "popularity") {
+    //   sortOptions["bookings.completed"] = sortOrder === "desc" ? -1 : 1;
+    // } else {
+    //   sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
+    // }
 
     // Get listings with populated vendor and category information
     const listingsDocs = await Listing.find(query)
@@ -218,6 +219,25 @@ const getListings = async (req, res) => {
       };
       return obj;
     });
+
+    const listingIds = listingsDocs.map((doc) => doc._id);
+    console.log(listingIds, "listingIdslistingIdslistingIds");
+    // 2️⃣ Get Bookings for these listings
+    const bookings = await BookingRequest.find({
+      listingId: { $in: listingIds },
+    }).select("_id listing");
+
+    const bookingIds = bookings.map((b) => b._id);
+    console.log(bookingIds, "bookingIdsbookingIdsbookingIdsbookingIds");
+    const bookingMap = {};
+    bookings.forEach((b) => {
+      bookingMap[b._id.toString()] = b.listing.toString();
+    });
+
+    // 3️⃣ Get Reviews for these bookings
+    const reviews = await Review.find({
+      bookingId: { $in: bookingIds },
+    }).select("bookingId rating");
 
     // Get total count for pagination
     const total = await Listing.countDocuments(query);
@@ -1107,13 +1127,21 @@ const getDistanceInKm = (lat1, lon1, lat2, lon2) => {
 
 const getHomeData = async (req, res) => {
   try {
-    const { subCategoryId, latitude, longitude, date, radius } = req.body;
+    const { subCategoryId, categoryId, latitude, longitude, date, radius } = req.body;
 
     const query = {
-      isActive: true
+      isActive: true,
     };
 
-    // Subcategory filter (optional)
+    // ✅ Category filter
+    if (
+      categoryId &&
+      mongoose.Types.ObjectId.isValid(categoryId)
+    ) {
+      query.category = categoryId;
+    }
+
+    // ✅ Subcategory filter
     if (
       subCategoryId &&
       mongoose.Types.ObjectId.isValid(subCategoryId)
@@ -1121,51 +1149,114 @@ const getHomeData = async (req, res) => {
       query.subCategory = subCategoryId;
     }
 
-    // Availability day filter (optional)
+    // ✅ Availability day filter
     if (date) {
       const dayKey = getDayKey(date);
       query["availability.availableDays"] = dayKey;
     }
 
-    // Step 1: Fetch listings (DB-level filters)
+    // 1️⃣ Fetch listings
     const listings = await Listing.find(query)
-      .populate("vendor", "firstName lastName rating") 
+      .populate("vendor", "firstName lastName rating")
       .populate("category", "name")
       .populate("subCategory", "name")
       .select(
         "title description pricing location ratings images media.featuredImage availability"
       );
 
-    // Step 2: Location filtering (only if lat & long provided)
-    let filteredListings = listings;
+    const listingIds = listings.map((l) => l._id);
 
+    // 2️⃣ Get bookings for those listings
+    const bookings = await BookingRequest.find({
+      listingId: { $in: listingIds },
+    }).select("_id listingId");
+
+    const bookingIds = bookings.map((b) => b._id);
+
+    // Create bookingId → listingId map
+    console.log(bookings,"bookingsbookingsbookings");
+    
+    const bookingMap = {};
+    bookings.forEach((b) => {
+      console.log(b,"bbbbb");
+      bookingMap[b._id.toString()] = b.listingId.toString();
+    });
+
+    // 3️⃣ Get reviews
+    const reviews = await Review.find({
+      bookingId: { $in: bookingIds },
+    }).select("bookingId rating");
+    console.log(reviews, "reviewsreviewsreviews");
+    // 4️⃣ Calculate ratings per listing
+    const ratingData = {};
+    reviews.forEach((review) => {
+      const listingId = bookingMap[review.bookingId.toString()];
+      if (!listingId) return;
+
+      if (!ratingData[listingId]) {
+        ratingData[listingId] = {
+          totalRating: 0,
+          count: 0,
+        };
+      }
+
+      ratingData[listingId].totalRating += review.rating;
+      ratingData[listingId].count += 1;
+    });
+
+    // 5️⃣ Attach review stats
+    let enrichedListings = listings.map((listing) => {
+      const obj = listing.toObject();
+      const id = obj._id.toString();
+
+      const ratingInfo = ratingData[id] || {
+        totalRating: 0,
+        count: 0,
+      };
+
+      obj.reviewStats = {
+        average:
+          ratingInfo.count > 0
+            ? Number(
+              (ratingInfo.totalRating / ratingInfo.count).toFixed(1)
+            )
+            : 0,
+        totalReviews: ratingInfo.count,
+      };
+
+      return obj;
+    });
+
+    // 6️⃣ Location filtering
     if (latitude && longitude) {
       const allowedRadius = radius || 100;
-      filteredListings = listings.filter((listing) => {
+
+      enrichedListings = enrichedListings.filter((listing) => {
         const lat = listing.location?.coordinates?.latitude;
         const lng = listing.location?.coordinates?.longitude;
         if (!lat || !lng) return false;
+
         const distance = getDistanceInKm(
           latitude,
           longitude,
           lat,
           lng
         );
-        console.log(distance, allowedRadius, "distancedistancedistancedistancedistance");
+
         return distance <= allowedRadius;
       });
     }
 
     res.status(200).json({
       success: true,
-      count: filteredListings.length,
-      data: filteredListings
+      count: enrichedListings.length,
+      data: enrichedListings,
     });
   } catch (error) {
     console.error("Search listings error:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to search listings"
+      message: "Failed to search listings",
     });
   }
 };
