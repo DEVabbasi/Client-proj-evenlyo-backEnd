@@ -6,6 +6,7 @@ const User = require("../../models/User");
 const Vendor = require("../../models/Vendor");
 const Review = require("../../models/Review");
 const Cart = require("../../models/Cart"); // path apne project ke mutabiq adjust karo
+const StockLog = require("../../models/StockLog");
 
 const Settings = require("../../models/Settings");
 const {
@@ -1286,6 +1287,7 @@ const cancelBooking = asyncHandler(async (req, res) => {
   }
 
   booking.status = "cancelled";
+
   booking.statusHistory.push({
     status: "cancelled",
     updatedBy: {
@@ -1297,7 +1299,36 @@ const cancelBooking = asyncHandler(async (req, res) => {
   });
   await booking.save();
 
-  // TODO: Send notification to vendor/admin if needed
+  const incrementBy = 1;
+
+  const updatedListing = await Listing.findOneAndUpdate(
+    {
+      _id: booking.listingId,
+      vendor: booking.vendorId,
+    },
+    { $inc: { quantity: incrementBy } },
+    { new: true }
+  );
+
+  if (updatedListing) {
+    // Log check-in
+    try {
+      await StockLog.create({
+        listing: updatedListing._id,
+        type: "checkin",
+        quantity: 1,
+        note: `Returned after cancelled booking ${booking._id}`,
+        createdBy: req.user?._id,
+      });
+    } catch (logErr) {
+      console.error(
+        "Failed to create stock log on booking completion",
+        logErr
+      );
+    }
+  }
+
+  console.log(updatedListing, "updatedListingupdatedListingupdatedListingupdatedListing");
 
   res.json({
     success: true,
