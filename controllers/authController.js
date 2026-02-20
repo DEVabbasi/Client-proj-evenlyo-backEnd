@@ -1360,6 +1360,8 @@ const registerVendor = async (req, res) => {
 const vendorLogin = async (req, res) => {
   try {
     const { email, password, provider } = req.body;
+    console.log(req.body, "REQQQQ");
+
     if (!email) {
       return res.status(400).json({
         success: false,
@@ -1456,10 +1458,19 @@ const vendorLogin = async (req, res) => {
       "-password"
     );
     vendorId = vendor?._id;
-    console.log(user, "useruseruseruser");
-    const designation = await VendorDesignations.findOne({
-      vendorId: isEmployee ? user.vendor.id : user.createdById,
-    });
+    console.log(user, isEmployee, "useruseruseruser");
+    let designation = null;
+    if (isEmployee) {
+      designation = await VendorDesignations.findOne({
+        _id: user.designation,        // employee's designation id
+        vendorId: user.vendor._id,    // vendor they belong to
+      });
+    } else {
+      designation = await VendorDesignations.findOne({
+        vendorId: user.createdById,
+      });
+    }
+    console.log(designation, "designationdesignationdesignation");
     pages = designation?.permissions?.map((p) => p.module) || [];
     console.log(user, "useruseruseruser");
     const token = signToken({
@@ -1475,7 +1486,7 @@ const vendorLogin = async (req, res) => {
       lastName: user.lastName,
       email: user.email,
       profileImage: user.profileImage,
-      userType: "vendor",
+      userType: isEmployee ? "Employee" : "vendor",
       vendorId,
       vendorDetails
     };

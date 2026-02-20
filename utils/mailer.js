@@ -290,11 +290,151 @@ Please review and process this request accordingly.
   }
 }
 
+async function sendOrderAcceptanceEmail({ customerEmail, customerName, bookingId, status, bookingDate, bookingTime }) {
+  // Configure your transporter
+  console.log(customerEmail, customerName, bookingId, status, bookingDate, bookingTime, "EMAIL DETAILS") // Log the email details for debugging;
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER, // info@evenlyo.nl
+      pass: process.env.EMAIL_PASS  // 12-digit app password
+    },
+    requireTLS: true
+  });
+
+  // Email options
+  const mailOptions = {
+    from: `<${process.env.EMAIL_USER}>`,
+    to: customerEmail,
+    subject: `Booking Accepted – Booking ID: ${bookingId}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f6f8;">
+        <div style="background-color: #ffffff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          <h2 style="color: #1976d2;">✅ Your Booking is Accepted</h2>
+          <p>Hello <strong>${customerName}</strong>,</p>
+          <p>We are happy to inform you that your booking has been <strong>${status}</strong>.</p>
+          
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+
+          <p><strong>Booking ID:</strong> ${bookingId}</p>
+          <p><strong>Date:</strong> ${bookingDate}</p>
+          <p><strong>Time:</strong> ${bookingTime}</p>
+
+          <p style="margin-top: 20px;">Thank you for choosing our services. If you have any questions, feel free to reply to this email.</p>
+
+          <p style="color: #666; font-size: 14px;">Best regards,<br/>Your Company Name</p>
+        </div>
+      </div>
+    `,
+    text: `
+Hello ${customerName},
+
+We are happy to inform you that your booking has been ${status}.
+
+Booking ID: ${bookingId}
+Date: ${bookingDate}
+Time: ${bookingTime}
+
+Thank you for choosing our services.
+
+Best regards,
+Evenlyo
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Order acceptance email sent:", info.messageId);
+    return info;
+  } catch (error) {
+    console.error("Error sending order acceptance email:", error);
+    throw error;
+  }
+};
+
+
+const sendBookingCompletionEmail = async ({
+  customerEmail,
+  customerName,
+  bookingId,
+  bookingDate,
+  bookingTime,
+  totalAmount,
+  listingTitle
+}) => {
+  // Configure your transporter
+  const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER, // info@evenlyo.nl
+      pass: process.env.EMAIL_PASS  // 12-digit app password
+    },
+    requireTLS: true
+  });
+  // Email options
+  const mailOptions = {
+    from: `"Your Company Name" <${process.env.EMAIL_USER}>`,
+    to: customerEmail,
+    subject: `Booking Completed – Booking ID: ${bookingId}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f6f8;">
+        <div style="background-color: #ffffff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          <h2 style="color: #388e3c;">✅ Your Booking is Completed</h2>
+          <p>Hello <strong>${customerName}</strong>,</p>
+          <p>We are pleased to inform you that your booking for <strong>${listingTitle}</strong> has been successfully completed.</p>
+          
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+
+          <p><strong>Booking ID:</strong> ${bookingId}</p>
+          <p><strong>Date:</strong> ${bookingDate}</p>
+          <p><strong>Time:</strong> ${bookingTime}</p>
+          <p><strong>Total Amount:</strong> $${totalAmount}</p>
+
+          <p style="margin-top: 20px;">Thank you for using our services. We hope you had a great experience!</p>
+
+          <p style="color: #666; font-size: 14px;">Best regards,<br/>Your Company Name</p>
+        </div>
+      </div>
+    `,
+    text: `
+Hello ${customerName},
+
+We are pleased to inform you that your booking for ${listingTitle} has been successfully completed.
+
+Booking ID: ${bookingId}
+Date: ${bookingDate}
+Time: ${bookingTime}
+Total Amount: $${totalAmount}
+
+Thank you for using our services. We hope you had a great experience!
+
+Best regards,
+Your Company Name
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Booking completion email sent:", info.messageId);
+    return info;
+  } catch (error) {
+    console.error("Error sending booking completion email:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   sendOTPEmail,
   sendPromotionalEmail,
   sendContactEmail,
   sendReportEmail,
   sendForgotOTPADMIN,
-  sendKvkUpdateEmail
+  sendKvkUpdateEmail,
+  sendOrderAcceptanceEmail,
+  sendBookingCompletionEmail
 };

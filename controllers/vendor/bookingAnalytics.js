@@ -12,6 +12,7 @@ const {
 } = require("../../utils/bookingUtils");
 const { createActivityLog } = require("../../utils/activityLogger");
 const stripe = require("../../config/stripe");
+const { sendOrderAcceptanceEmail } = require("../../utils/mailer");
 // GET /api/vendor/bookings/analytics
 const getVendorBookingAnalytics = async (req, res) => {
   console.log("HAHAHAHHA");
@@ -51,7 +52,7 @@ const getVendorBookingAnalytics = async (req, res) => {
     ];
 
     const bookingsList = bookings.map((b) => ({
-      pricingBreakdown:b.pricingBreakdown,
+      pricingBreakdown: b.pricingBreakdown,
       id: b._id,
       startDate: b.details?.startDate,
       endDate: b.details?.endDate,
@@ -245,6 +246,27 @@ const acceptBooking = asyncHandler(async (req, res) => {
     { path: "userId", select: "firstName lastName email contactNumber" },
     { path: "listingId", select: "title featuredImage pricing" },
   ]);
+
+  console.log(booking, "bookingbookingbookingbookingbookingbookingbooking");
+
+  const user = await User.findById(req.user.id);
+  console.log(user, "useruseruseruser");
+
+  if (user.notifications?.email === true) {
+    try {
+      await sendOrderAcceptanceEmail({
+        customerEmail: booking.userId.email,
+        customerName: `${booking.userId.firstName} ${booking.userId.lastName}`,
+        bookingId: booking.trackingId,
+        status: "Accepted",
+        bookingDate: booking.details.startDate,
+        bookingTime: `${booking.details.startTime} - ${booking.details.endTime}`,
+      });
+    }
+    catch (e) {
+      console.error("Failed to send order acceptance email:", e);
+    }
+  }
 
   res.json({
     success: true,

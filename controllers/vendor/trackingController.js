@@ -9,6 +9,7 @@ const ServiceItem = require("../../models/Item");
 const StockLog = require("../../models/StockLog");
 const notificationController = require("../notificationController");
 const SupportTicket = require("../../models/SupportTicket");
+const { sendBookingCompletionEmail } = require("../../utils/mailer");
 
 // GET /api/vendor/tracking
 const getVendorBookings = async (req, res) => {
@@ -317,7 +318,8 @@ const markBookingCompleted = asyncHandler(async (req, res) => {
     _id: req.params.id,
     vendorId: vendor.userId,
     status: { $in: ["received_back"] },
-  });
+  }).populate("listingId", "title")
+    .populate("userId", "firstName lastName email");
   console.log("markBookingCompleted - Found booking:", booking);
   if (!booking) {
     return res.status(404).json({
@@ -367,6 +369,19 @@ const markBookingCompleted = asyncHandler(async (req, res) => {
   }
 
   await booking.save();
+
+  console.log(booking, "bookingbookingbookingbooking");
+
+
+  await sendBookingCompletionEmail({
+    customerEmail: booking.userId.email,
+    customerName: `${booking.userId.firstName} ${booking.userId.lastName}`,
+    bookingId: booking.trackingId,
+    bookingDate: booking.bookingDate,
+    bookingTime: `${booking.startTime} - ${booking.endTime}`,
+    totalAmount: booking.pricingBreakdown?.totalAmount || "N/A",
+    listingTitle: `${booking.listingId.title.en} - ${booking.listingId.title.nl}`,
+  });
 
   // Notify client that booking is completed
   try {
