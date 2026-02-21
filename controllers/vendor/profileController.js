@@ -115,6 +115,7 @@ const updateProfileByAdmin = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     let updatedData; // declare outside
+    let updatedData2; // declare outside
     console.log(req.user, "req.userreq.user");
 
     // if (req.body.accountType === "business") {

@@ -1510,6 +1510,38 @@ const vendorLogin = async (req, res) => {
   }
 };
 
+const resetPasswordForEmployee = async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+    if (!email || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and new password are required",
+      });
+    }
+    const user = await Employee.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    user.password = hashedPassword;
+    await user.save();
+    return res.json({
+      success: true,
+      message: "Password reset successful",
+    });
+  } catch (err) {
+    console.error("Error resetting password:", err);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
 // --- Check already registered user ---
 const checkRegisteredUser = async (req, res) => {
   try {
@@ -1745,4 +1777,5 @@ module.exports = {
   // Password Management
   resetPassword,
   checkRegisteredUser,
+  resetPasswordForEmployee
 };

@@ -3,9 +3,10 @@ const Booking = require("../models/Booking");
 const nodemailer = require("nodemailer");
 const moment = require("moment")
 const notificationController = require("../controllers/notificationController");
+const { sendReminderEmail } = require("../utils/mailer");
 // Configure your email service
 const transporter = nodemailer.createTransport({
-    host:process.env.EMAIL_HOST,
+    host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
     secure: false,
     auth: {
@@ -32,16 +33,16 @@ async function sendEmail(to, subject, html) {
 
 
 // LIVE MODE — run daily at midnight
-cron.schedule("*/1000 * * * *", async () => {
+cron.schedule("0 */5 * * *", async () => {
     // console.log("🔄 Cron Job Running: Reminder + Auto Cancel...");
 
     try {
+        const now = moment();
         const today = moment().startOf("day");
 
         const bookings = await Booking.find({
             paymentStatus: "upfront_paid",
             isFullyPaid: false,
-            reminderSent: false
         })
             .populate("userId", "firstName email")
             .populate("listingId", "title")
@@ -60,54 +61,32 @@ cron.schedule("*/1000 * * * *", async () => {
             // -------------------------------
             // 📩 3 DAYS BEFORE — SEND REMINDER
             // -------------------------------
-            if (diffDays === 3) {
-                const remainingAmount =
-                    (booking.pricingBreakdown?.total || 0) - (booking.AmountPaid || 0);
+            if (diffDays === 3 && !booking.reminder3DaysSent) {
+                await sendReminderEmail(booking, "3");
+                await Booking.findByIdAndUpdate(booking._id, {
+                    reminder3DaysSent: true,
+                });
 
-                const emailHtml = `
-          <p>Dear ${booking.userId.firstName},</p>
-
-          <p>We hope you are doing well.</p>
-
-          <p>
-            This is a gentle reminder that your scheduled event on Evenlyo is just <strong>3 days away</strong>.<br/>
-            To ensure your booking is fully confirmed and all arrangements are prepared on time, please complete the remaining payment of <strong>${remainingAmount}.</strong>.
-          </p>
-
-          <h3>Booking Details:</h3>
-          <p><strong>Booking ID:</strong> ${booking._id}</p>
-          <p><strong>Event Date:</strong> ${moment(booking.details.startDate).format("DD MMM YYYY")}</p>
-          <p><strong>Order Details:</strong> ${booking.listingId?.title?.en || "Package"}</p>
-
-          <br/>
-
-          <a href="http://localhost:3000/pay/${booking._id}" 
-             style="background:#007bff;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">
-             Pay Now
-          </a>
-
-          <br/><br/>
-          <p>
-            If you need any support, reach out to us anytime through Evenlyo support.
-          </p>
-
-          <p>Warm regards,<br/>Evenlyo Team</p>
-        `;
-
-                await sendEmail(
-                    // booking.userId.email,
-                    "sinan.lakhani09@gmail.com",
-                    "Your Event is in 3 Days – Payment Reminder",
-                    emailHtml
-                );
-
-                console.log(`📧 Reminder sent for booking ${booking._id}`);
+                console.log(`📧 3-day reminder sent: ${booking._id}`);
             }
-            await Booking.findByIdAndUpdate(booking._id, { reminderSent: true });
             // -------------------------------
             // ❌ 1 DAY BEFORE — AUTO CANCEL
             // -------------------------------
-            if (diffDays === 1) {
+
+            // ----------------------------------
+            // 📩 1 DAY BEFORE REMINDER
+            // ----------------------------------
+            if (diffDays === 1 && !booking.reminder1DaySent) {
+                await sendReminderEmail(booking, "1");
+
+                await Booking.findByIdAndUpdate(booking._id, {
+                    reminder1DaySent: true,
+                });
+
+                console.log(`📧 1-day reminder sent: ${booking._id}`);
+            }
+
+            if (now.isAfter(eventDate) && !booking.isFullyPaid) {
                 await Booking.findByIdAndUpdate(booking._id, {
                     status: "cancelled",
                     paymentStatus: "cancelled_due_to_non_payment",

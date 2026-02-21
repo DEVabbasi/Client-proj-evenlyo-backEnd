@@ -325,7 +325,7 @@ async function sendOrderAcceptanceEmail({ customerEmail, customerName, bookingId
 
           <p style="margin-top: 20px;">Thank you for choosing our services. If you have any questions, feel free to reply to this email.</p>
 
-          <p style="color: #666; font-size: 14px;">Best regards,<br/>Your Company Name</p>
+          <p style="color: #666; font-size: 14px;">Best regards,<br/>Evenlyo Team</p>
         </div>
       </div>
     `,
@@ -378,7 +378,7 @@ const sendBookingCompletionEmail = async ({
   });
   // Email options
   const mailOptions = {
-    from: `"Your Company Name" <${process.env.EMAIL_USER}>`,
+    from: `<${process.env.EMAIL_USER}>`,
     to: customerEmail,
     subject: `Booking Completed – Booking ID: ${bookingId}`,
     html: `
@@ -397,7 +397,7 @@ const sendBookingCompletionEmail = async ({
 
           <p style="margin-top: 20px;">Thank you for using our services. We hope you had a great experience!</p>
 
-          <p style="color: #666; font-size: 14px;">Best regards,<br/>Your Company Name</p>
+          <p style="color: #666; font-size: 14px;">Best regards,<br/>Evenlyo Team</p>
         </div>
       </div>
     `,
@@ -414,7 +414,7 @@ Total Amount: $${totalAmount}
 Thank you for using our services. We hope you had a great experience!
 
 Best regards,
-Your Company Name
+Evenlyo
     `,
   };
 
@@ -428,6 +428,73 @@ Your Company Name
   }
 };
 
+
+const sendReminderEmail = async (booking, daysLeft) => {
+  const remainingAmount =
+    (booking.pricingBreakdown?.total || 0) - (booking.AmountPaid || 0);
+
+  const eventDateFormatted = moment(booking.details.startDate)
+    .format("DD MMM YYYY HH:mm");
+
+  // ⚠ Conditional warning only for 1-day reminder
+  const cancellationWarning =
+    daysLeft === 1
+      ? `
+        <div style="margin-top:20px;padding:15px;background:#fff3cd;border:1px solid #ffeeba;border-radius:6px;">
+          <strong style="color:#856404;">⚠ Important Notice:</strong>
+          <p style="margin:8px 0 0 0;color:#856404;">
+            If the remaining payment is not completed before the event date and time,
+            your booking will be automatically cancelled.
+          </p>
+        </div>
+      `
+      : "";
+
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;">
+      <h2 style="color:#333;">Payment Reminder</h2>
+
+      <p>Dear ${booking.userId.firstName},</p>
+
+      <p>
+        This is a friendly reminder that your event is in 
+        <strong>${daysLeft} day${daysLeft > 1 ? "s" : ""}</strong>.
+      </p>
+
+      <p>
+        Please complete the remaining payment of 
+        <strong>€${remainingAmount}</strong> to ensure your booking remains confirmed.
+      </p>
+
+      <h3>Booking Details:</h3>
+      <p><strong>Booking ID:</strong> ${booking._id}</p>
+      <p><strong>Event Date:</strong> ${eventDateFormatted}</p>
+      <p><strong>Service:</strong> ${booking.listingId?.title || "Package"}</p>
+
+      ${cancellationWarning}
+
+      <br/>
+
+      <a href="http://localhost:3000/pay/${booking._id}" 
+         style="display:inline-block;margin-top:20px;background:#007bff;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">
+         Pay Now
+      </a>
+
+      <p style="margin-top:30px;">
+        If you need assistance, please contact our support team.
+      </p>
+
+      <p>Warm regards,<br/>Evenlyo Team</p>
+    </div>
+  `;
+
+  await sendEmail(
+    booking.userId.email,
+    `Your Event is in ${daysLeft} Day${daysLeft > 1 ? "s" : ""} – Payment Reminder`,
+    emailHtml
+  );
+};
+
 module.exports = {
   sendOTPEmail,
   sendPromotionalEmail,
@@ -436,5 +503,6 @@ module.exports = {
   sendForgotOTPADMIN,
   sendKvkUpdateEmail,
   sendOrderAcceptanceEmail,
-  sendBookingCompletionEmail
+  sendBookingCompletionEmail,
+  sendReminderEmail
 };

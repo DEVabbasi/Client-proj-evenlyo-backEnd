@@ -312,7 +312,11 @@ const bookingRequestSchema = new mongoose.Schema(
       type: Object,
       default: null,
     },
-    reminderSent: {
+    reminder3DaysSent: {
+      type: Boolean,
+      default: false,
+    },
+    reminder1DaysSent: {
       type: Boolean,
       default: false,
     },
