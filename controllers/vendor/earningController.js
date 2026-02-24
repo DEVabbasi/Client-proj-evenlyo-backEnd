@@ -195,7 +195,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
     const monthlyRevenueAggAll = await Booking.aggregate([
       {
         $match: {
-          vendorId: vendorObjectId,
+          vendorId: vendorId,
           createdAt: { $gte: startOfYear },
           status: { $in: ["completed", "cancelled"] }
         }
@@ -203,8 +203,6 @@ const getVendorEarningsAnalytics = async (req, res) => {
       {
         $project: {
           month: { $month: "$createdAt" },
-
-          // ✅ Only vendor service amount
           completedRevenue: {
             $cond: [
               { $eq: ["$status", "completed"] },
@@ -212,7 +210,6 @@ const getVendorEarningsAnalytics = async (req, res) => {
               0
             ]
           },
-
           refundRevenue: {
             $cond: [
               {
@@ -235,11 +232,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
       {
         $group: {
           _id: "$month",
-          revenue: {
-            $sum: {
-              $add: ["$completedRevenue", "$refundRevenue"]
-            }
-          }
+          revenue: { $sum: { $add: ["$completedRevenue", "$refundRevenue"] } }
         }
       },
       { $sort: { _id: 1 } }
@@ -264,22 +257,10 @@ const getVendorEarningsAnalytics = async (req, res) => {
           completedRevenue: {
             $cond: [
               { $eq: ["$status", "completed"] },
-              {
-                $subtract: [
-                  { $ifNull: ["$pricingBreakdown.total", 0] },
-                  {
-                    $add: [
-                      { $ifNull: ["$pricingBreakdown.platformFee", 0] },
-                      { $ifNull: ["$pricingBreakdown.securityFee", 0] },
-                      { $ifNull: ["$pricingBreakdown.evenlyoProtectFee", 0] }
-                    ]
-                  }
-                ]
-              },
+              { $ifNull: ["$pricingBreakdown.subtotal", 0] },
               0
             ]
           },
-
           refundRevenue: {
             $cond: [
               {
@@ -324,22 +305,10 @@ const getVendorEarningsAnalytics = async (req, res) => {
           completedRevenue: {
             $cond: [
               { $eq: ["$status", "completed"] },
-              {
-                $subtract: [
-                  { $ifNull: ["$pricingBreakdown.total", 0] },
-                  {
-                    $add: [
-                      { $ifNull: ["$pricingBreakdown.platformFee", 0] },
-                      { $ifNull: ["$pricingBreakdown.securityFee", 0] },
-                      { $ifNull: ["$pricingBreakdown.evenlyoProtectFee", 0] }
-                    ]
-                  }
-                ]
-              },
+              { $ifNull: ["$pricingBreakdown.subtotal", 0] },
               0
             ]
           },
-
           refundRevenue: {
             $cond: [
               {
@@ -539,22 +508,10 @@ const getVendorEarningsAnalytics = async (req, res) => {
           completedRevenue: {
             $cond: [
               { $eq: ["$status", "completed"] },
-              {
-                $subtract: [
-                  { $ifNull: ["$pricingBreakdown.total", 0] },
-                  {
-                    $add: [
-                      { $ifNull: ["$pricingBreakdown.platformFee", 0] },
-                      { $ifNull: ["$pricingBreakdown.securityFee", 0] },
-                      { $ifNull: ["$pricingBreakdown.evenlyoProtectFee", 0] }
-                    ]
-                  }
-                ]
-              },
+              { $ifNull: ["$pricingBreakdown.subtotal", 0] },
               0
             ]
           },
-
           refundRevenue: {
             $cond: [
               {
