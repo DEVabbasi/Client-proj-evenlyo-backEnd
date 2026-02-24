@@ -195,7 +195,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
     const monthlyRevenueAggAll = await Booking.aggregate([
       {
         $match: {
-          vendorId: vendorId,
+          vendorId: vendorObjectId,
           createdAt: { $gte: startOfYear },
           status: { $in: ["completed", "cancelled"] }
         }
@@ -204,21 +204,11 @@ const getVendorEarningsAnalytics = async (req, res) => {
         $project: {
           month: { $month: "$createdAt" },
 
+          // ✅ Only vendor service amount
           completedRevenue: {
             $cond: [
               { $eq: ["$status", "completed"] },
-              {
-                $subtract: [
-                  { $ifNull: ["$pricingBreakdown.total", 0] },
-                  {
-                    $add: [
-                      { $ifNull: ["$pricingBreakdown.platformFee", 0] },
-                      { $ifNull: ["$pricingBreakdown.securityFee", 0] },
-                      { $ifNull: ["$pricingBreakdown.evenlyoProtectFee", 0] }
-                    ]
-                  }
-                ]
-              },
+              { $ifNull: ["$pricingBreakdown.subtotal", 0] },
               0
             ]
           },
@@ -245,7 +235,11 @@ const getVendorEarningsAnalytics = async (req, res) => {
       {
         $group: {
           _id: "$month",
-          revenue: { $sum: { $add: ["$completedRevenue", "$refundRevenue"] } }
+          revenue: {
+            $sum: {
+              $add: ["$completedRevenue", "$refundRevenue"]
+            }
+          }
         }
       },
       { $sort: { _id: 1 } }
@@ -632,7 +626,7 @@ const getServiceItemEarningsAnalytics = async (req, res) => {
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
     const lastWeek = new Date(today); lastWeek.setDate(today.getDate() - 6);
-    console.log(lastWeek,"lastWeeklastWeeklastWeek");
+    console.log(lastWeek, "lastWeeklastWeeklastWeek");
     // Earnings stats for completed purchases
     // const [todayEarnings, lastWeekEarnings, totalEarnings] = await Promise.all([
     //   Purchase.aggregate([
