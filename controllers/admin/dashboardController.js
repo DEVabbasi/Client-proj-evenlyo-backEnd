@@ -118,6 +118,7 @@ const getDashboardStats = async (req, res) => {
     // Format recent clients with their last booking
     const formattedRecentClients = await Promise.all(
       (recentClients || []).map(async (client) => {
+        console.log(client,"clientclientclientclientclientclient");
         const lastBooking = await Booking.findOne({ userId: client._id })
           .sort({ createdAt: -1 })
           .select('createdAt');
@@ -136,10 +137,11 @@ const getDashboardStats = async (req, res) => {
       (recentVendors || []).map(async (vendorUser) => {
         // Find vendor profile to get vendorId
         const vendorProfile = await Vendor.findOne({ userId: vendorUser._id });
+
         let lastBooking = null;
 
         if (vendorProfile) {
-          const booking = await Booking.findOne({ vendorId: vendorProfile._id })
+          const booking = await Booking.findOne({ vendorId: vendorUser._id })
             .sort({ createdAt: -1 })
             .select('createdAt');
           lastBooking = booking ? booking.createdAt : '';

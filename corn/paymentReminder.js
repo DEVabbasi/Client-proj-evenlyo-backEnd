@@ -4,6 +4,7 @@ const nodemailer = require("nodemailer");
 const moment = require("moment")
 const notificationController = require("../controllers/notificationController");
 const { sendReminderEmail } = require("../utils/mailer");
+const StockLog = require("../models/StockLog");
 // Configure your email service
 const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
@@ -48,13 +49,11 @@ cron.schedule("0 */5 * * *", async () => {
             .populate("listingId", "title")
             .lean();
         console.log(bookings, "bookingsbookings");
-
         for (const booking of bookings) {
             console.log(booking, "bookingbookingbookingbooking");
 
             const eventDate = moment(booking.details.startDate).startOf("day");
             console.log(eventDate, today, "THINGSSS");
-
             const diffDays = eventDate.diff(today, "days");
             console.log(diffDays, "diffDaysdiffDaysdiffDays");
 
@@ -92,6 +91,14 @@ cron.schedule("0 */5 * * *", async () => {
                     paymentStatus: "cancelled_due_to_non_payment",
                 });
 
+                await StockLog.create({
+                    listing: booking.listingId,
+                    type: "checkin",
+                    quantity: 1,
+                    note: `Returned after cancelled booking ${booking._id}`,
+                    createdBy: booking.userId,
+                });
+                s
                 await notificationController.createNotification({
                     notificationFor: "Vendor",
                     vendorId: booking.vendorId, // vendor's user account receives notification

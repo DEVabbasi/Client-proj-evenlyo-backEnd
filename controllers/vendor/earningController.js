@@ -274,13 +274,17 @@ const getVendorEarningsAnalytics = async (req, res) => {
           }
         }
       },
-      {
-        $group: {
-          _id: null,
-          revenue: { $sum: { $add: ["$completedRevenue", "$refundRevenue"] } }
-        }
-      }
+      // {
+      //   $group: {
+      //     _id: null,
+      //     revenue: { $sum: { $add: ["$completedRevenue", "$refundRevenue"] } }
+      //   }
+      // }
     ]);
+
+
+    console.log(todaysEarningsAgg, "todaysEarningsAggtodaysEarningsAggtodaysEarningsAgg");
+
 
     const todaysEarnings = todaysEarningsAgg[0]?.revenue || 0;
 
