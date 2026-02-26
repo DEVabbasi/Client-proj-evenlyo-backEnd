@@ -32,7 +32,7 @@ async function sendOTPEmail(to, otp) {
             </div>
           </div>
           
-          <p style="color: #666; font-size: 14px; line-height: 1.5;">This code will expire in 10 minutes for security reasons.</p>
+          <p style="color: #666; font-size: 14px; line-height: 1.5;">This code will expire in 5 minutes for security reasons.</p>
           
           <p style="color: #666; font-size: 14px; line-height: 1.5;">If you didn't request this verification code, please ignore this email.</p>
           
@@ -42,7 +42,7 @@ async function sendOTPEmail(to, otp) {
         </div>
       </div>
     `,
-    text: `Your Evenlyo verification code is: ${otp}. This code will expire in 10 minutes.`,
+    text: `Your Evenlyo verification code is: ${otp}. This code will expire in 5 minutes.`,
   };
   try {
     return await transporter.sendMail(mailOptions);
@@ -75,7 +75,7 @@ async function sendForgotOTPADMIN(to, otp) {
             </div>
           </div>
           
-          <p style="color: #666; font-size: 14px; line-height: 1.5;">This code will expire in 10 minutes for security reasons.</p>
+          <p style="color: #666; font-size: 14px; line-height: 1.5;">This code will expire in 5 minutes for security reasons.</p>
           
           <p style="color: #666; font-size: 14px; line-height: 1.5;">If you didn't request this verification code, please ignore this email.</p>
           
@@ -85,7 +85,7 @@ async function sendForgotOTPADMIN(to, otp) {
         </div>
       </div>
     `,
-    text: `Your Evenlyo verification code is: ${otp}. This code will expire in 10 minutes.`,
+    text: `Your Evenlyo verification code is: ${otp}. This code will expire in 5 minutes.`,
   };
   try {
     return await transporter.sendMail(mailOptions);

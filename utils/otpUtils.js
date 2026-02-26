@@ -12,13 +12,14 @@ async function generateAndSendOTP(email) {
   await OTP.create({ email, code: otpCode, expiresAt });
   await sendForgotOTPADMIN(email, otpCode);
 }
+
 async function generateAndSendOTPonRegister(email) {
   const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);// 60 sec
+  const expiresAt = new Date(Date.now() + 1 * 60 * 1000); // 5 minutes
+  await OTP.deleteMany({ email });
   await OTP.create({ email, code: otpCode, expiresAt });
   await sendOTPEmail(email, otpCode);
 }
-
 /**
  * Verify an OTP code for a given email
  * @param {string} email - Email address

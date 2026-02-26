@@ -624,11 +624,7 @@ const sendOtpForRegister = async (req, res) => {
         message: "Email is required",
       });
     }
-
-    // Normalize email to avoid case-sensitivity / whitespace issues
     email = String(email).trim().toLowerCase();
-
-    // Check if user already exists to avoid sending OTP to registered accounts
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       // If the account uses social login, guide the user accordingly
@@ -638,14 +634,12 @@ const sendOtpForRegister = async (req, res) => {
           message: `An account with this email already exists and uses ${existingUser.provider} sign-in. Please use the social provider to sign in.`,
         });
       }
-
       return res.status(409).json({
         success: false,
         message:
           "Email is already registered. Please login or use password reset if you forgot your password.",
       });
     }
-
     await generateAndSendOTPonRegister(email);
     res.json({
       success: true,
