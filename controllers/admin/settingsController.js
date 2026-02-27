@@ -8,9 +8,9 @@ const resetPassword = async (req, res) => {
     try {
         // The JWT/req.user contains the user id (User document), not the Admin document id.
         const userId = req.user && req.user.id;
-        console.log(req.user,req.user.id,"asdasd");
-        console.log(userId,"userIduserId");
-        
+        console.log(req.user, req.user.id, "asdasd");
+        console.log(userId, "userIduserId");
+
         const { oldPassword, newPassword } = req.body;
 
         if (!oldPassword || !newPassword) {
@@ -27,7 +27,7 @@ const resetPassword = async (req, res) => {
         }
 
         // Find the User (password lives on User model)
-        const user = await AdminEmployee.findById(userId);  
+        const user = await AdminEmployee.findById(userId);
         if (!user) {
             return res.status(404).json({ message: 'User not found.' });
         }
@@ -91,26 +91,26 @@ const setPlatformFees = async (req, res) => {
 
 const getNotificationSettings = async (req, res) => {
     try {
-        const settings = await Settings.findOne();
+        const settings = await AdminEmployee.findOne({ role: "Admin" });
         if (!settings) {
             return res.status(404).json({ message: 'Settings not found.' });
         }
 
         // Ensure notification settings exist with defaults
-        const notificationSettings = settings.adminNotificationSettings || {
-            email: {
-                bookingCompletion: true,
-                newAccount: true
-            },
-            push: {
-                bookingCompletion: true,
-                newAccount: true
-            }
-        };
+        // const notificationSettings = settings.adminNotificationSettings || {
+        //     email: {
+        //         bookingCompletion: true,
+        //         newAccount: true
+        //     },
+        //     push: {
+        //         bookingCompletion: true,
+        //         newAccount: true
+        //     }
+        // };
 
         res.json({
             message: 'Notification settings retrieved successfully.',
-            notifications: notificationSettings
+            notifications: settings.notificationSettings
         });
     } catch (error) {
         res.status(500).json({ message: 'Server error.', error: error.message });
@@ -120,11 +120,11 @@ const getNotificationSettings = async (req, res) => {
 const toggleEmailNotifications = async (req, res) => {
     try {
         let { bookingCompletion, newAccount, orderCompletion, newRegistration } = req.body;
-        
+
         // Handle both property name variations
         let finalBookingCompletion = bookingCompletion !== undefined ? bookingCompletion : orderCompletion;
         let finalNewAccount = newAccount !== undefined ? newAccount : newRegistration;
-        
+
         // Convert string booleans to actual booleans
         if (typeof finalBookingCompletion === 'string') {
             finalBookingCompletion = finalBookingCompletion.toLowerCase() === 'true';
@@ -132,7 +132,7 @@ const toggleEmailNotifications = async (req, res) => {
         if (typeof finalNewAccount === 'string') {
             finalNewAccount = finalNewAccount.toLowerCase() === 'true';
         }
-        
+
         if (typeof finalBookingCompletion !== 'boolean' || typeof finalNewAccount !== 'boolean') {
             return res.status(400).json({ message: 'bookingCompletion/orderCompletion and newAccount/newRegistration must be boolean values.' });
         }
@@ -156,7 +156,7 @@ const toggleEmailNotifications = async (req, res) => {
         settings.markModified('adminNotificationSettings');
 
         await settings.save();
-        res.json({ 
+        res.json({
             message: 'Email notification settings updated successfully.',
             email: settings.adminNotificationSettings.email
         });
@@ -167,49 +167,49 @@ const toggleEmailNotifications = async (req, res) => {
 
 const togglePushNotifications = async (req, res) => {
     try {
-        let { bookingCompletion, newAccount, orderCompletion, newRegistration } = req.body;
-        
-        // Handle both property name variations
-        let finalBookingCompletion = bookingCompletion !== undefined ? bookingCompletion : orderCompletion;
-        let finalNewAccount = newAccount !== undefined ? newAccount : newRegistration;
-        
-        // Convert string booleans to actual booleans
-        if (typeof finalBookingCompletion === 'string') {
-            finalBookingCompletion = finalBookingCompletion.toLowerCase() === 'true';
+        const adminId = req.user._id; // better than params (secure)
+        const { type, key, value } = req.body;
+        if (!type || !key || typeof value !== "boolean") {
+            return res.status(400).json({
+                success: false,
+                message: "type, key and boolean value are required",
+            });
         }
-        if (typeof finalNewAccount === 'string') {
-            finalNewAccount = finalNewAccount.toLowerCase() === 'true';
+        // Allowed structure
+        const allowedSettings = {
+            email: ["orderCancellation", "evenlyoProtect"],
+            push: ["evenlyoProtect", "newRegistration"],
+        };
+        if (!allowedSettings[type] || !allowedSettings[type].includes(key)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid notification type or key",
+            });
         }
-        
-        if (typeof finalBookingCompletion !== 'boolean' || typeof finalNewAccount !== 'boolean') {
-            return res.status(400).json({ message: 'bookingCompletion/orderCompletion and newAccount/newRegistration must be boolean values.' });
+        const updatePath = `notificationSettings.${type}.${key}`;
+        const updatedAdmin = await AdminEmployee.findByIdAndUpdate(
+            adminId,
+            { $set: { [updatePath]: value } },
+            { new: true }
+        );
+        if (!updatedAdmin) {
+            return res.status(404).json({
+                success: false,
+                message: "Admin not found",
+            });
         }
-
-        let settings = await Settings.findOne();
-        if (!settings) {
-            settings = new Settings();
-        }
-
-        if (!settings.adminNotificationSettings) {
-            settings.adminNotificationSettings = { email: {}, push: {} };
-        }
-        if (!settings.adminNotificationSettings.push) {
-            settings.adminNotificationSettings.push = {};
-        }
-
-        settings.adminNotificationSettings.push.bookingCompletion = finalBookingCompletion;
-        settings.adminNotificationSettings.push.newAccount = finalNewAccount;
-
-        // Mark the nested object as modified for Mongoose to detect changes
-        settings.markModified('adminNotificationSettings');
-
-        await settings.save();
-        res.json({ 
-            message: 'Push notification settings updated successfully.',
-            push: settings.adminNotificationSettings.push
+        res.status(200).json({
+            success: true,
+            message: "Notification setting updated",
+            data: updatedAdmin.notificationSettings,
         });
+
     } catch (error) {
-        res.status(500).json({ message: 'Server error.', error: error.message });
+        console.error("Toggle notification error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+        });
     }
 };
 

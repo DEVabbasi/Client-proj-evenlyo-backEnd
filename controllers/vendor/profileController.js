@@ -115,21 +115,22 @@ const updateProfileByAdmin = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     let updatedData; // declare outside
-    console.log(req.user,"req.userreq.user");
-    
-    if (req.body.accountType === "business") {
-      updatedData = await Vendor.findOneAndUpdate(
-        { _id: req.user.vendorId },
-        { $set: req.body },
-        { new: true, runValidators: true }
-      );
-    } else {
-      updatedData = await User.findOneAndUpdate(
-        { _id: req.user.id },
-        { $set: req.body },
-        { new: true, runValidators: true }
-      );
-    }
+    let updatedData2; // declare outside
+    console.log(req.user, "req.userreq.user");
+
+    // if (req.body.accountType === "business") {
+    updatedData = await Vendor.findOneAndUpdate(
+      { _id: req.user.vendorId },
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
+    // } else {
+    updatedData2 = await User.findOneAndUpdate(
+      { _id: req.user.id },
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
+    // }
 
     if (!updatedData) {
       return res.status(404).json({

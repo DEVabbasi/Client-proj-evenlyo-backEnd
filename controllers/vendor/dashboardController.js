@@ -86,6 +86,7 @@ const getDashboardAnalytics = async (req, res) => {
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     // All months in current year
     const startOfYear = new Date(now.getFullYear(), 0, 1);
+
     const monthlyRevenueAggAll = await Booking.aggregate([
       {
         $match: {
@@ -98,25 +99,14 @@ const getDashboardAnalytics = async (req, res) => {
         $project: {
           month: { $month: "$createdAt" },
 
+          // ✅ Only vendor service amount
           completedRevenue: {
             $cond: [
               { $eq: ["$status", "completed"] },
-              {
-                $subtract: [
-                  { $ifNull: ["$pricingBreakdown.total", 0] },
-                  {
-                    $add: [
-                      { $ifNull: ["$pricingBreakdown.platformFee", 0] },
-                      { $ifNull: ["$pricingBreakdown.securityFee", 0] },
-                      { $ifNull: ["$pricingBreakdown.evenlyoProtectFee", 0] },
-                    ],
-                  },
-                ],
-              },
-              0,
-            ],
+              { $ifNull: ["$pricingBreakdown.subtotal", 0] },
+              0
+            ]
           },
-
           refundRevenue: {
             $cond: [
               {
@@ -139,12 +129,15 @@ const getDashboardAnalytics = async (req, res) => {
       {
         $group: {
           _id: "$month",
-          revenue: { $sum: { $add: ["$completedRevenue", "$refundRevenue"] } },
-        },
+          revenue: {
+            $sum: {
+              $add: ["$completedRevenue", "$refundRevenue"]
+            }
+          }
+        }
       },
       { $sort: { _id: 1 } },
     ]);
-
     // Array of 12 months, fill missing with 0
     console.log(
       monthlyRevenueAggAll,

@@ -12,9 +12,7 @@ const { default: mongoose } = require("mongoose");
 router.get("/", requireAuth, async (req, res) => {
   console.log(req.user.id, " req.user.id req.user.id");
 
-  const notifications = await Notification.find({ clientId: req.user.id }).sort(
-    { createdAt: -1 },
-  );
+  const notifications = await Notification.find({ notificationFor: "Vendor", clientId: req.user.id }).sort({ createdAt: -1 });
   // let userIdToQuery = req.user.id;
   // console.log(userIdToQuery,"userIdToQueryuserIdToQuery");
 
@@ -56,6 +54,7 @@ router.get("/admin-notifications", async (req, res) => {
           type: 1,
           createdAt: 1,
           bookingId: 1,
+          isRead: 1,
           trackingId: "$booking.trackingId", // get trackingId from booking
         },
       },

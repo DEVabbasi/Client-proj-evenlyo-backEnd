@@ -12,9 +12,7 @@ router.post('/platform-fees', requireAdmin, setPlatformFees);
 // Admin get notification settings
 router.get('/notification', requireAdmin, getNotificationSettings);
 // Admin toggle email notifications
-router.patch('/notification/email', requireAdmin, toggleEmailNotifications);
-// Admin toggle push notifications
-router.patch('/notification/push', requireAdmin, togglePushNotifications);
+router.patch('/notification/update', requireAdmin, togglePushNotifications);
 
 module.exports = router;
 

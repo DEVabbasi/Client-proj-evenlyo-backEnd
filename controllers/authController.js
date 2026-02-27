@@ -3,6 +3,7 @@ const User = require("../models/User");
 const Vendor = require("../models/Vendor");
 const Admin = require("../models/Admin");
 const Employee = require("../models/Employee");
+const AdminEmployee = require("../models/AdminEmployee");
 const VendorDesignations = require("../models/vendorDesignations");
 const {
   generateAndSendOTP,
@@ -12,6 +13,7 @@ const {
 const { auth } = require("../config/firebase");
 const { signAccessToken, signToken } = require("../utils/jwtUtils");
 const logger = require("../utils/logger");
+const notificationController = require("./notificationController");
 
 // --- Model loading utility ---
 const getModelByUserType = (userType) => {
@@ -795,11 +797,7 @@ const sendOtpForRegister = async (req, res) => {
         message: "Email is required",
       });
     }
-
-    // Normalize email to avoid case-sensitivity / whitespace issues
     email = String(email).trim().toLowerCase();
-
-    // Check if user already exists to avoid sending OTP to registered accounts
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       // If the account uses social login, guide the user accordingly
@@ -809,14 +807,12 @@ const sendOtpForRegister = async (req, res) => {
           message: `An account with this email already exists and uses ${existingUser.provider} sign-in. Please use the social provider to sign in.`,
         });
       }
-
       return res.status(409).json({
         success: false,
         message:
           "Email is already registered. Please login or use password reset if you forgot your password.",
       });
     }
-
     await generateAndSendOTPonRegister(email);
     res.json({
       success: true,
@@ -923,17 +919,42 @@ const verifyOtpAndRegister = async (req, res, userType = "client") => {
     await user.save();
 
     // Notify admin(s) of new client registration
-    try {
-      const notificationController = require("./notificationController");
-      await notificationController.createAdminNotification({
-        message: `A new client has registered: ${firstName} ${lastName}`,
+    const adminsToNotify = await AdminEmployee.findOne({
+      role: "Admin",
+      status: "active",
+      "notificationSettings.push.newRegistration": true
+    }).select("_id name email");
+
+    console.log(adminsToNotify, "adminsToNotifyadminsToNotifyadminsToNotify");
+
+
+    if (adminsToNotify) {
+      await notificationController.createNotification({
+        title: {
+          en: "New User Registration",
+          nl: "Nieuwe gebruikersregistratie"
+        },
+        notificationFor: "Admin",
+        vendorId: null, // vendor's user account receives notification
+        clientId: user._id, // vendor's user account receives notification
+        bookingId: null,
+        message: {
+          en: `A new user has registered: ${firstName} ${lastName}`,
+          nl: `Een nieuwe gebruiker heeft zich geregistreerd: ${firstName} ${lastName}`,
+        },
       });
-    } catch (e) {
-      console.error(
-        "Failed to create admin notification for new client registration:",
-        e,
-      );
     }
+    // try {
+    //   const notificationController = require("./notificationController");
+    //   await notificationController.createAdminNotification({
+    //     message: `A new client has registered: ${firstName} ${lastName}`,
+    //   });
+    // } catch (e) {
+    //   console.error(
+    //     "Failed to create admin notification for new client registration:",
+    //     e
+    //   );
+    // }
 
     // Future: Create role-specific profile if vendor
     // if (userType === 'vendor') {
@@ -1529,6 +1550,192 @@ const registerVendor = async (req, res) => {
   }
 };
 
+// --- Vendor Login ---
+const vendorLogin = async (req, res) => {
+  try {
+    const { email, password, provider } = req.body;
+    console.log(req.body, "REQQQQ");
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+    let user = await User.findOne({ email });
+    let isEmployee = false;
+    console.log(user, "useruseruseruser");
+
+    if (!user) {
+      user = await Employee.findOne({ email }).populate("vendor");
+      console.log(user, "USERRRR");
+
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "Account not found",
+        });
+      }
+      isEmployee = true;
+    }
+    console.log(user.isActive, "user.statususer.status");
+
+    if (!user.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: "Account not active! Please contact support",
+      });
+    }
+
+    // --- GOOGLE LOGIN ---
+    if (provider === "google") {
+      if (user.provider && user.provider !== "google") {
+        return res.status(403).json({
+          success: false,
+          message:
+            "This email is registered with password. Please login using email/password.",
+        });
+      }
+
+      const token = signToken({
+        id: user.createdById != null ? user.createdById : user._id,
+        name: user.name,
+      });
+      const responseUser = {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        profileImage: user.profileImage,
+        userType: "customer",
+        vendorId: isEmployee ? user.vendorId?._id : null,
+      };
+
+      return res.json({
+        success: true,
+        message: "Google login successful",
+        token,
+        user: responseUser,
+      });
+    }
+
+    // --- EMAIL LOGIN ---
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: "Password is required for email login",
+      });
+    }
+
+    if (user.provider === "google") {
+      return res.status(403).json({
+        success: false,
+        message:
+          "This account was created with Google. Please login using Google.",
+      });
+    }
+
+    // Compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    // If it's a regular User, fetch vendor and permissions
+    let pages = [];
+    let vendorId = null;
+    const vendor = await Vendor.findOne({ userId: user._id }).populate(
+      "userId",
+      "-password"
+    );
+    vendorId = vendor?._id;
+    console.log(user, isEmployee, "useruseruseruser");
+    let designation = null;
+    if (isEmployee) {
+      designation = await VendorDesignations.findOne({
+        _id: user.designation,        // employee's designation id
+        vendorId: user.vendor._id,    // vendor they belong to
+      });
+    } else {
+      designation = await VendorDesignations.findOne({
+        vendorId: user.createdById,
+      });
+    }
+    console.log(designation, "designationdesignationdesignation");
+    pages = designation?.permissions?.map((p) => p.module) || [];
+    console.log(user, "useruseruseruser");
+    const token = signToken({
+      id: isEmployee ? user.vendor.id : user._id,
+      name: user.name,
+    });
+
+    const vendorDetails = await Vendor.findOne({ userId: user._id });
+
+    const responseUser = {
+      id: isEmployee ? user.vendor.id : user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      profileImage: user.profileImage,
+      userType: isEmployee ? "Employee" : "vendor",
+      vendorId,
+      vendorDetails
+    };
+
+    if (pages.length > 0) {
+      responseUser.pages = pages;
+    }
+
+    return res.json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: responseUser,
+    });
+  } catch (err) {
+    console.error("Vendor Login Error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+const resetPasswordForEmployee = async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+    if (!email || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and new password are required",
+      });
+    }
+    const user = await Employee.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    user.password = hashedPassword;
+    await user.save();
+    return res.json({
+      success: true,
+      message: "Password reset successful",
+    });
+  } catch (err) {
+    console.error("Error resetting password:", err);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
 // --- Check already registered user ---
 const checkRegisteredUser = async (req, res) => {
   try {
@@ -1715,14 +1922,30 @@ const registerVendor2 = async (req, res) => {
 
     await Vendor.create(vendorData);
 
-    // ✅ Notify admin
-    try {
-      const notificationController = require("./notificationController");
-      await notificationController.createAdminNotification({
-        message: `New vendor registered: ${vendorData.businessName}`,
+    const adminsToNotify = await AdminEmployee.findOne({
+      role: "Admin",
+      status: "active",
+      "notificationSettings.push.newRegistration": true
+    }).select("_id name email");
+
+    console.log(adminsToNotify, "adminsToNotifyadminsToNotifyadminsToNotify");
+
+
+    if (adminsToNotify) {
+      await notificationController.createNotification({
+        title: {
+          en: "New Vendor Registration",
+          nl: "Nieuwe leveranciersregistratie"
+        },
+        notificationFor: "Admin",
+        vendorId: null, // vendor's user account receives notification
+        clientId: user._id, // vendor's user account receives notification
+        bookingId: null,
+        message: {
+          en: `A new vendor has registered: ${businessName}`,
+          nl: `Een nieuwe leverancier heeft zich geregistreerd: ${businessName}`,
+        },
       });
-    } catch (e) {
-      console.error("Admin notification failed:", e);
     }
 
     res.status(201).json({
@@ -1763,4 +1986,5 @@ module.exports = {
   // Password Management
   resetPassword,
   checkRegisteredUser,
+  resetPasswordForEmployee
 };

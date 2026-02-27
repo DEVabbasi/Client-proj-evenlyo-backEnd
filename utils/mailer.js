@@ -32,7 +32,7 @@ async function sendOTPEmail(to, otp) {
             </div>
           </div>
           
-          <p style="color: #666; font-size: 14px; line-height: 1.5;">This code will expire in 10 minutes for security reasons.</p>
+          <p style="color: #666; font-size: 14px; line-height: 1.5;">This code will expire in 5 minutes for security reasons.</p>
           
           <p style="color: #666; font-size: 14px; line-height: 1.5;">If you didn't request this verification code, please ignore this email.</p>
           
@@ -42,7 +42,7 @@ async function sendOTPEmail(to, otp) {
         </div>
       </div>
     `,
-    text: `Your Evenlyo verification code is: ${otp}. This code will expire in 10 minutes.`,
+    text: `Your Evenlyo verification code is: ${otp}. This code will expire in 5 minutes.`,
   };
   try {
     return await transporter.sendMail(mailOptions);
@@ -75,7 +75,7 @@ async function sendForgotOTPADMIN(to, otp) {
             </div>
           </div>
           
-          <p style="color: #666; font-size: 14px; line-height: 1.5;">This code will expire in 10 minutes for security reasons.</p>
+          <p style="color: #666; font-size: 14px; line-height: 1.5;">This code will expire in 5 minutes for security reasons.</p>
           
           <p style="color: #666; font-size: 14px; line-height: 1.5;">If you didn't request this verification code, please ignore this email.</p>
           
@@ -85,7 +85,7 @@ async function sendForgotOTPADMIN(to, otp) {
         </div>
       </div>
     `,
-    text: `Your Evenlyo verification code is: ${otp}. This code will expire in 10 minutes.`,
+    text: `Your Evenlyo verification code is: ${otp}. This code will expire in 5 minutes.`,
   };
   try {
     return await transporter.sendMail(mailOptions);
@@ -290,11 +290,274 @@ Please review and process this request accordingly.
   }
 }
 
+async function sendOrderAcceptanceEmail({ customerEmail, customerName, bookingId, status, bookingDate, bookingTime }) {
+  // Configure your transporter
+  console.log(customerEmail, customerName, bookingId, status, bookingDate, bookingTime, "EMAIL DETAILS") // Log the email details for debugging;
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER, // info@evenlyo.nl
+      pass: process.env.EMAIL_PASS  // 12-digit app password
+    },
+    requireTLS: true
+  });
+
+  // Email options
+  const mailOptions = {
+    from: `<${process.env.EMAIL_USER}>`,
+    to: customerEmail,
+    subject: `Booking Accepted – Booking ID: ${bookingId}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f6f8;">
+        <div style="background-color: #ffffff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          <h2 style="color: #1976d2;">✅ Your Booking is Accepted</h2>
+          <p>Hello <strong>${customerName}</strong>,</p>
+          <p>We are happy to inform you that your booking has been <strong>${status}</strong>.</p>
+          
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+
+          <p><strong>Booking ID:</strong> ${bookingId}</p>
+          <p><strong>Date:</strong> ${bookingDate}</p>
+          <p><strong>Time:</strong> ${bookingTime}</p>
+
+          <p style="margin-top: 20px;">Thank you for choosing our services. If you have any questions, feel free to reply to this email.</p>
+
+          <p style="color: #666; font-size: 14px;">Best regards,<br/>Evenlyo Team</p>
+        </div>
+      </div>
+    `,
+    text: `
+Hello ${customerName},
+
+We are happy to inform you that your booking has been ${status}.
+
+Booking ID: ${bookingId}
+Date: ${bookingDate}
+Time: ${bookingTime}
+
+Thank you for choosing our services.
+
+Best regards,
+Evenlyo
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Order acceptance email sent:", info.messageId);
+    return info;
+  } catch (error) {
+    console.error("Error sending order acceptance email:", error);
+    throw error;
+  }
+};
+
+
+const sendBookingCompletionEmail = async ({
+  customerEmail,
+  customerName,
+  bookingId,
+  bookingDate,
+  bookingTime,
+  totalAmount,
+  listingTitle
+}) => {
+  // Configure your transporter
+  const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER, // info@evenlyo.nl
+      pass: process.env.EMAIL_PASS  // 12-digit app password
+    },
+    requireTLS: true
+  });
+  // Email options
+  const mailOptions = {
+    from: `<${process.env.EMAIL_USER}>`,
+    to: customerEmail,
+    subject: `Booking Completed – Booking ID: ${bookingId}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f6f8;">
+        <div style="background-color: #ffffff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          <h2 style="color: #388e3c;">✅ Your Booking is Completed</h2>
+          <p>Hello <strong>${customerName}</strong>,</p>
+          <p>We are pleased to inform you that your booking for <strong>${listingTitle}</strong> has been successfully completed.</p>
+          
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+
+          <p><strong>Booking ID:</strong> ${bookingId}</p>
+          <p><strong>Date:</strong> ${bookingDate}</p>
+          <p><strong>Time:</strong> ${bookingTime}</p>
+          <p><strong>Total Amount:</strong> $${totalAmount}</p>
+
+          <p style="margin-top: 20px;">Thank you for using our services. We hope you had a great experience!</p>
+
+          <p style="color: #666; font-size: 14px;">Best regards,<br/>Evenlyo Team</p>
+        </div>
+      </div>
+    `,
+    text: `
+Hello ${customerName},
+
+We are pleased to inform you that your booking for ${listingTitle} has been successfully completed.
+
+Booking ID: ${bookingId}
+Date: ${bookingDate}
+Time: ${bookingTime}
+Total Amount: $${totalAmount}
+
+Thank you for using our services. We hope you had a great experience!
+
+Best regards,
+Evenlyo
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Booking completion email sent:", info.messageId);
+    return info;
+  } catch (error) {
+    console.error("Error sending booking completion email:", error);
+    throw error;
+  }
+};
+
+const sendEvenlyoProtectBookingEmail = async (booking, client, vendor) => {
+
+  console.log(booking, "BOOKING", client, "CLIENT", vendor, "VENDOR", "bookingbookingbookingbookingbooking");
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER, // info@evenlyo.nl
+      pass: process.env.EMAIL_PASS  // 12-digit app password
+    },
+    requireTLS: true
+  });
+  const mailOptions = {
+    from: `"Evenlyo" <${process.env.EMAIL_USER}>`,
+    to: process.env.EMAIL_USER,
+    subject: "New Evenlyo Protect Booking Received",
+    html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9;">
+          <div style="max-width: 600px; margin: auto; background: #ffffff; padding: 20px; border-radius: 8px;">
+            
+            <h2 style="color: #2c3e50;">New Evenlyo Protect Booking</h2>
+            
+            <p>Hello Admin,</p>
+
+            <p>A new booking has been placed with <strong>Evenlyo Protect</strong> enabled.</p>
+
+            <hr />
+
+            <p><strong>Booking ID:</strong> ${booking.trackingId}</p>
+            <p><strong>Client Name:</strong> ${client || "N/A"}</p>
+            <p><strong>Service:</strong> ${booking.listingDetails?.title?.en}-- ${booking.listingDetails?.title?.nl}</p>
+            <p><strong>Total Amount:</strong> $${booking.pricingBreakdown.total || 0}</p>
+            <p><strong>Booking Date:</strong> ${booking.details.startDate || "N/A"}</p>
+            <hr />
+            <p style="margin-top: 20px;">
+              Please review this booking in the admin dashboard.
+            </p>
+            <p style="color: #888; font-size: 12px; margin-top: 30px;">
+              This is an automated notification from Evenlyo System.
+            </p>
+          </div >
+        </div >
+  `,
+  };
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log("Evenlyo Protect booking email sent to admins");
+  } catch (error) {
+    console.error("Error sending Evenlyo Protect booking email:", error);
+  }
+}
+
+
+const sendReminderEmail = async (booking, daysLeft) => {
+  const remainingAmount =
+    (booking.pricingBreakdown?.total || 0) - (booking.AmountPaid || 0);
+
+  const eventDateFormatted = moment(booking.details.startDate)
+    .format("DD MMM YYYY HH:mm");
+
+  // ⚠ Conditional warning only for 1-day reminder
+  const cancellationWarning =
+    daysLeft === 1
+      ? `
+  < div style = "margin-top:20px;padding:15px;background:#fff3cd;border:1px solid #ffeeba;border-radius:6px;" >
+          <strong style="color:#856404;">⚠ Important Notice:</strong>
+          <p style="margin:8px 0 0 0;color:#856404;">
+            If the remaining payment is not completed before the event date and time,
+            your booking will be automatically cancelled.
+          </p>
+        </div >
+  `
+      : "";
+
+  const emailHtml = `
+  < div style = "font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;" >
+      <h2 style="color:#333;">Payment Reminder</h2>
+
+      <p>Dear ${booking.userId.firstName},</p>
+
+      <p>
+        This is a friendly reminder that your event is in 
+        <strong>${daysLeft} day${daysLeft > 1 ? "s" : ""}</strong>.
+      </p>
+
+      <p>
+        Please complete the remaining payment of 
+        <strong>€${remainingAmount}</strong> to ensure your booking remains confirmed.
+      </p>
+
+      <h3>Booking Details:</h3>
+      <p><strong>Booking ID:</strong> ${booking._id}</p>
+      <p><strong>Event Date:</strong> ${eventDateFormatted}</p>
+      <p><strong>Service:</strong> ${booking.listingId?.title || "Package"}</p>
+
+      ${cancellationWarning}
+
+      <br/>
+
+      <a href="http://localhost:3000/pay/${booking._id}" 
+         style="display:inline-block;margin-top:20px;background:#007bff;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">
+         Pay Now
+      </a>
+
+      <p style="margin-top:30px;">
+        If you need assistance, please contact our support team.
+      </p>
+
+      <p>Warm regards,<br/>Evenlyo Team</p>
+    </div >
+  `;
+
+  await sendEmail(
+    booking.userId.email,
+    `Your Event is in ${daysLeft} Day${daysLeft > 1 ? "s" : ""} – Payment Reminder`,
+    emailHtml
+  );
+};
+
 module.exports = {
   sendOTPEmail,
   sendPromotionalEmail,
   sendContactEmail,
   sendReportEmail,
   sendForgotOTPADMIN,
-  sendKvkUpdateEmail
+  sendKvkUpdateEmail,
+  sendOrderAcceptanceEmail,
+  sendBookingCompletionEmail,
+  sendReminderEmail,
+  sendEvenlyoProtectBookingEmail
 };

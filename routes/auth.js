@@ -15,6 +15,9 @@ router.post('/client/login',
 router.post('/vendor/login', authController.vendorLogin
 );
 
+router.post('/vendor/reset-password-for-employee', authController.resetPasswordForEmployee
+);
+
 router.post('/admin/login',
   rateLimit(20, 15 * 60 * 1000),
   csrfProtection,
