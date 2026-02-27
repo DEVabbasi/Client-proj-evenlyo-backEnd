@@ -15,7 +15,7 @@ async function generateAndSendOTP(email) {
 
 async function generateAndSendOTPonRegister(email) {
   const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = new Date(Date.now() + 1 * 60 * 1000); // 5 minutes
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
   await OTP.deleteMany({ email });
   await OTP.create({ email, code: otpCode, expiresAt });
   await sendOTPEmail(email, otpCode);
@@ -28,7 +28,6 @@ async function generateAndSendOTPonRegister(email) {
  */
 async function verifyOTP(email, code) {
   console.log(email, code, new Date(), "ASDASD");
-
   const otpDoc = await OTP.findOne({
     email: email.toLowerCase(),
     code: code.toString(),

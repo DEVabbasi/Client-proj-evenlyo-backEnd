@@ -7,7 +7,7 @@ const Vendor = require("../../models/Vendor");
 const Review = require("../../models/Review");
 const Cart = require("../../models/Cart"); // path apne project ke mutabiq adjust karo
 const StockLog = require("../../models/StockLog");
-
+const AdminEmployee = require("../../models/AdminEmployee");
 const Settings = require("../../models/Settings");
 const {
   checkAvailability,
@@ -21,6 +21,7 @@ const Booking = require("../../models/Booking");
 const mongoose = require("mongoose");
 const { createActivityLog } = require("../../utils/activityLogger");
 const SupportTicket = require("../../models/SupportTicket");
+const { sendEvenlyoProtectBookingEmail } = require("../../utils/mailer");
 // @desc    Create Stripe PaymentIntent for a booking
 // @route   POST /api/booking/:id/create-payment-intent
 // @access  Private (User)
@@ -571,7 +572,7 @@ const createBookingRequest = asyncHandler(async (req, res) => {
             },
             notificationFor: "Vendor",
             vendorId: vendor._id, // vendor's user account receives notification
-            clientId: client._id, // vendor's user account receives notification
+            clientId: null, // vendor's user account receives notification
             bookingId: bookingRequest._id,
             message: {
               en: `New booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
@@ -579,9 +580,22 @@ const createBookingRequest = asyncHandler(async (req, res) => {
             },
           });
         }
+
+        const adminsToNotifyPush = await AdminEmployee.findOne({
+          role: "Admin",
+          status: "active",
+          "notificationSettings.push.evenlyoProtect": true
+        }).select("_id name email");
+
+        const adminsToNotifyEmail = await AdminEmployee.findOne({
+          role: "Admin",
+          status: "active",
+          "notificationSettings.email.evenlyoProtect": true
+        }).select("_id name email");
+
         if (
           req.body.details.pricingBreakdown.paymentPolicy
-            .isEvenlyoProtectEnabled === true
+            .isEvenlyoProtectEnabled === true && adminsToNotifyPush
         ) {
           await notificationController.createNotification({
             title: {
@@ -597,6 +611,9 @@ const createBookingRequest = asyncHandler(async (req, res) => {
               nl: `Een beschermde boekingsaanvraag op Evenlyo van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
             },
           });
+        }
+        if (adminsToNotifyEmail) {
+          sendEvenlyoProtectBookingEmail(bookingRequest, clientName, vendor);
         }
       }
     } catch (e) {

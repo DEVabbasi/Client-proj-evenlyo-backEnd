@@ -428,6 +428,60 @@ Evenlyo
   }
 };
 
+const sendEvenlyoProtectBookingEmail = async (booking, client, vendor) => {
+
+  console.log(booking, "BOOKING", client, "CLIENT", vendor, "VENDOR", "bookingbookingbookingbookingbooking");
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER, // info@evenlyo.nl
+      pass: process.env.EMAIL_PASS  // 12-digit app password
+    },
+    requireTLS: true
+  });
+  const mailOptions = {
+    from: `"Evenlyo" <${process.env.EMAIL_USER}>`,
+    to: process.env.EMAIL_USER,
+    subject: "New Evenlyo Protect Booking Received",
+    html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9;">
+          <div style="max-width: 600px; margin: auto; background: #ffffff; padding: 20px; border-radius: 8px;">
+            
+            <h2 style="color: #2c3e50;">New Evenlyo Protect Booking</h2>
+            
+            <p>Hello Admin,</p>
+
+            <p>A new booking has been placed with <strong>Evenlyo Protect</strong> enabled.</p>
+
+            <hr />
+
+            <p><strong>Booking ID:</strong> ${booking.trackingId}</p>
+            <p><strong>Client Name:</strong> ${client || "N/A"}</p>
+            <p><strong>Service:</strong> ${booking.listingDetails?.title?.en}-- ${booking.listingDetails?.title?.nl}</p>
+            <p><strong>Total Amount:</strong> $${booking.pricingBreakdown.total || 0}</p>
+            <p><strong>Booking Date:</strong> ${booking.details.startDate || "N/A"}</p>
+            <hr />
+            <p style="margin-top: 20px;">
+              Please review this booking in the admin dashboard.
+            </p>
+            <p style="color: #888; font-size: 12px; margin-top: 30px;">
+              This is an automated notification from Evenlyo System.
+            </p>
+          </div >
+        </div >
+  `,
+  };
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log("Evenlyo Protect booking email sent to admins");
+  } catch (error) {
+    console.error("Error sending Evenlyo Protect booking email:", error);
+  }
+}
+
 
 const sendReminderEmail = async (booking, daysLeft) => {
   const remainingAmount =
@@ -440,18 +494,18 @@ const sendReminderEmail = async (booking, daysLeft) => {
   const cancellationWarning =
     daysLeft === 1
       ? `
-        <div style="margin-top:20px;padding:15px;background:#fff3cd;border:1px solid #ffeeba;border-radius:6px;">
+  < div style = "margin-top:20px;padding:15px;background:#fff3cd;border:1px solid #ffeeba;border-radius:6px;" >
           <strong style="color:#856404;">⚠ Important Notice:</strong>
           <p style="margin:8px 0 0 0;color:#856404;">
             If the remaining payment is not completed before the event date and time,
             your booking will be automatically cancelled.
           </p>
-        </div>
-      `
+        </div >
+  `
       : "";
 
   const emailHtml = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;">
+  < div style = "font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;" >
       <h2 style="color:#333;">Payment Reminder</h2>
 
       <p>Dear ${booking.userId.firstName},</p>
@@ -485,7 +539,7 @@ const sendReminderEmail = async (booking, daysLeft) => {
       </p>
 
       <p>Warm regards,<br/>Evenlyo Team</p>
-    </div>
+    </div >
   `;
 
   await sendEmail(
@@ -504,5 +558,6 @@ module.exports = {
   sendKvkUpdateEmail,
   sendOrderAcceptanceEmail,
   sendBookingCompletionEmail,
-  sendReminderEmail
+  sendReminderEmail,
+  sendEvenlyoProtectBookingEmail
 };

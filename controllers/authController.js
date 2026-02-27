@@ -3,11 +3,13 @@ const User = require("../models/User");
 const Vendor = require("../models/Vendor");
 const Admin = require("../models/Admin");
 const Employee = require("../models/Employee");
+const AdminEmployee = require("../models/AdminEmployee");
 const VendorDesignations = require("../models/vendorDesignations");
 const { generateAndSendOTP, verifyOTP, generateAndSendOTPonRegister } = require("../utils/otpUtils");
 const { auth } = require("../config/firebase");
 const { signAccessToken, signToken } = require("../utils/jwtUtils");
 const logger = require("../utils/logger");
+const notificationController = require("./notificationController");
 
 // --- Model loading utility ---
 const getModelByUserType = (userType) => {
@@ -746,17 +748,42 @@ const verifyOtpAndRegister = async (req, res, userType = "client") => {
     await user.save();
 
     // Notify admin(s) of new client registration
-    try {
-      const notificationController = require("./notificationController");
-      await notificationController.createAdminNotification({
-        message: `A new client has registered: ${firstName} ${lastName}`,
+    const adminsToNotify = await AdminEmployee.findOne({
+      role: "Admin",
+      status: "active",
+      "notificationSettings.push.newRegistration": true
+    }).select("_id name email");
+
+    console.log(adminsToNotify, "adminsToNotifyadminsToNotifyadminsToNotify");
+
+
+    if (adminsToNotify) {
+      await notificationController.createNotification({
+        title: {
+          en: "New User Registration",
+          nl: "Nieuwe gebruikersregistratie"
+        },
+        notificationFor: "Admin",
+        vendorId: null, // vendor's user account receives notification
+        clientId: user._id, // vendor's user account receives notification
+        bookingId: null,
+        message: {
+          en: `A new user has registered: ${firstName} ${lastName}`,
+          nl: `Een nieuwe gebruiker heeft zich geregistreerd: ${firstName} ${lastName}`,
+        },
       });
-    } catch (e) {
-      console.error(
-        "Failed to create admin notification for new client registration:",
-        e
-      );
     }
+    // try {
+    //   const notificationController = require("./notificationController");
+    //   await notificationController.createAdminNotification({
+    //     message: `A new client has registered: ${firstName} ${lastName}`,
+    //   });
+    // } catch (e) {
+    //   console.error(
+    //     "Failed to create admin notification for new client registration:",
+    //     e
+    //   );
+    // }
 
     // Future: Create role-specific profile if vendor
     // if (userType === 'vendor') {
@@ -1723,14 +1750,30 @@ const registerVendor2 = async (req, res) => {
 
     await Vendor.create(vendorData);
 
-    // ✅ Notify admin
-    try {
-      const notificationController = require("./notificationController");
-      await notificationController.createAdminNotification({
-        message: `New vendor registered: ${vendorData.businessName}`,
+    const adminsToNotify = await AdminEmployee.findOne({
+      role: "Admin",
+      status: "active",
+      "notificationSettings.push.newRegistration": true
+    }).select("_id name email");
+
+    console.log(adminsToNotify, "adminsToNotifyadminsToNotifyadminsToNotify");
+
+
+    if (adminsToNotify) {
+      await notificationController.createNotification({
+        title: {
+          en: "New Vendor Registration",
+          nl: "Nieuwe leveranciersregistratie"
+        },
+        notificationFor: "Admin",
+        vendorId: null, // vendor's user account receives notification
+        clientId: user._id, // vendor's user account receives notification
+        bookingId: null,
+        message: {
+          en: `A new vendor has registered: ${businessName}`,
+          nl: `Een nieuwe leverancier heeft zich geregistreerd: ${businessName}`,
+        },
       });
-    } catch (e) {
-      console.error("Admin notification failed:", e);
     }
 
     res.status(201).json({

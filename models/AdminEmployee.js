@@ -8,6 +8,17 @@ const adminEmployeeSchema = new mongoose.Schema({
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
   designationID: { type: mongoose.Types.ObjectId },
   lastLogin: Date,
+  notificationSettings: {
+    email: {
+      orderCancellation: { type: Boolean, default: true },
+      evenlyoProtect: { type: Boolean, default: true },
+    },
+    push: {
+      evenlyoProtect: { type: Boolean, default: true },
+      newRegistration: { type: Boolean, default: true },
+    }
+  }
+
 }, { timestamps: true });
 
 module.exports = mongoose.model('AdminEmployee', adminEmployeeSchema);

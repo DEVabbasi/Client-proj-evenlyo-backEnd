@@ -213,7 +213,7 @@ const createBookingRequest = async (data, session) => {
   console.log(data.pricingBreakdown, "pricingBreakdownpricingBreakdownpricingBreakdown");
 
   const bookingRequest = new BookingRequest({
-    orderType:"custom",
+    orderType: "custom",
     AmountLeft: data?.pricingBreakdown?.total,
     userId: data.userId,
     pricingBreakdown: data.pricingBreakdown,
@@ -355,7 +355,7 @@ const createBookingRequest = async (data, session) => {
           },
           notificationFor: "Vendor",
           vendorId: vendor?._id, // vendor's user account receives notification
-          clientId: client?._id, // vendor's user account receives notification
+          clientId: null, // vendor's user account receives notification
           bookingId: bookingRequest?._id,
           message: {
             en: `New booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,

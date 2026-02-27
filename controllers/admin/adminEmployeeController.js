@@ -205,7 +205,6 @@ exports.createEmployee = async (req, res) => {
     const employee = new AdminEmployee({
       ...rest,
       password: hashedPassword,
-      role: "Employee"
     });
     await employee.save();
     res.status(201).json(employee);
@@ -226,7 +225,6 @@ exports.loginEmployee = async (req, res) => {
     }
 
     const employee = await AdminEmployee.findOne({ email });
-
     if (!employee) {
       return res.status(404).json({
         success: false,
