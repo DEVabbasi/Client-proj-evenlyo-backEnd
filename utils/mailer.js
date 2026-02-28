@@ -428,55 +428,86 @@ Evenlyo
   }
 };
 
-const sendEvenlyoProtectBookingEmail = async (booking, client, vendor) => {
-
+const sendEvenlyoProtectBookingEmail = async (booking, client, vendor, status) => {
   console.log(booking, "BOOKING", client, "CLIENT", vendor, "VENDOR", "bookingbookingbookingbookingbooking");
-
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
     secure: false,
     auth: {
-      user: process.env.EMAIL_USER, // info@evenlyo.nl
-      pass: process.env.EMAIL_PASS  // 12-digit app password
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
     },
     requireTLS: true
   });
+
+  // 🎯 Dynamic values based on status
+  let subject = "";
+  let heading = "";
+  let statusMessage = "";
+  let headingColor = "#2c3e50";
+
+  switch (status) {
+    case "ACCEPTED":
+      subject = "Evenlyo Protect Booking Accepted by Vendor";
+      heading = "Booking Accepted ✅";
+      statusMessage = "The vendor has ACCEPTED this Evenlyo Protect booking.";
+      headingColor = "#27ae60";
+      break;
+
+    case "REJECTED":
+      subject = "Evenlyo Protect Booking Rejected by Vendor";
+      heading = "Booking Rejected ❌";
+      statusMessage = "The vendor has REJECTED this Evenlyo Protect booking.";
+      headingColor = "#e74c3c";
+      break;
+
+    default:
+      subject = "New Evenlyo Protect Booking Received";
+      heading = "New Evenlyo Protect Booking";
+      statusMessage = "A new booking has been placed with Evenlyo Protect enabled.";
+      headingColor = "#2c3e50";
+  }
+
   const mailOptions = {
     from: `"Evenlyo" <${process.env.EMAIL_USER}>`,
     to: process.env.EMAIL_USER,
-    subject: "New Evenlyo Protect Booking Received",
+    subject,
     html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9;">
-          <div style="max-width: 600px; margin: auto; background: #ffffff; padding: 20px; border-radius: 8px;">
-            
-            <h2 style="color: #2c3e50;">New Evenlyo Protect Booking</h2>
-            
-            <p>Hello Admin,</p>
+      <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9;">
+        <div style="max-width: 600px; margin: auto; background: #ffffff; padding: 20px; border-radius: 8px;">
+          
+          <h2 style="color: ${headingColor};">${heading}</h2>
+          
+          <p>Hello Admin,</p>
 
-            <p>A new booking has been placed with <strong>Evenlyo Protect</strong> enabled.</p>
+          <p>${statusMessage}</p>
 
-            <hr />
+          <hr />
 
-            <p><strong>Booking ID:</strong> ${booking.trackingId}</p>
-            <p><strong>Client Name:</strong> ${client || "N/A"}</p>
-            <p><strong>Service:</strong> ${booking.listingDetails?.title?.en}-- ${booking.listingDetails?.title?.nl}</p>
-            <p><strong>Total Amount:</strong> $${booking.pricingBreakdown.total || 0}</p>
-            <p><strong>Booking Date:</strong> ${booking.details.startDate || "N/A"}</p>
-            <hr />
-            <p style="margin-top: 20px;">
-              Please review this booking in the admin dashboard.
-            </p>
-            <p style="color: #888; font-size: 12px; margin-top: 30px;">
-              This is an automated notification from Evenlyo System.
-            </p>
-          </div >
-        </div >
-  `,
+          <p><strong>Booking ID:</strong> ${booking.trackingId}</p>
+          <p><strong>Client Name:</strong> ${client || "N/A"}</p>
+          <p><strong>Vendor Name:</strong> ${vendor || "N/A"}</p>
+          <p><strong>Service:</strong> ${booking.listingDetails?.title?.en} -- ${booking.listingDetails?.title?.nl}</p>
+          <p><strong>Total Amount:</strong> $${booking.pricingBreakdown?.total || 0}</p>
+          <p><strong>Booking Date:</strong> ${booking.details?.startDate || "N/A"}</p>
+
+          <hr />
+
+          <p style="margin-top: 20px;">
+            Please review this booking in the admin dashboard.
+          </p>
+
+          <p style="color: #888; font-size: 12px; margin-top: 30px;">
+            This is an automated notification from Evenlyo System.
+          </p>
+        </div>
+      </div>
+    `,
   };
   try {
     await transporter.sendMail(mailOptions);
-    console.log("Evenlyo Protect booking email sent to admins");
+    console.log(`Evenlyo Protect booking email sent to admins - Status: ${status}`);
   } catch (error) {
     console.error("Error sending Evenlyo Protect booking email:", error);
   }

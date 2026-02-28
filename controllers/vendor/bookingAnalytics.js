@@ -12,7 +12,8 @@ const {
 } = require("../../utils/bookingUtils");
 const { createActivityLog } = require("../../utils/activityLogger");
 const stripe = require("../../config/stripe");
-const { sendOrderAcceptanceEmail } = require("../../utils/mailer");
+const { sendOrderAcceptanceEmail, sendEvenlyoProtectBookingEmail } = require("../../utils/mailer");
+const AdminEmployee = require("../../models/AdminEmployee")
 // GET /api/vendor/bookings/analytics
 const getVendorBookingAnalytics = async (req, res) => {
   console.log("HAHAHAHHA");
@@ -94,6 +95,9 @@ const acceptBooking = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const vendor = await Vendor.findOne({ userId: req.user.id });
+  const vendorDetails = await User.findOne({ _id: req.user.id });
+  console.log(vendorDetails, 'vendorvendorvendorvendor');
+
   if (!vendor) {
     return res.status(404).json({
       success: false,
@@ -106,6 +110,11 @@ const acceptBooking = asyncHandler(async (req, res) => {
     vendorId: vendor.userId,
     status: "pending",
   });
+
+  console.log(booking, "bookingbookingbookingbooking");
+
+  // return res.send("ok")
+
 
   if (!booking) {
     return res.status(404).json({
@@ -179,7 +188,7 @@ const acceptBooking = asyncHandler(async (req, res) => {
     console.error("Failed to create stock log for booking accept", e);
   }
 
-  booking.status = "accepted";
+  // booking.status = "accepted";
   try {
     await booking.save();
   } catch (e) {
@@ -249,7 +258,7 @@ const acceptBooking = asyncHandler(async (req, res) => {
 
   console.log(booking, "bookingbookingbookingbookingbookingbookingbooking");
 
-  const user = await User.findById(req.user.id);
+  const user = await User.findById({_id: booking.userId._id});
   console.log(user, "useruseruseruser");
 
   if (user.notifications?.email === true) {
@@ -266,6 +275,42 @@ const acceptBooking = asyncHandler(async (req, res) => {
     catch (e) {
       console.error("Failed to send order acceptance email:", e);
     }
+  }
+
+  const adminsToNotifyPush = await AdminEmployee.findOne({
+    role: "Admin",
+    status: "active",
+    "notificationSettings.push.evenlyoProtect": true
+  }).select("_id name email");
+
+  const adminsToNotifyEmail = await AdminEmployee.findOne({
+    role: "Admin",
+    status: "active",
+    "notificationSettings.email.evenlyoProtect": true
+  }).select("_id name email");
+
+  if (
+    booking.pricingBreakdown.paymentPolicy
+      .isEvenlyoProtectEnabled === true && adminsToNotifyPush
+  ) {
+    await notificationController.createNotification({
+      title: {
+        en: "Evenlyo protected booking accepted",
+        nl: "Door Evenlyo beschermde boeking geaccepteerd"
+      },
+      notificationFor: "Admin",
+      vendorId: vendorDetails._id, // vendor's user account receives notification
+      clientId: booking.userId, // vendor's user account receives notification
+      bookingId: booking._id,
+      message: {
+        en: `A evenlyo protected booking request from ${user.fullName} for "${listingTitle.en}" on ${bookingDates} is accepted. Tracking ID: ${booking.trackingId}`,
+        nl: `Een beschermde boekingsaanvraag op Evenlyo van ${user.fullName} voor "${listingTitle.nl}" op ${bookingDates} is geaccepteerd. Tracking-ID: ${booking.trackingId}`,
+      },
+    });
+  }
+  if (booking.pricingBreakdown.paymentPolicy
+    .isEvenlyoProtectEnabled === true && adminsToNotifyEmail) {
+    sendEvenlyoProtectBookingEmail(booking, user.fullName, vendorDetails.fullName, 'ACCEPTED');
   }
 
   res.json({

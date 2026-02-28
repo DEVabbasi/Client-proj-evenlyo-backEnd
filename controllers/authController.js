@@ -1381,7 +1381,7 @@ const registerVendor = async (req, res) => {
 const vendorLogin = async (req, res) => {
   try {
     const { email, password, provider } = req.body;
-    console.log(req.body, "REQQQQ");
+    console.log(req.body, "REQQQQasdasdasd");
 
     if (!email) {
       return res.status(400).json({
