@@ -616,8 +616,9 @@ const createBookingRequest = asyncHandler(async (req, res) => {
             },
           });
         }
-        if (adminsToNotifyEmail) {
-          sendEvenlyoProtectBookingEmail(bookingRequest, clientName, vendor);
+        if (req.body.details.pricingBreakdown.paymentPolicy
+          .isEvenlyoProtectEnabled === true && adminsToNotifyEmail) {
+          sendEvenlyoProtectBookingEmail(bookingRequest, clientName, vendor,'NEW');
         }
       }
     } catch (e) {

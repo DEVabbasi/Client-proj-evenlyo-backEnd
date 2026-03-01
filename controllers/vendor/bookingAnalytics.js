@@ -6,6 +6,7 @@ const BookingRequest = require("../../models/Booking");
 const notificationController = require("../notificationController");
 const Listing = require("../../models/Listing");
 const StockLog = require("../../models/StockLog");
+const moment = require("moment");
 const {
   getAvailabilityDetails,
   checkAvailability,
@@ -13,7 +14,8 @@ const {
 const { createActivityLog } = require("../../utils/activityLogger");
 const stripe = require("../../config/stripe");
 const { default: mongoose } = require("mongoose");
-const { sendOrderAcceptanceEmail } = require("../../utils/mailer");
+const { sendOrderStatusEmail, sendEvenlyoProtectBookingEmail } = require("../../utils/mailer");
+const AdminEmployee = require("../../models/AdminEmployee")
 // GET /api/vendor/bookings/analytics
 const getVendorBookingAnalytics = async (req, res) => {
   console.log("HAHAHAHHA");
@@ -146,6 +148,9 @@ const acceptBooking = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const vendor = await Vendor.findOne({ userId: req.user.id });
+  const vendorDetails = await User.findOne({ _id: req.user.id });
+  console.log(vendorDetails, 'vendorvendorvendorvendor');
+
   if (!vendor) {
     return res.status(404).json({
       success: false,
@@ -158,6 +163,11 @@ const acceptBooking = asyncHandler(async (req, res) => {
     vendorId: vendor.userId,
     status: "pending",
   });
+
+  console.log(booking, "bookingbookingbookingbooking");
+
+  // return res.send("ok")
+
 
   if (!booking) {
     return res.status(404).json({
@@ -301,16 +311,16 @@ const acceptBooking = asyncHandler(async (req, res) => {
 
   console.log(booking, "bookingbookingbookingbookingbookingbookingbooking");
 
-  const user = await User.findById(req.user.id);
+  const user = await User.findById({ _id: booking.userId._id });
   console.log(user, "useruseruseruser");
 
   if (user.notifications?.email === true) {
     try {
-      await sendOrderAcceptanceEmail({
+      await sendOrderStatusEmail({
         customerEmail: booking.userId.email,
         customerName: `${booking.userId.firstName} ${booking.userId.lastName}`,
         bookingId: booking.trackingId,
-        status: "Accepted",
+        status: "ACCEPTED",
         bookingDate: booking.details.startDate,
         bookingTime: `${booking.details.startTime} - ${booking.details.endTime}`,
       });
@@ -318,6 +328,44 @@ const acceptBooking = asyncHandler(async (req, res) => {
     catch (e) {
       console.error("Failed to send order acceptance email:", e);
     }
+  }
+
+  const bookingDates = `${moment(booking.details.startDate).format("DD-MMM-YYYY")}${booking.details.endDate !== booking.details.startDate ? ` to ${moment(booking.details.endDate).format("Do MMM YYYY")}` : ""}`;
+
+  const adminsToNotifyPush = await AdminEmployee.findOne({
+    role: "Admin",
+    status: "active",
+    "notificationSettings.push.evenlyoProtect": true
+  }).select("_id name email");
+
+  const adminsToNotifyEmail = await AdminEmployee.findOne({
+    role: "Admin",
+    status: "active",
+    "notificationSettings.email.evenlyoProtect": true
+  }).select("_id name email");
+
+  if (
+    booking.pricingBreakdown.paymentPolicy
+      .isEvenlyoProtectEnabled === true && adminsToNotifyPush
+  ) {
+    await notificationController.createNotification({
+      title: {
+        en: "Evenlyo protected booking accepted",
+        nl: "Door Evenlyo beschermde boeking geaccepteerd"
+      },
+      notificationFor: "Admin",
+      vendorId: vendorDetails._id, // vendor's user account receives notification
+      clientId: booking.userId, // vendor's user account receives notification
+      bookingId: booking._id,
+      message: {
+        en: `A evenlyo protected booking request from ${user.fullName} for "${booking.listingId.title.en}" on ${bookingDates} is accepted. Tracking ID: ${booking.trackingId}`,
+        nl: `Een beschermde boekingsaanvraag op Evenlyo van ${user.fullName} voor "${booking.listingId.title.nl}" op ${bookingDates} is geaccepteerd. Tracking-ID: ${booking.trackingId}`,
+      },
+    });
+  }
+  if (booking.pricingBreakdown.paymentPolicy
+    .isEvenlyoProtectEnabled === true && adminsToNotifyEmail) {
+    sendEvenlyoProtectBookingEmail(booking, user.fullName, vendorDetails.fullName, 'ACCEPTED');
   }
 
   res.json({
@@ -329,66 +377,19 @@ const acceptBooking = asyncHandler(async (req, res) => {
   });
 });
 
-const getAmountToPay = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const bookingDetails = await Booking.findOne({ _id: id });
-
-    if (!bookingDetails) {
-      return res.status(404).json({ error: "Booking not found" });
-    }
-
-    let amountToPay;
-
-    // Condition 1: User is not paying upfront
-    if (!bookingDetails.willPayUpfront) {
-      amountToPay = bookingDetails.AmountLeft;
-    }
-    // Condition 2: Paying upfront but upfront NOT paid yet
-    else if (bookingDetails.willPayUpfront && !bookingDetails.isUpfrontPaid) {
-      amountToPay = bookingDetails?.pricingBreakdown?.upfrontFee;
-    }
-    // Condition 3: Paying upfront BUT upfront already paid → still amountLeft
-    else if (bookingDetails.willPayUpfront && bookingDetails.isUpfrontPaid) {
-      amountToPay = bookingDetails.AmountLeft;
-    }
-
-    res.json({ amountToPay });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-const createPaymentIntent = async (req, res) => {
-  try {
-    const { amount, currency = "usd" } = req.body;
-    if (!amount) {
-      return res.status(400).json({ error: "Amount is required" });
-    }
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // convert to cents
-      currency,
-      automatic_payment_methods: { enabled: true },
-    });
-    res.json({
-      clientSecret: paymentIntent.client_secret,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
 const rejectBooking = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { rejectionReason } = req.body;
 
   const vendor = await User.findOne({ _id: req.user.id });
+  const vendorDetails = await User.findOne({ _id: req.user.id });
   if (!vendor) {
     return res.status(404).json({
       success: false,
       message: "Vendor profile not found",
     });
   }
+  console.log(vendor, vendorDetails, "vendorvendorvendorvendorvendorvendor");
 
   const booking = await BookingRequest.findOne({
     _id: id,
@@ -462,6 +463,65 @@ const rejectBooking = asyncHandler(async (req, res) => {
     { path: "listingId", select: "title featuredImage pricing" },
   ]);
 
+  console.log(booking, "bookingbookingbookingbookingbookingbookingbooking");
+
+  const user = await User.findById({ _id: booking.userId._id });
+  console.log(user, "useruseruseruser");
+
+  if (user.notifications?.email === true) {
+    try {
+      await sendOrderStatusEmail({
+        customerEmail: booking.userId.email,
+        customerName: `${booking.userId.firstName} ${booking.userId.lastName}`,
+        bookingId: booking.trackingId,
+        status: "REJECTED",
+        bookingDate: booking.details.startDate,
+        bookingTime: `${booking.details.startTime} - ${booking.details.endTime}`,
+      });
+    }
+    catch (e) {
+      console.error("Failed to send order acceptance email:", e);
+    }
+  }
+
+  const bookingDates = `${moment(booking.details.startDate).format("DD-MMM-YYYY")}${booking.details.endDate !== booking.details.startDate ? ` to ${moment(booking.details.endDate).format("Do MMM YYYY")}` : ""}`;
+
+  const adminsToNotifyPush = await AdminEmployee.findOne({
+    role: "Admin",
+    status: "active",
+    "notificationSettings.push.evenlyoProtect": true
+  }).select("_id name email");
+
+  const adminsToNotifyEmail = await AdminEmployee.findOne({
+    role: "Admin",
+    status: "active",
+    "notificationSettings.email.evenlyoProtect": true
+  }).select("_id name email");
+
+  if (
+    booking.pricingBreakdown.paymentPolicy
+      .isEvenlyoProtectEnabled === true && adminsToNotifyPush
+  ) {
+    await notificationController.createNotification({
+      title: {
+        en: "Evenlyo protected booking accepted",
+        nl: "Door Evenlyo beschermde boeking geaccepteerd"
+      },
+      notificationFor: "Admin",
+      vendorId: vendorDetails._id, // vendor's user account receives notification
+      clientId: booking.userId, // vendor's user account receives notification
+      bookingId: booking._id,
+      message: {
+        en: `A evenlyo protected booking request from ${user.fullName} for "${booking.listingId.title.en}" on ${bookingDates} is rejected. Tracking ID: ${booking.trackingId}`,
+        nl: `Een beschermde boekingsaanvraag op Evenlyo van ${user.fullName} voor "${booking.listingId.title.nl}" op ${bookingDates} is geweigerd. Tracking-ID: ${booking.trackingId}`,
+      },
+    });
+  }
+  if (booking.pricingBreakdown.paymentPolicy
+    .isEvenlyoProtectEnabled === true && adminsToNotifyEmail) {
+    sendEvenlyoProtectBookingEmail(booking, user.fullName, vendorDetails.fullName, 'REJECTED');
+  }
+
   res.json({
     success: true,
     message: "Booking request rejected",
@@ -470,6 +530,80 @@ const rejectBooking = asyncHandler(async (req, res) => {
     },
   });
 });
+
+const getAmountToPay = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const bookingDetails = await Booking.findOne({ _id: id });
+
+    if (!bookingDetails) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+
+    let amountToPay;
+
+    // Condition 1: User is not paying upfront
+    if (!bookingDetails.willPayUpfront) {
+      amountToPay = bookingDetails.AmountLeft;
+    }
+    // Condition 2: Paying upfront but upfront NOT paid yet
+    else if (bookingDetails.willPayUpfront && !bookingDetails.isUpfrontPaid) {
+      amountToPay = bookingDetails?.pricingBreakdown?.upfrontFee;
+    }
+    // Condition 3: Paying upfront BUT upfront already paid → still amountLeft
+    else if (bookingDetails.willPayUpfront && bookingDetails.isUpfrontPaid) {
+      amountToPay = bookingDetails.AmountLeft;
+    }
+
+    res.json({ amountToPay });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const createPaymentIntent = async (req, res) => {
+  try {
+    const { amount, currency = "usd", bookingId } = req.body;
+
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+
+    if (!amount) {
+      return res.status(400).json({ error: "Amount is required" });
+    }
+
+    // 🔥 Combine endDate + endTime into one Date object
+    const eventEndDateTime = new Date(
+      `${booking.details.startDate.toISOString().split("T")[0]}T${booking.details.startTime}:00Z`
+    );
+
+    const now = new Date();
+
+    // 🚫 If event already finished
+    if (now > eventEndDateTime) {
+      return res.status(400).json({
+        error: "This event has already ended. Payment is no longer allowed.",
+      });
+    }
+    // ✅ Create PaymentIntent if event not passed
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency,
+      automatic_payment_methods: { enabled: true },
+    });
+
+    res.json({
+      clientSecret: paymentIntent.client_secret,
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 const paymentConfirmation = async (req, res) => {
   try {
