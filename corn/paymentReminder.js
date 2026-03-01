@@ -98,7 +98,7 @@ const sendReminderEmail = async (booking, daysLeft) => {
   `;
 
     await sendEmail(
-        "sinan.lakhani09@gmail.com", // booking.userId.email
+        booking.userId.email, // booking.userId.email
         `Your Event is in ${daysLeft} Day${daysLeft > 1 ? "s" : ""} – Payment Reminder`,
         emailHtml
     );
@@ -158,7 +158,7 @@ const sendVendorCancellationEmail = async (booking, reasonType) => {
   `;
 
     await sendEmail(
-        "sinan.lakhani09@gmail.com", // booking.vendorId.email
+        booking.vendorId.email,
         "Booking Cancellation Notification",
         emailHtml
     );
@@ -192,8 +192,8 @@ cron.schedule("*/2 * * * *", async () => {
             .populate("listingId", "title")
             .populate("vendorId", "firstName email notifications")
             .lean();
-        console.log(bookings, "bookingsbookings");
-        const vendorDetails = await User.findById(bookings[0].vendorId).lean();
+        console.log(bookings[0], "bookingsbookings");
+        const vendorDetails = await User.findById(bookings[0].vendorId._id).lean();
 
 
         for (const booking of bookings) {
