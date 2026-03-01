@@ -1,4 +1,7 @@
 const nodemailer = require("nodemailer");
+const moment = require("moment")
+
+const Admin = require("../models/AdminEmployee");
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
@@ -290,32 +293,61 @@ Please review and process this request accordingly.
   }
 }
 
-async function sendOrderAcceptanceEmail({ customerEmail, customerName, bookingId, status, bookingDate, bookingTime }) {
-  // Configure your transporter
-  console.log(customerEmail, customerName, bookingId, status, bookingDate, bookingTime, "EMAIL DETAILS") // Log the email details for debugging;
+async function sendOrderStatusEmail({
+  customerEmail,
+  customerName,
+  bookingId,
+  status, // "ACCEPTED" | "REJECTED"
+  bookingDate,
+  bookingTime
+}) {
+
+  console.log(customerEmail, customerName, bookingId, status, bookingDate, bookingTime, "EMAIL_DETAILS");
 
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
     secure: false,
     auth: {
-      user: process.env.EMAIL_USER, // info@evenlyo.nl
-      pass: process.env.EMAIL_PASS  // 12-digit app password
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
     },
     requireTLS: true
   });
 
-  // Email options
+  // 🎯 Dynamic Content
+  let subject = "";
+  let heading = "";
+  let message = "";
+  let color = "";
+  let emoji = "";
+
+  if (status === "ACCEPTED") {
+    subject = `Booking Accepted – Booking ID: ${bookingId}`;
+    heading = "Your Booking is Accepted";
+    message = "Great news! Your booking has been ACCEPTED by the vendor.";
+    color = "#2e7d32";
+    emoji = "✅";
+  } else if (status === "REJECTED") {
+    subject = `Booking Rejected – Booking ID: ${bookingId}`;
+    heading = "Your Booking was Rejected";
+    message = "Unfortunately, your booking has been REJECTED by the vendor.";
+    color = "#c62828";
+    emoji = "❌";
+  }
+
   const mailOptions = {
     from: `<${process.env.EMAIL_USER}>`,
     to: customerEmail,
-    subject: `Booking Accepted – Booking ID: ${bookingId}`,
+    subject,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f6f8;">
         <div style="background-color: #ffffff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-          <h2 style="color: #1976d2;">✅ Your Booking is Accepted</h2>
+          
+          <h2 style="color: ${color};">${emoji} ${heading}</h2>
+
           <p>Hello <strong>${customerName}</strong>,</p>
-          <p>We are happy to inform you that your booking has been <strong>${status}</strong>.</p>
+          <p>${message}</p>
           
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
 
@@ -323,22 +355,31 @@ async function sendOrderAcceptanceEmail({ customerEmail, customerName, bookingId
           <p><strong>Date:</strong> ${bookingDate}</p>
           <p><strong>Time:</strong> ${bookingTime}</p>
 
-          <p style="margin-top: 20px;">Thank you for choosing our services. If you have any questions, feel free to reply to this email.</p>
+          ${status === "REJECTED"
+        ? `<p style="margin-top:15px; color:#c62828;">
+                   You may book another available slot anytime.
+                 </p>`
+        : ""
+      }
 
-          <p style="color: #666; font-size: 14px;">Best regards,<br/>Evenlyo Team</p>
+          <p style="margin-top: 20px;">
+            If you have any questions, feel free to reply to this email.
+          </p>
+
+          <p style="color: #666; font-size: 14px;">
+            Best regards,<br/>Evenlyo Team
+          </p>
         </div>
       </div>
     `,
     text: `
 Hello ${customerName},
 
-We are happy to inform you that your booking has been ${status}.
+${message}
 
 Booking ID: ${bookingId}
 Date: ${bookingDate}
 Time: ${bookingTime}
-
-Thank you for choosing our services.
 
 Best regards,
 Evenlyo
@@ -347,13 +388,13 @@ Evenlyo
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log("Order acceptance email sent:", info.messageId);
+    console.log("Booking status email sent:", info.messageId);
     return info;
   } catch (error) {
-    console.error("Error sending order acceptance email:", error);
+    console.error("Error sending booking status email:", error);
     throw error;
   }
-};
+}
 
 
 const sendBookingCompletionEmail = async ({
@@ -560,7 +601,7 @@ const sendReminderEmail = async (booking, daysLeft) => {
 
       <br/>
 
-      <a href="http://localhost:3000/pay/${booking._id}" 
+      <a href="${process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : process.env.LIVE_CLIENT_URL}/pay/${booking._id}" 
          style="display:inline-block;margin-top:20px;background:#007bff;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">
          Pay Now
       </a>
@@ -580,6 +621,38 @@ const sendReminderEmail = async (booking, daysLeft) => {
   );
 };
 
+const sendEmail = async (to, subject, html) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,        // e.g. smtp.gmail.com
+      port: process.env.SMTP_PORT,        // 587 or 465
+      secure: false,                      // true if port 465
+      auth: {
+        user: process.env.SMTP_EMAIL,     // your email
+        pass: process.env.SMTP_PASSWORD   // app password
+      }
+    });
+
+    const mailOptions = {
+      from: `"Evenlyo" <${process.env.SMTP_EMAIL}>`,
+      to,
+      subject,
+      html
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log("📧 Email sent:", info.messageId);
+    return true;
+
+  } catch (error) {
+    console.error("❌ Email sending failed:", error);
+    return false;
+  }
+};
+
+
+
 module.exports = {
   sendOTPEmail,
   sendPromotionalEmail,
@@ -587,8 +660,9 @@ module.exports = {
   sendReportEmail,
   sendForgotOTPADMIN,
   sendKvkUpdateEmail,
-  sendOrderAcceptanceEmail,
+  sendOrderStatusEmail,
   sendBookingCompletionEmail,
   sendReminderEmail,
-  sendEvenlyoProtectBookingEmail
+  sendEvenlyoProtectBookingEmail,
+  // sendVendorCancellationEmail
 };

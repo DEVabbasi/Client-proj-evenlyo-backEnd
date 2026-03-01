@@ -49,7 +49,7 @@ chatSocket(io);
 // Start server
 server.listen(PORT, () => {
   logger.info(`🚀 Server started on port ${PORT}`);
-  logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`🌍 Environment: OK ${process.env.NODE_ENV || 'development'}`);
   logger.info(`📝 Logging level: ${process.env.LOG_LEVEL || 'info'}`);
 });
 
