@@ -601,7 +601,7 @@ const sendReminderEmail = async (booking, daysLeft) => {
 
       <br/>
 
-      <a href="${process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : process.env.LIVE_CLIENT_URL}/pay/${booking._id}" 
+      <a href="${process.env.NODE_ENV === 'development' ? process.env.STAGING_CLIENT_URL : process.env.LIVE_CLIENT_URL}/pay/${booking._id}" 
          style="display:inline-block;margin-top:20px;background:#007bff;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">
          Pay Now
       </a>
