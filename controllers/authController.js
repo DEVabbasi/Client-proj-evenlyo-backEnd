@@ -1023,7 +1023,10 @@ const sendOtpForForgotPassword = async (req, res) => {
     await generateAndSendOTP(email);
     res.json({
       success: true,
-      message: "OTP sent to email",
+      message: {
+        en: "OTP sent to email",
+        nl: "OTP verzonden naar e-mail",
+      }
     });
   } catch (err) {
     console.error("Send OTP (forgot) error:", err);
@@ -1527,9 +1530,8 @@ const registerVendor = async (req, res) => {
     try {
       const notificationController = require("./notificationController");
       await notificationController.createAdminNotification({
-        message: `A new vendor has registered: ${
-          accountType === "personal" ? firstName + " " + lastName : businessName
-        }`,
+        message: `A new vendor has registered: ${accountType === "personal" ? firstName + " " + lastName : businessName
+          }`,
       });
     } catch (e) {
       console.error(
