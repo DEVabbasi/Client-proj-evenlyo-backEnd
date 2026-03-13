@@ -21,7 +21,7 @@ const getAllClients = async (req, res) => {
 
       // All clients data with their booking counts
       User.find({ userType: 'client' })
-        .select('firstName lastName email contactNumber address isActive createdAt')
+        .select('firstName lastName email contactNumber address isActive createdAt profileImage')
         .sort({ createdAt: -1 })
         .lean()
     ]);
