@@ -39,7 +39,8 @@ const getAllClients = async (req, res) => {
           contactNumber: client.contactNumber || 'Not provided',
           totalOrders: totalOrders,
           status: client.isActive ? 'Active' : 'Blocked',
-          registeredDate: client.createdAt
+          registeredDate: client.createdAt,
+          avatar: client.profileImage
         };
       })
     );
