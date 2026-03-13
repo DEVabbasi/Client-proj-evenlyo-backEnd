@@ -295,12 +295,12 @@ const getListingById = async (req, res) => {
       {
         $lookup: {
           from: "users",
-          localField: "vendorId",
+          localField: "userId",
           foreignField: "_id",
-          as: "vendor",
+          as: "user",
         },
       },
-      { $unwind: "$vendor" },
+      { $unwind: "$user" },
       {
         $group: {
           _id: null,
@@ -311,9 +311,9 @@ const getListingById = async (req, res) => {
               rating: "$rating",
               review: "$review",
               vendor: {
-                firstName: "$vendor.firstName",
-                lastName: "$vendor.lastName",
-                image: "$vendor.image",
+                firstName: "$user.firstName",
+                lastName: "$user.lastName",
+                image: "$user.profileImage",
               },
             },
           },
