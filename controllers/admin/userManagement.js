@@ -698,32 +698,32 @@ const sendEmailToClients = async (req, res) => {
     const emailResults = await Promise.allSettled(
       clients.map(async (client) => {
         const htmlMessage = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
-            <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-              <div style="text-align: center; margin-bottom: 30px;">
-                <h1 style="color: #333; margin: 0;">Evenlyo</h1>
-                <p style="color: #666; margin: 5px 0;">Event Management Platform</p>
-              </div>
-              
-              <h2 style="color: #333; margin-bottom: 20px;">Hello ${client.firstName} ${client.lastName},</h2>
-              
-              <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-                ${message.replace(/\n/g, '<br>')}
-              </div>
-              
-              <p style="color: #666; font-size: 14px; margin-top: 30px; text-align: center;">
-                Best regards,<br>
-                Evenlyo Admin Team
-              </p>
-              
-              <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
-                <p style="color: #999; font-size: 12px;">
-                  This email was sent by Evenlyo admin. If you have any questions, please contact support.
-                </p>
-              </div>
-            </div>
-          </div>
-        `;
+  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+    <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #333; margin: 0;">Evenlyo</h1>
+        <p style="color: #666; margin: 5px 0;">Evenementbeheerplatform</p>
+      </div>
+      
+      <h2 style="color: #333; margin-bottom: 20px;">Hallo ${client.firstName} ${client.lastName},</h2>
+      
+      <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+        ${message.replace(/\n/g, '<br>')}
+      </div>
+      
+      <p style="color: #666; font-size: 14px; margin-top: 30px; text-align: center;">
+        Met vriendelijke groet,<br>
+        Evenlyo Admin Team
+      </p>
+      
+      <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+        <p style="color: #999; font-size: 12px;">
+          Deze e-mail is verzonden door de Evenlyo-admin. Als u vragen heeft, neem dan contact op met de ondersteuning.
+        </p>
+      </div>
+    </div>
+  </div>
+`;
 
         const mailOptions = {
           from: process.env.EMAIL_USER,
