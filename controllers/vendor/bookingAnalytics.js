@@ -373,7 +373,7 @@ const acceptBooking = asyncHandler(async (req, res) => {
     message: {
       en: "Booking request accepted successfully",
       nl: "Boeking aanvraag succesvol geaccepteerd",
-    }
+    },
       data: {
       booking,
     },
