@@ -442,15 +442,15 @@ const createBookingRequest = asyncHandler(async (req, res) => {
         },
         category: listing.category
           ? {
-              _id: listing.category._id,
-              name: listing.category.name,
-            }
+            _id: listing.category._id,
+            name: listing.category.name,
+          }
           : "",
         subCategory: listing.subCategory
           ? {
-              _id: listing.subCategory._id,
-              name: listing.subCategory.name,
-            }
+            _id: listing.subCategory._id,
+            name: listing.subCategory.name,
+          }
           : "",
         serviceDetails: {
           serviceType: listing.serviceDetails?.serviceType,
@@ -540,9 +540,8 @@ const createBookingRequest = asyncHandler(async (req, res) => {
           ? `${client.firstName} ${client.lastName}`
           : "A client";
         const listingTitle = listing.title || "your listing";
-        const bookingDates = `${startDate}${
-          endDate !== startDate ? ` to ${endDate}` : ""
-        }`;
+        const bookingDates = `${startDate}${endDate !== startDate ? ` to ${endDate}` : ""
+          }`;
         console.log(listingTitle, bookingDates, "bookingDates");
 
         console.log(
@@ -618,7 +617,7 @@ const createBookingRequest = asyncHandler(async (req, res) => {
         }
         if (req.body.details.pricingBreakdown.paymentPolicy
           .isEvenlyoProtectEnabled === true && adminsToNotifyEmail) {
-          sendEvenlyoProtectBookingEmail(bookingRequest, clientName, vendor,'NEW');
+          sendEvenlyoProtectBookingEmail(bookingRequest, clientName, vendor, 'NEW');
         }
       }
     } catch (e) {
@@ -654,7 +653,10 @@ const createBookingRequest = asyncHandler(async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Booking request created successfully",
+      message: {
+        en: "Booking request created successfully",
+        nl: "Boekingsaanvraag succesvol aangemaakt",
+      },
       data: {
         vendorName: `${vendor.firstName} ${vendor.lastName}`,
         bookingRequest,
@@ -1511,8 +1513,7 @@ const getBookingSummary = asyncHandler(async (req, res) => {
   }
 
   const clientName = booking.userId
-    ? `${booking.userId.firstName || ""} ${
-        booking.userId.lastName || ""
+    ? `${booking.userId.firstName || ""} ${booking.userId.lastName || ""
       }`.trim()
     : "";
   const clientPhone = booking.userId ? booking.userId.contactNumber || "" : "";
@@ -1630,8 +1631,7 @@ const TrackBooking = asyncHandler(async (req, res) => {
   }
 
   const clientName = booking.userId
-    ? `${booking.userId.firstName || ""} ${
-        booking.userId.lastName || ""
+    ? `${booking.userId.firstName || ""} ${booking.userId.lastName || ""
       }`.trim()
     : "";
   const clientPhone = booking.userId ? booking.userId.contactNumber || "" : "";
@@ -1689,10 +1689,10 @@ const TrackBooking = asyncHandler(async (req, res) => {
   const directionOnly = {
     listing: listingObj
       ? {
-          title: listingObj.title,
-          location: listingObj.location,
-          images: listingObj.images,
-        }
+        title: listingObj.title,
+        location: listingObj.location,
+        images: listingObj.images,
+      }
       : null,
     bookingLocation: {
       eventLocation: bookingLocation.eventLocation || "",
@@ -1905,8 +1905,7 @@ const getBookingSimpleDetails = asyncHandler(async (req, res) => {
   // Vendor info
   const vendorName = booking.vendorId
     ? booking.vendorId.businessName ||
-      `${booking.vendorId.firstName || ""} ${
-        booking.vendorId.lastName || ""
+    `${booking.vendorId.firstName || ""} ${booking.vendorId.lastName || ""
       }`.trim()
     : "";
   const vendorLogo = booking.vendorId

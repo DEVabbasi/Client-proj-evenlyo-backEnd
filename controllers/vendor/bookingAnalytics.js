@@ -370,8 +370,11 @@ const acceptBooking = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: "Booking request accepted successfully",
-    data: {
+    message: {
+      en: "Booking request accepted successfully",
+      nl: "Boeking aanvraag succesvol geaccepteerd",
+    }
+      data: {
       booking,
     },
   });
@@ -524,7 +527,10 @@ const rejectBooking = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: "Booking request rejected",
+    message: {
+      en: "Booking request rejected",
+      nl: "Boeking aanvraag geweigerd",
+    },
     data: {
       booking,
     },

@@ -319,7 +319,10 @@ const createListing = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Listing created successfully",
+      message: {
+        en: "Listing created successfully",
+        nl: "Listing succesvol aangemaakt",
+      },
       data: populated,
     });
   } catch (err) {

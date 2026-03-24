@@ -76,7 +76,10 @@ exports.verifyOtpForAdmin = async (req, res) => {
     if (!valid) {
       return res.status(400).json({
         success: false,
-        message: "Invalid or expired OTP",
+        message: {
+          en: "Invalid or expired OTP",
+          nl: "Ongeldige of verlopen OTP",
+        }
       });
     }
 
