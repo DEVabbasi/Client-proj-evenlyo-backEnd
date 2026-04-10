@@ -267,7 +267,10 @@ const resetClientPassword = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Client password reset successfully',
+      message: {
+        en: 'Client password reset successfully',
+        nl: 'Wachtwoord reset gelukt'
+      },
       data: {
         clientId: client._id,
         clientName: `${client.firstName} ${client.lastName}`,
@@ -368,7 +371,10 @@ const resetVendorPassword = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Vendor password reset successfully',
+      message: {
+        en: 'Vendor password reset successfully',
+        nl: 'Wachtwoord reset gelukt'
+      },
       data: {
         vendorId: vendor._id,
         vendorName: vendorName,

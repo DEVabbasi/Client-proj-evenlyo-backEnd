@@ -14,6 +14,7 @@ const { auth } = require("../config/firebase");
 const { signAccessToken, signToken } = require("../utils/jwtUtils");
 const logger = require("../utils/logger");
 const notificationController = require("./notificationController");
+const stripe = require("../config/stripe");
 
 // --- Model loading utility ---
 const getModelByUserType = (userType) => {
@@ -1084,7 +1085,10 @@ const verifyOtpForForgotPassword = async (req, res) => {
       return res.status(400).json({
         success: false,
         message:
-          "This account uses Google Sign-In. Password reset is not available for social login accounts.",
+        {
+          en: "This account uses Google Sign-In. Password reset is not available for social login accounts.",
+          nl: "Dit account gebruikt Google Sign-In. Wachtwoord reset is niet beschikbaar voor social login accounts.",
+        }
       });
     }
 
@@ -1196,7 +1200,10 @@ const verifyOtpAndRegisterGeneral = async (req, res) => {
       return res.status(400).json({
         success: false,
         message:
-          "Vendor registration is not yet implemented. Please use client registration.",
+        {
+          en: "Vendor registration is not yet implemented. Please use client registration.",
+          nl: "Leverancier registratie is nog niet geïmplementeerd. Gebruik alstublieft client registratie."
+        },
       });
     }
 
@@ -1237,7 +1244,7 @@ const googleAuth = async (req, res) => {
           return res.status(403).json({
             success: false,
             message:
-              "This email is registered with email/password. Please login using email/password.",
+              { en: "This email is registered with email/password. Please login using email/password.", nl: "Dit email is geregistreerd met email/wachtwoord. Log alstublieft in met email/wachtwoord." },
           });
         }
 
@@ -1247,7 +1254,10 @@ const googleAuth = async (req, res) => {
 
         return res.json({
           success: true,
-          message: "Login successful",
+          message: {
+            en: "Login successful",
+            nl: "Inloggen gelukt"
+          },
           tokens: { access: accessToken },
           user: {
             id: user._id,
@@ -1651,7 +1661,10 @@ const vendorLogin = async (req, res) => {
 
       return res.json({
         success: true,
-        message: "Google login successful",
+        message: {
+          en: "Login successful",
+          nl: "Inloggen gelukt",
+        },
         token,
         user: responseUser,
       });
@@ -1775,7 +1788,10 @@ const resetPasswordForEmployee = async (req, res) => {
     await user.save();
     return res.json({
       success: true,
-      message: "Password reset successful",
+      message: {
+        en: "Password reset successful",
+        nl: "Wachtwoord reset gelukt"
+      }
     });
   } catch (err) {
     console.error("Error resetting password:", err);
@@ -2005,7 +2021,10 @@ const registerVendor2 = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Vendor registration successful.",
+      message: {
+        en: "Vendor registration successful.",
+        nl: "Leverancier registratie geslaagd."
+      }
     });
   } catch (err) {
     console.error("Vendor registration error:", err);
@@ -2013,6 +2032,112 @@ const registerVendor2 = async (req, res) => {
       success: false,
       message: "Server error",
       error: err.message,
+    });
+  }
+};
+
+const connectVendorStripe = async (req, res) => {
+  try {
+    console.log(req.user, "req.userreq.userreq.userreq.userreq.user")
+    const vendor = await User.findOne({ _id: req.user.id });
+    console.log(vendor, "vendorvendorvendorvendor");
+
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found",
+      });
+    }
+
+    // Reuse existing account
+    if (vendor.stripeAccountId) {
+      return res.json({
+        success: true,
+        stripeAccountId: vendor.stripeAccountId,
+      });
+    }
+
+    const account = await stripe.accounts.create({
+      type: "express",
+      email: req.user.email,
+      capabilities: {
+        transfers: { requested: true },
+      },
+    });
+
+    vendor.stripeAccountId = account.id;
+    await vendor.save();
+
+    res.json({
+      success: true,
+      stripeAccountId: account.id,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getStripeOnboardingLink = async (req, res) => {
+  try {
+    const vendor = await User.findOne({ _id: req.user.id });
+    console.log(vendor, "vendorvendorvendorvendor");
+    if (!vendor?.stripeAccountId) {
+      return res.status(400).json({
+        success: false,
+        message: "Connect Stripe first",
+      });
+    }
+
+    const accountLink = await stripe.accountLinks.create({
+      account: vendor.stripeAccountId,
+      refresh_url: "http://localhost:5173/leverancier/profielbeheer/succes",
+      return_url: "http://localhost:5173/leverancier/succes",
+      type: "account_onboarding",
+    });
+
+    res.json({
+      success: true,
+      url: accountLink.url,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const checkStripeOnboardingStatus = async (req, res) => {
+  try {
+    const vendor = await User.findOne({ _id: req.user.id });
+
+    const account = await stripe.accounts.retrieve(
+      vendor.stripeAccountId
+    );
+
+    const onboarded =
+      account.details_submitted &&
+      account.charges_enabled &&
+      account.payouts_enabled;
+
+    vendor.stripeOnboardingComplete = onboarded;
+    await vendor.save();
+
+    res.json({
+      success: true,
+      onboarded,
+      account,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };
@@ -2041,5 +2166,8 @@ module.exports = {
   // Password Management
   resetPassword,
   checkRegisteredUser,
-  resetPasswordForEmployee
+  resetPasswordForEmployee,
+  connectVendorStripe,
+  getStripeOnboardingLink,
+  checkStripeOnboardingStatus
 };

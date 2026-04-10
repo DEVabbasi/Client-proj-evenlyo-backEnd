@@ -136,7 +136,12 @@ exports.resetPasswordForAdmin = async (req, res) => {
     user.password = hashedPassword;
     await user.save();
 
-    res.json({ success: true, message: "Password reset successful" });
+    res.json({
+      success: true, message: {
+        en: "Password reset successful",
+        nl: "Wachtwoord reset gelukt"
+      }
+    });
   } catch (err) {
     console.error("Reset password error:", err);
     res

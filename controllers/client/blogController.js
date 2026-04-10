@@ -40,7 +40,6 @@ const getAllBlogs = asyncHandler(async (req, res) => {
 
     // Get blogs with pagination
     const blogs = await Blog.find(filter)
-      .select('title description createdAt author category readTime image isMain views content')
       .sort(sortOptions)
       .limit(parseInt(limit))
       .skip(skip)
@@ -66,7 +65,7 @@ const getAllBlogs = asyncHandler(async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: formattedBlogs,
+      data: blogs,
       pagination: {
         currentPage: parseInt(page),
         totalPages: Math.ceil(total / parseInt(limit)),

@@ -60,6 +60,7 @@ const getAllBookingsTracking = async (req, res) => {
 
       return {
         id: b._id,
+        orderType:b.orderType,
         trackingId: b.trackingId,
         statusHistory:b.statusHistory,
         orderDateTime: b.createdAt, // ISO date

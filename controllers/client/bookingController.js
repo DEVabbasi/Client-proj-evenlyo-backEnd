@@ -177,7 +177,7 @@ const reviewBooking = asyncHandler(async (req, res) => {
   // Append review to vendor
   res.json({
     success: true,
-    message: "Review submitted successfully.",
+    message: { en: "Review submitted successfully.", nl: "Beoordeling succesvol ingediend." },
     data: newReview,
   });
 });
@@ -707,23 +707,43 @@ const getPendingBookings = asyncHandler(async (req, res) => {
 // @desc    Get accepted bookings for user (before payment)
 // @route   GET /api/booking/accepted
 // @access  Private (User)
+
 const getAcceptedBookings = asyncHandler(async (req, res) => {
+
   const acceptedBookings = await BookingRequest.find({
     userId: req.user.id,
     status: "accepted",
     paymentStatus: { $ne: "paid" },
   })
     .populate("vendorId", "firstName lastName")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean();
 
+  const vendorIds = acceptedBookings.map(b => b.vendorId?._id);
+
+  const vendorDetails = await Vendor.find({
+    userId: { $in: vendorIds }
+  }).lean();
+
+  const bookingsWithVendorDetails = acceptedBookings.map(booking => {
+    const vendorDetail = vendorDetails.find(
+      v => v.userId.toString() === booking.vendorId?._id.toString()
+    );
+
+    return {
+      ...booking,
+      vendorDetails: vendorDetail || null
+    };
+  });
+  
   res.json({
     success: true,
     data: {
-      bookings: acceptedBookings,
-      count: acceptedBookings.length,
+      bookings: bookingsWithVendorDetails,
+      count: bookingsWithVendorDetails.length,
     },
   });
-});
+})
 
 // @desc    Mark booking as paid
 // @route   POST /api/booking/:id/pay
@@ -777,7 +797,10 @@ const markBookingAsPaid = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: "Payment confirmed successfully",
+    message: {
+      en: "Payment confirmed successfully",
+      nl: "Betaling bevestigd succesvol"
+    },
     data: {
       booking,
     },
@@ -813,6 +836,10 @@ const getBookingHistory = asyncHandler(async (req, res) => {
       const reviewExists = await Review.exists({
         bookingId: booking._id,
       });
+      console.log(booking.vendorId, "booking.vendorIdbooking.vendorIdbooking.vendorId");
+
+      const vendorDetailsId = await Vendor.findOne({ userId: booking.vendorId.id }).select("businessName");
+      console.log(vendorDetailsId, "vendorDetailsIdvendorDetailsIdvendorDetailsIdvendorDetailsId");
 
       const bookingData = {
         ...booking.toObject(),
@@ -841,12 +868,11 @@ const getBookingHistory = asyncHandler(async (req, res) => {
         claimDetails: booking.claimDetails,
         images: booking.images || [],
         isReviewed: !!reviewExists,
+        vendorDetailsId: vendorDetailsId._id
       };
-
       return bookingData;
     }),
   );
-
   res.json({
     success: true,
     data: {
@@ -1103,7 +1129,10 @@ const markBookingReceived = asyncHandler(async (req, res) => {
   }
   res.json({
     success: true,
-    message: "Booking marked as received",
+    message: {
+      en: "Booking marked as received",
+      nl: "Boeking gemarkeerd als ontvangen"
+    },
     data: { booking },
   });
 });
@@ -1154,7 +1183,10 @@ const markBookingFinished = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: "Booking marked as complete",
+    message: {
+      en: "Booking marked as complete",
+      nl: "Boeking gemarkeerd als voltooid"
+    },
     data: { booking },
   });
 });
@@ -1193,7 +1225,10 @@ const createClaim = asyncHandler(async (req, res) => {
   if (!booking) {
     return res.status(404).json({
       success: false,
-      message: "Booking not eligible for Complaint",
+      message: {
+        en: "Booking not eligible for Complaint",
+        nl: "Boeking niet geschikt voor klacht"
+      },
     });
   }
 
@@ -1252,7 +1287,10 @@ const createClaim = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: "Claim created successfully. Admin will review and contact you.",
+    message: {
+      en: "Complain created successfully. Admin will review and contact you.",
+      nl: "Klacht succesvol aangemaakt. De admin zal de klacht beoordelen en contact met u opnemen."
+    },
     data: { booking },
   });
 });
@@ -1282,7 +1320,10 @@ const cancelBooking = asyncHandler(async (req, res) => {
     return res.status(400).json({
       success: false,
       message:
-        "Cancellation period expired. You can only cancel within 30 minutes of booking.",
+      {
+        en: "Cancellation period expired. You can only cancel within 30 minutes of booking.",
+        nl: "Annuleringsperiode verlopen. U kunt alleen annuleren binnen 30 minuten na de boeking."
+      },
     });
   }
 
@@ -1352,7 +1393,10 @@ const cancelBooking = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: "Booking cancelled successfully.",
+    message: {
+      en: "Booking cancelled successfully.",
+      nl: "Boeking succesvol geannuleerd."
+    },
     data: { booking },
   });
 });
@@ -1360,26 +1404,16 @@ const cancelBooking = asyncHandler(async (req, res) => {
 // @route   GET /api/booking/:id
 // @access  Private (User/Vendor)
 const getBookingDetails = asyncHandler(async (req, res) => {
-  console.log("HELLLOOOOOOOOOOOO");
-
   const booking = await BookingRequest.findById(req.params.id).populate(
     "userId",
     "firstName lastName email contactNumber",
   );
-
-  const reviewExists = await Review.exists({
-    bookingId: booking._id,
-  });
-
   console.log(booking.vendorId, "booking.vendorIdbooking.vendorId");
-
   const vendorDetails = await User.findById(booking.vendorId).select(
     "firstName lastName email image fullName",
   );
   console.log("vendor exists:", vendorDetails);
-
   console.log(booking, "bookingbookingbookingbookingbooking");
-
   if (!booking) {
     return res.status(404).json({
       success: false,
@@ -1387,16 +1421,13 @@ const getBookingDetails = asyncHandler(async (req, res) => {
     });
   }
   console.log(req.user.id, "req.user.idreq.user.idreq.user.id");
-
   // Check if user has access to this booking
   const vendor = await Vendor.findOne({ userId: booking.vendorId });
   console.log(vendor, "vendorvendorvendorvendor");
-
   let vendorDetailsss = {
     ...vendorDetails.toObject(),
-    businessLogo: vendor.businessLogo,
+    businessLogo: vendor ? vendor.businessLogo : null,
   };
-
   const bookingUserIdStr =
     booking.userId && booking.userId._id
       ? booking.userId._id.toString()
@@ -1410,18 +1441,18 @@ const getBookingDetails = asyncHandler(async (req, res) => {
         ? booking.vendorId.toString()
         : "";
   const vendorIdStr = vendor && vendor._id ? vendor._id.toString() : "";
-
+  const bookingUserId = booking.userId?._id
+    ? booking.userId._id.toString()
+    : booking.userId?.toString();
+  const bookingVendorId = booking.vendorId?.toString();
   const hasAccess =
-    (bookingUserIdStr && bookingUserIdStr === req.user.id) ||
-    (vendorIdStr && bookingVendorIdStr && bookingVendorIdStr === vendorIdStr);
-
+    bookingUserId === req.user.id || bookingVendorId === req.user.id;
   if (!hasAccess) {
     return res.status(403).json({
       success: false,
       message: "Access denied",
     });
   }
-
   // Determine user type and get appropriate action buttons
   const isVendor =
     vendor &&
@@ -1460,9 +1491,7 @@ const getBookingDetails = asyncHandler(async (req, res) => {
     claimDetails: booking.claimDetails,
     deliveryDetails: booking.deliveryDetails,
     feedback: booking.feedback,
-    isReviewed: !!reviewExists,
   };
-
   res.json({
     success: true,
     data: { booking: bookingData },

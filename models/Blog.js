@@ -74,6 +74,22 @@ const blogSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  keywords: {
+    type: String,
+    trim: true
+  },
+  metaDescription: {
+    type: String,
+    trim: true
+  },
+  metaTitle: {
+    type: String,
+    trim: true
+  },
+  slug: {
+    type: String,
+    trim: true
+  },
   comments: [commentSchema]
 }, {
   timestamps: true
@@ -85,7 +101,7 @@ blogSchema.index({ category: 1 });
 blogSchema.index({ isMain: 1 });
 
 // Virtual for formatted date
-blogSchema.virtual('formattedDate').get(function() {
+blogSchema.virtual('formattedDate').get(function () {
   return this.createdAt.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',

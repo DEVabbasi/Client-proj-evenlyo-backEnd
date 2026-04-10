@@ -122,4 +122,8 @@ router.post('/vendor/register',
   authController.registerVendor2
 );
 
+router.post('/vendor/stripe/connect', requireAuth, authController.connectVendorStripe);
+router.get('/vendor/stripe/onboarding-link', requireAuth, authController.getStripeOnboardingLink);
+router.get('/vendor/stripe/onboarding-status', requireAuth, authController.checkStripeOnboardingStatus);
+
 module.exports = router;

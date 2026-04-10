@@ -20,7 +20,11 @@ const createBlog = asyncHandler(async (req, res) => {
       readTime,
       image,
       isMain = false,
-      tags = []
+      tags = [],
+      metaTitle,
+      metaDescription,
+      keywords,
+      slug
     } = req.body;
 
     // Validation
@@ -36,41 +40,45 @@ const createBlog = asyncHandler(async (req, res) => {
       await Blog.updateMany({ isMain: true }, { isMain: false });
     }
 
-      // Sanitize HTML content
-      const sanitizeContent = (content) => {
-        if (typeof content === 'string') {
-          return sanitizeHtml(content, {
+    // Sanitize HTML content
+    const sanitizeContent = (content) => {
+      if (typeof content === 'string') {
+        return sanitizeHtml(content, {
+          allowedTags: sanitizeHtml.defaults.allowedTags.concat(['h1', 'h2', 'u']),
+          allowedAttributes: false
+        });
+      } else if (typeof content === 'object' && content !== null) {
+        return {
+          en: sanitizeHtml(content.en || '', {
             allowedTags: sanitizeHtml.defaults.allowedTags.concat(['h1', 'h2', 'u']),
             allowedAttributes: false
-          });
-        } else if (typeof content === 'object' && content !== null) {
-          return {
-            en: sanitizeHtml(content.en || '', {
-              allowedTags: sanitizeHtml.defaults.allowedTags.concat(['h1', 'h2', 'u']),
-              allowedAttributes: false
-            }),
-            nl: sanitizeHtml(content.nl || '', {
-              allowedTags: sanitizeHtml.defaults.allowedTags.concat(['h1', 'h2', 'u']),
-              allowedAttributes: false
-            })
-          };
-        }
-        return content;
-      };
+          }),
+          nl: sanitizeHtml(content.nl || '', {
+            allowedTags: sanitizeHtml.defaults.allowedTags.concat(['h1', 'h2', 'u']),
+            allowedAttributes: false
+          })
+        };
+      }
+      return content;
+    };
 
-      const processedContent = sanitizeContent(toMultilingualText(content));
+    const processedContent = sanitizeContent(toMultilingualText(content));
 
-      const blog = await Blog.create({
-        title: toMultilingualText(title),
-        description: toMultilingualText(description),
-        content: processedContent,
-        author,
-        category,
-        readTime,
-        image,
-        isMain,
-        tags
-      });
+    const blog = await Blog.create({
+      title: toMultilingualText(title),
+      description: toMultilingualText(description),
+      content: processedContent,
+      author,
+      category,
+      readTime,
+      image,
+      isMain,
+      tags,
+      metaTitle,
+      metaDescription,
+      keywords,
+      slug
+    });
 
     res.status(201).json({
       success: true,
@@ -110,11 +118,11 @@ const updateBlog = asyncHandler(async (req, res) => {
       updateData.description = toMultilingualText(updateData.description);
     }
     if (updateData.content) {
-      const processedContent = typeof updateData.content === 'string' 
+      const processedContent = typeof updateData.content === 'string'
         ? sanitizeHtml(updateData.content, {
-            allowedTags: sanitizeHtml.defaults.allowedTags.concat(['h1', 'h2', 'u']),
-            allowedAttributes: false
-          })
+          allowedTags: sanitizeHtml.defaults.allowedTags.concat(['h1', 'h2', 'u']),
+          allowedAttributes: false
+        })
         : updateData.content;
       updateData.content = toMultilingualText(processedContent);
     }

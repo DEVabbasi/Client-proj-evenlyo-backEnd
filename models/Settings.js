@@ -11,6 +11,11 @@ const SettingsSchema = new mongoose.Schema({
         required: true,
         default: 0
     },
+    vat: {
+        type: Number,
+        required: true,
+        default: 0
+    },
     adminNotificationSettings: {
         type: Object,
         default: {
