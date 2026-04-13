@@ -11,7 +11,7 @@ const Settings = require("../../models/Settings")
 const createItemPaymentIntent = async (req, res) => {
     try {
         const { itemId, quantity, location } = req.body;
-        const currency = 'usd'; // Fixed currency
+        const currency = 'eur'; // Fixed currency
 
         if (!itemId || !quantity || quantity <= 0 || !location) {
             return res.status(400).json({

@@ -17,7 +17,7 @@ const getVendorPayoutDashboard = async (req, res) => {
         const totalVendors = await Vendor.countDocuments();
 
         const vendors = await Vendor.find()
-            .populate("userId", "firstName lastName email contactNumber")
+            .populate("userId", "firstName lastName email contactNumber stripeOnboardingComplete")
             .skip(skip)
             .limit(limitNumber)
             .lean();
@@ -105,8 +105,7 @@ const getVendorPayoutDashboard = async (req, res) => {
                 readyToPayOrdersCount: readyToPayOrders.length,
                 pendingPaymentsCount: pendingPayments.length,
                 paidThisMonthAmount,
-                stripeConnected: !!vendor.stripeAccountId,
-                stripeOnboarded: !!vendor.stripeOnboardingComplete,
+                stripeOnboarded: !!vendor.userId?.stripeOnboardingComplete,
             };
         });
 
@@ -140,7 +139,7 @@ const getVendorPayoutOrders = async (req, res) => {
     try {
         const { vendorId } = req.params;
         const vendor = await User.findById(vendorId).select(
-            "firstName lastName email"
+            "firstName lastName email stripeOnboardingComplete"
         );
 
         if (!vendor) {
@@ -149,6 +148,9 @@ const getVendorPayoutOrders = async (req, res) => {
                 message: "Vendor not found",
             });
         }
+        console.log(vendor, "vendorvendorvendorvendorvendor");
+
+
         const bookings = await Booking.find({
             vendorId: vendorId,
             status: "completed",
@@ -156,7 +158,7 @@ const getVendorPayoutOrders = async (req, res) => {
             .populate("userId", "firstName lastName email")
             .populate({
                 path: "listingId",
-                select: "subCategory",
+                select: "subCategory title",
                 populate: {
                     path: "subCategory",
                     select: "escrowHours",
@@ -180,17 +182,17 @@ const getVendorPayoutOrders = async (req, res) => {
             const formattedBooking = {
                 bookingId: booking._id,
                 trackingId: booking.trackingId,
-
                 vendorName: `${vendor.firstName} ${vendor.lastName}`,
-
+                orderType: booking.orderType,
                 userName: `${booking.userId?.firstName || ""} ${booking.userId?.lastName || ""
                     }`.trim(),
-
                 userEmail: booking.userId?.email || "",
-
                 amount: booking.pricingBreakdown?.subtotal || 0,
-
                 bookingDate: booking.completedAt,
+                serviceName: {
+                    en: booking.listingId?.title?.en || booking.listingId?.name?.en || "",
+                    nl: booking.listingId?.title?.nl || booking.listingId?.name?.nl || "",
+                },
             };
             if (booking.vendorPaid) {
                 paidOrders.push(formattedBooking);
@@ -208,9 +210,11 @@ const getVendorPayoutOrders = async (req, res) => {
                 });
             }
         });
+
         res.status(200).json({
             success: true,
             data: {
+                stripeOnboarded: !!vendor.stripeOnboardingComplete,
                 readyToPayOrders,
                 pendingOrders,
                 paidOrders,
@@ -270,6 +274,9 @@ const payoutVendorBookings = async (req, res) => {
         }
 
         const stripeAmount = Math.round(Number(amount) * 100);
+
+        console.log(stripeAmount, vendor, "stripeAmountstripeAmountstripeAmount");
+
 
         const transfer = await stripe.transfers.create({
             amount: stripeAmount,

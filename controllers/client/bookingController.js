@@ -22,6 +22,8 @@ const mongoose = require("mongoose");
 const { createActivityLog } = require("../../utils/activityLogger");
 const SupportTicket = require("../../models/SupportTicket");
 const { sendEvenlyoProtectBookingEmail } = require("../../utils/mailer");
+
+const momentTime = require("moment-timezone");
 // @desc    Create Stripe PaymentIntent for a booking
 // @route   POST /api/booking/:id/create-payment-intent
 // @access  Private (User)
@@ -49,7 +51,7 @@ const createBookingPaymentIntent = asyncHandler(async (req, res) => {
   try {
     const paymentIntent = await stripe.paymentIntents.create({
       amount,
-      currency: "usd",
+      currency: "eur",
       metadata: {
         bookingId: booking._id ? booking._id.toString() : "",
         userId: booking.userId
@@ -234,22 +236,37 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       });
     }
 
-    const now = new Date();
+
+    const TIMEZONE = "Europe/Amsterdam";
+    const now = momentTime().tz(TIMEZONE);
 
     let bookingStartDateTime;
 
     if (startTime) {
-      bookingStartDateTime = new Date(`${startDate}T${startTime}`);
+      bookingStartDateTime = momentTime
+        .tz(`${startDate} ${startTime}`, "YYYY-MM-DD HH:mm", TIMEZONE);
     } else {
-      // If no time provided (multi-day without time)
-      bookingStartDateTime = new Date(`${startDate}T00:00:00`);
+      bookingStartDateTime = momentTime
+        .tz(`${startDate} 00:00`, "YYYY-MM-DD HH:mm", TIMEZONE);
     }
 
-    if (bookingStartDateTime < now) {
+    if (bookingStartDateTime.isBefore(now)) {
       return res.status(400).json({
         success: false,
         message: "You cannot create a booking for a past date or time.",
       });
+    }
+
+    if (bookingStartDateTime.isSame(now, "day")) {
+      const diffMinutes = bookingStartDateTime.diff(now, "minutes");
+      console.log(diffMinutes, "diffMinutesdiffMinutesdiffMinutesdiffMinutes");
+
+      if (diffMinutes < 120) {
+        return res.status(400).json({
+          success: false,
+          message: "Same-day bookings must be at least 2 hours in advance.",
+        });
+      }
     }
 
     // Check if listing exists and is active
@@ -735,7 +752,7 @@ const getAcceptedBookings = asyncHandler(async (req, res) => {
       vendorDetails: vendorDetail || null
     };
   });
-  
+
   res.json({
     success: true,
     data: {
