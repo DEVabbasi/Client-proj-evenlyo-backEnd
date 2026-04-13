@@ -303,7 +303,10 @@ const payoutVendorBookings = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: "Payout successful",
+            message: {
+                en: "Payout successful",
+                nl: "Uitbetaling succesvol",
+            },
             data: {
                 transferId: transfer.id,
                 totalAmountPaid: amount,
@@ -321,8 +324,127 @@ const payoutVendorBookings = async (req, res) => {
     }
 };
 
+const getRefundCases = async (req, res) => {
+    try {
+        const {
+            page = 1,
+            limit = 10,
+            type,
+            status,
+            search,
+        } = req.query;
+
+        const skip = (page - 1) * limit;
+
+        const bookings = await Booking.find({
+            $or: [
+                { "claimDetails.claimedBy": { $in: ["client", "vendor"] } },
+                { status: "completed", "pricingBreakdown.securityFee": { $gt: 0 } }
+            ]
+        })
+            .populate("userId", "firstName lastName email")
+            .populate("vendorId", "firstName lastName email")
+            .select(
+                "trackingId status claimDetails pricingBreakdown completedAt userId vendorId isSecurityReturned"
+            )
+            .lean();
+
+        let allCases = [];
+
+        bookings.forEach((booking) => {
+            const baseData = {
+                bookingId: booking._id,
+                trackingId: booking.trackingId,
+                clientName: `${booking.userId?.firstName || ""} ${booking.userId?.lastName || ""}`.trim(),
+                clientEmail: booking.userId?.email || "",
+                vendorName: `${booking.vendorId?.firstName || ""} ${booking.vendorId?.lastName || ""}`.trim(),
+                vendorEmail: booking.vendorId?.email || "",
+                bookingDate: booking.completedAt,
+            };
+
+            // ✅ CLIENT CLAIM
+            if (booking.claimDetails?.claimedBy === "client") {
+                allCases.push({
+                    ...baseData,
+                    type: "client_claim",
+                    amount: booking.claimDetails.amount || 0,
+                    status: booking.claimDetails.status,
+                });
+            }
+
+            // ✅ VENDOR CLAIM
+            if (booking.claimDetails?.claimedBy === "vendor") {
+                allCases.push({
+                    ...baseData,
+                    type: "vendor_claim",
+                    amount: booking.claimDetails.amount || 0,
+                    status: booking.claimDetails.status,
+                });
+            }
+
+            // ✅ SECURITY REFUND
+            if (
+                booking.status === "completed" &&
+                (booking.pricingBreakdown?.securityFee || 0) > 0
+            ) {
+                allCases.push({
+                    ...baseData,
+                    type: "security_refund",
+                    amount: booking.pricingBreakdown.securityFee,
+                    status: booking.isSecurityReturned ? "returned" : "pending",
+                });
+            }
+        });
+
+        // 🔍 FILTERS
+
+        if (type) {
+            allCases = allCases.filter((item) => item.type === type);
+        }
+
+        if (status) {
+            allCases = allCases.filter((item) => item.type === status);
+        }
+
+        if (search) {
+            const s = search.toLowerCase();
+            allCases = allCases.filter((item) =>
+                item.trackingId?.toLowerCase().includes(s) ||
+                item.clientName?.toLowerCase().includes(s) ||
+                item.vendorName?.toLowerCase().includes(s) ||
+                item.clientEmail?.toLowerCase().includes(s) ||
+                item.vendorEmail?.toLowerCase().includes(s)
+            );
+        }
+    
+        const total = allCases.length;
+        const paginatedData = allCases.slice(skip, skip + Number(limit));
+        return res.status(200).json({
+            success: true,
+            count: paginatedData.length,
+            pagination: {
+                total,
+                page: Number(page),
+                pages: Math.ceil(total / limit),
+                limit: Number(limit),
+            },
+            data: paginatedData,
+        });
+
+    } catch (error) {
+        console.error("Refund cases error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch refund cases",
+            error: error.message,
+        });
+    }
+};
+
 module.exports = {
     getVendorPayoutDashboard,
     getVendorPayoutOrders,
-    payoutVendorBookings
+    payoutVendorBookings,
+    getRefundCases
 };

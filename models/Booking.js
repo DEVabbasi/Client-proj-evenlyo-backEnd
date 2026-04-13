@@ -328,6 +328,10 @@ const bookingRequestSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    isSecurityReturned: {
+      type: Boolean,
+      default: false
+    },
     vendorPaidAt: Date,
     stripeTransferId: String
   },

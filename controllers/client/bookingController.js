@@ -253,7 +253,10 @@ const createBookingRequest = asyncHandler(async (req, res) => {
     if (bookingStartDateTime.isBefore(now)) {
       return res.status(400).json({
         success: false,
-        message: "You cannot create a booking for a past date or time.",
+        message: {
+          en: "You cannot create a booking for a past date or time.",
+          nl: "Je kunt geen boeking maken voor een datum of tijd in het verleden."
+        },
       });
     }
 
