@@ -57,7 +57,7 @@ const getDashboardStats = async (req, res) => {
       User.find({ userType: 'vendor', isActive: true })
         .sort({ createdAt: -1 })
         .limit(3)
-        .select('firstName lastName email')
+        .select('firstName lastName email contactNumber')
     ]);
     console.log(totalPurchases, "totalPurchasestotalPurchasestotalPurchases");
 
@@ -118,7 +118,7 @@ const getDashboardStats = async (req, res) => {
     // Format recent clients with their last booking
     const formattedRecentClients = await Promise.all(
       (recentClients || []).map(async (client) => {
-        console.log(client,"clientclientclientclientclientclient");
+        console.log(client, "clientclientclientclientclientclient");
         const lastBooking = await Booking.findOne({ userId: client._id })
           .sort({ createdAt: -1 })
           .select('createdAt');
@@ -137,6 +137,7 @@ const getDashboardStats = async (req, res) => {
       (recentVendors || []).map(async (vendorUser) => {
         // Find vendor profile to get vendorId
         const vendorProfile = await Vendor.findOne({ userId: vendorUser._id });
+        console.log(vendorProfile, "Vendor_Profile=>>>", vendorUser, "VENDOR_USER=>>>>");
 
         let lastBooking = null;
 
@@ -151,6 +152,8 @@ const getDashboardStats = async (req, res) => {
           id: vendorUser._id,
           name: `${vendorUser.firstName || ''} ${vendorUser.lastName || ''}`.trim(),
           email: vendorUser.email,
+          image: vendorProfile?.businessLogo || '',
+          contactNumber: vendorUser?.contactNumber || '',
           lastBooking
         };
       })

@@ -1134,22 +1134,16 @@ const getHomeData = async (req, res) => {
     };
 
     // ✅ Category filter
-    if (
-      categoryId &&
-      mongoose.Types.ObjectId.isValid(categoryId)
-    ) {
+    if (categoryId && mongoose.Types.ObjectId.isValid(categoryId)) {
       query.category = categoryId;
     }
 
     // ✅ Subcategory filter
-    if (
-      subCategoryId &&
-      mongoose.Types.ObjectId.isValid(subCategoryId)
-    ) {
+    if (subCategoryId && mongoose.Types.ObjectId.isValid(subCategoryId)) {
       query.subCategory = subCategoryId;
     }
 
-    // ✅ Availability day filter
+    // ✅ Availability filter
     if (date) {
       const dayKey = getDayKey(date);
       query["availability.availableDays"] = dayKey;
@@ -1157,37 +1151,48 @@ const getHomeData = async (req, res) => {
 
     // 1️⃣ Fetch listings
     const listings = await Listing.find(query)
-      .populate("vendor", "firstName lastName rating")
+      .populate("vendor", "firstName rating")
       .populate("category", "name")
       .populate("subCategory", "name")
       .select(
-        "title description pricing location ratings images media.featuredImage availability"
+        "title description pricing location ratings images media.featuredImage availability vendor"
       );
 
     const listingIds = listings.map((l) => l._id);
 
-    // 2️⃣ Get bookings for those listings
+    // ✅ 2️⃣ GET ALL VENDOR IDS
+    const vendorIds = listings.map((l) => l.vendor?._id).filter(Boolean);
+
+    // ✅ 3️⃣ FETCH ALL VENDOR DETAILS (ONE QUERY)
+    const vendorDetails = await Vendor.find({
+      userId: { $in: vendorIds },
+    }).select("userId businessLogo");
+
+    // ✅ CREATE MAP userId → businessLogo
+    const vendorLogoMap = {};
+    vendorDetails.forEach((vd) => {
+      vendorLogoMap[vd.userId.toString()] = vd.businessLogo;
+    });
+
+    // 4️⃣ BOOKINGS
     const bookings = await BookingRequest.find({
       listingId: { $in: listingIds },
     }).select("_id listingId");
 
     const bookingIds = bookings.map((b) => b._id);
 
-    // Create bookingId → listingId map
-    console.log(bookings,"bookingsbookingsbookings");
-    
+    // bookingId → listingId map
     const bookingMap = {};
     bookings.forEach((b) => {
-      console.log(b,"bbbbb");
       bookingMap[b._id.toString()] = b.listingId.toString();
     });
 
-    // 3️⃣ Get reviews
+    // 5️⃣ REVIEWS
     const reviews = await Review.find({
       bookingId: { $in: bookingIds },
     }).select("bookingId rating");
-    console.log(reviews, "reviewsreviewsreviews");
-    // 4️⃣ Calculate ratings per listing
+
+    // 6️⃣ CALCULATE RATINGS
     const ratingData = {};
     reviews.forEach((review) => {
       const listingId = bookingMap[review.bookingId.toString()];
@@ -1204,7 +1209,7 @@ const getHomeData = async (req, res) => {
       ratingData[listingId].count += 1;
     });
 
-    // 5️⃣ Attach review stats
+    // 7️⃣ FINAL RESPONSE BUILD
     let enrichedListings = listings.map((listing) => {
       const obj = listing.toObject();
       const id = obj._id.toString();
@@ -1214,20 +1219,23 @@ const getHomeData = async (req, res) => {
         count: 0,
       };
 
+      // ✅ ADD REVIEWS
       obj.reviewStats = {
         average:
           ratingInfo.count > 0
-            ? Number(
-              (ratingInfo.totalRating / ratingInfo.count).toFixed(1)
-            )
+            ? Number((ratingInfo.totalRating / ratingInfo.count).toFixed(1))
             : 0,
         totalReviews: ratingInfo.count,
       };
 
+      // ✅ ADD BUSINESS LOGO
+      const vendorId = obj.vendor?._id?.toString();
+      obj.vendor.businessLogo = vendorLogoMap[vendorId] || "";
+
       return obj;
     });
 
-    // 6️⃣ Location filtering
+    // 8️⃣ LOCATION FILTER
     if (latitude && longitude) {
       const allowedRadius = radius || 100;
 
@@ -1236,13 +1244,7 @@ const getHomeData = async (req, res) => {
         const lng = listing.location?.coordinates?.longitude;
         if (!lat || !lng) return false;
 
-        const distance = getDistanceInKm(
-          latitude,
-          longitude,
-          lat,
-          lng
-        );
-
+        const distance = getDistanceInKm(latitude, longitude, lat, lng);
         return distance <= allowedRadius;
       });
     }
@@ -1252,6 +1254,7 @@ const getHomeData = async (req, res) => {
       count: enrichedListings.length,
       data: enrichedListings,
     });
+
   } catch (error) {
     console.error("Search listings error:", error);
     res.status(500).json({

@@ -490,6 +490,7 @@ Evenlyo
 
 const sendEvenlyoProtectBookingEmail = async (booking, client, vendor, status) => {
   console.log(booking, "BOOKING", client, "CLIENT", vendor, "VENDOR", "bookingbookingbookingbookingbooking");
+
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
@@ -501,7 +502,7 @@ const sendEvenlyoProtectBookingEmail = async (booking, client, vendor, status) =
     requireTLS: true
   });
 
-  // 🎯 Dynamic values based on status
+  // 🎯 Dynamische waarden op basis van status
   let subject = "";
   let heading = "";
   let statusMessage = "";
@@ -509,23 +510,23 @@ const sendEvenlyoProtectBookingEmail = async (booking, client, vendor, status) =
 
   switch (status) {
     case "ACCEPTED":
-      subject = "Evenlyo Protect Booking Accepted by Vendor";
-      heading = "Booking Accepted ✅";
-      statusMessage = "The vendor has ACCEPTED this Evenlyo Protect booking.";
+      subject = "Evenlyo Protect boeking geaccepteerd door leverancier";
+      heading = "Boeking geaccepteerd ✅";
+      statusMessage = "De leverancier heeft deze Evenlyo Protect boeking GEACCEPTEERD.";
       headingColor = "#27ae60";
       break;
 
     case "REJECTED":
-      subject = "Evenlyo Protect Booking Rejected by Vendor";
-      heading = "Booking Rejected ❌";
-      statusMessage = "The vendor has REJECTED this Evenlyo Protect booking.";
+      subject = "Evenlyo Protect boeking afgewezen door leverancier";
+      heading = "Boeking afgewezen ❌";
+      statusMessage = "De leverancier heeft deze Evenlyo Protect boeking AFGEWEZEN.";
       headingColor = "#e74c3c";
       break;
 
     default:
-      subject = "New Evenlyo Protect Booking Received";
-      heading = "New Evenlyo Protect Booking";
-      statusMessage = "A new booking has been placed with Evenlyo Protect enabled.";
+      subject = "Nieuwe Evenlyo Protect boeking ontvangen";
+      heading = "Nieuwe Evenlyo Protect boeking";
+      statusMessage = "Er is een nieuwe boeking geplaatst met Evenlyo Protect ingeschakeld.";
       headingColor = "#2c3e50";
   }
 
@@ -539,40 +540,40 @@ const sendEvenlyoProtectBookingEmail = async (booking, client, vendor, status) =
           
           <h2 style="color: ${headingColor};">${heading}</h2>
           
-          <p>Hello Admin,</p>
+          <p>Hallo Admin,</p>
 
           <p>${statusMessage}</p>
 
           <hr />
 
-          <p><strong>Booking ID:</strong> ${booking.trackingId}</p>
-          <p><strong>Client Name:</strong> ${client || "N/A"}</p>
-          <p><strong>Vendor Name:</strong> ${vendor || "N/A"}</p>
-          <p><strong>Service:</strong> ${booking.listingDetails?.title?.en} -- ${booking.listingDetails?.title?.nl}</p>
-          <p><strong>Total Amount:</strong> $${booking.pricingBreakdown?.total || 0}</p>
-          <p><strong>Booking Date:</strong> ${booking.details?.startDate || "N/A"}</p>
+          <p><strong>Boekings-ID:</strong> ${booking.trackingId}</p>
+          <p><strong>Klantnaam:</strong> ${client || "N/A"}</p>
+          <p><strong>Leveranciersnaam:</strong> ${vendor || "N/A"}</p>
+          <p><strong>Dienst:</strong> ${booking.listingDetails?.title?.en} -- ${booking.listingDetails?.title?.nl}</p>
+          <p><strong>Totaalbedrag:</strong> €${booking.pricingBreakdown?.total || 0}</p>
+          <p><strong>Boekingsdatum:</strong> ${booking.details?.startDate || "N/A"}</p>
 
           <hr />
 
           <p style="margin-top: 20px;">
-            Please review this booking in the admin dashboard.
+            Bekijk deze boeking in het admin dashboard.
           </p>
 
           <p style="color: #888; font-size: 12px; margin-top: 30px;">
-            This is an automated notification from Evenlyo System.
+            Dit is een automatische melding van het Evenlyo systeem.
           </p>
         </div>
       </div>
     `,
   };
+
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`Evenlyo Protect booking email sent to admins - Status: ${status}`);
+    console.log(`Evenlyo Protect boeking e-mail verzonden naar admins - Status: ${status}`);
   } catch (error) {
-    console.error("Error sending Evenlyo Protect booking email:", error);
+    console.error("Fout bij het verzenden van Evenlyo Protect boeking e-mail:", error);
   }
-}
-
+};
 
 const sendReminderEmail = async (booking, daysLeft) => {
   const remainingAmount =

@@ -366,7 +366,7 @@ const getRefundCases = async (req, res) => {
             if (booking.claimDetails?.claimedBy === "client") {
                 allCases.push({
                     ...baseData,
-                    type: "client_claim",
+                    type: "client_complain",
                     amount: booking.claimDetails.amount || 0,
                     status: booking.claimDetails.status,
                 });
@@ -416,7 +416,7 @@ const getRefundCases = async (req, res) => {
                 item.vendorEmail?.toLowerCase().includes(s)
             );
         }
-    
+
         const total = allCases.length;
         const paginatedData = allCases.slice(skip, skip + Number(limit));
         return res.status(200).json({
@@ -442,9 +442,176 @@ const getRefundCases = async (req, res) => {
     }
 };
 
+const payVendorClaim = async (req, res) => {
+    try {
+        const { bookingId, amount } = req.body;
+
+        const booking = await Booking.findById(bookingId)
+            .populate("vendorId");
+
+        if (!booking) {
+            return res.status(404).json({ success: false, message: "Booking not found" });
+        }
+
+        if (booking.claimDetails?.claimedBy !== "vendor") {
+            return res.status(400).json({ success: false, message: "Not a vendor claim" });
+        }
+
+        if (booking.claimDetails?.status === "paid") {
+            return res.status(400).json({ success: false, message: "Already paid" });
+        }
+
+        const vendor = booking.vendorId;
+
+        if (!vendor?.stripeAccountId || !vendor?.stripeOnboardingComplete) {
+            return res.status(400).json({
+                success: false,
+                message: "Vendor not onboarded with Stripe",
+            });
+        }
+
+
+        const transfer = await stripe.transfers.create({
+            amount: Math.round(amount * 100),
+            currency: "eur",
+            destination: vendor.stripeAccountId,
+            metadata: {
+                bookingId: booking._id.toString(),
+                type: "vendor_claim",
+            },
+        });
+
+        booking.claimDetails.status = "resolved";
+        booking.claimDetails.paidAt = new Date();
+        booking.claimDetails.stripeTransferId = transfer.id;
+        booking.claimDetails.AmountPaidByAdmin = amount;
+
+        await booking.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Vendor claim paid successfully",
+            data: transfer,
+        });
+
+    } catch (error) {
+        console.error("Vendor claim payout error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Payout failed",
+            error: error.message,
+        });
+    }
+};
+
+const refundClient = async (req, res) => {
+    try {
+        const { bookingId, amount, type } = req.body;
+        // type = "security_fee" | "client_claim"
+
+        const booking = await Booking.findById(bookingId);
+
+        if (!booking) {
+            return res.status(404).json({ success: false, message: "Booking not found" });
+        }
+
+        if (!booking.paymentIntentId) {
+            return res.status(400).json({
+                success: false,
+                message: "No payment found for refund",
+            });
+        }
+
+        let refundAmount = 0;
+
+        // ✅ SECURITY FEE (FULL REFUND)
+        if (type === "security_fee") {
+            if (booking.isSecurityReturned) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Security fee already refunded",
+                });
+            }
+
+            refundAmount = booking.pricingBreakdown?.securityFee || 0;
+
+            if (refundAmount <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "No security fee to refund",
+                });
+            }
+        }
+
+        // ✅ CLIENT CLAIM (ADMIN DECIDES AMOUNT)
+        if (type === "client_claim") {
+            if (booking.claimDetails?.claimedBy !== "client") {
+                return res.status(400).json({
+                    success: false,
+                    message: "Not a client claim",
+                });
+            }
+
+            if (booking.claimDetails?.status === "paid") {
+                return res.status(400).json({
+                    success: false,
+                    message: "Already refunded",
+                });
+            }
+            if (!amount || amount <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Valid refund amount required",
+                });
+            }
+            refundAmount = amount;
+        }
+
+        // 💸 STRIPE REFUND
+        const refund = await stripe.refunds.create({
+            payment_intent: booking.paymentIntentId,
+            amount: Math.round(refundAmount * 100),
+        });
+
+        // ✅ UPDATE BOOKING
+
+        if (type === "security_fee") {
+            booking.isSecurityReturned = true;
+            booking.securityReturnedAt = new Date();
+        }
+
+        if (type === "client_claim") {
+            booking.claimDetails.status = "paid";
+            booking.claimDetails.paidAt = new Date();
+            booking.claimDetails.refundedAmount = refundAmount;
+        }
+
+        booking.stripeRefundId = refund.id;
+
+        await booking.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Refund successful",
+            data: refund,
+        });
+
+    } catch (error) {
+        console.error("Refund error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Refund failed",
+            error: error.message,
+        });
+    }
+};
+
 module.exports = {
     getVendorPayoutDashboard,
     getVendorPayoutOrders,
     payoutVendorBookings,
-    getRefundCases
+    getRefundCases,
+    payVendorClaim,
+    refundClient
 };

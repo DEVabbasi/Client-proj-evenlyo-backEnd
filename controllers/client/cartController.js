@@ -79,7 +79,7 @@ const addToCart = asyncHandler(async (req, res) => {
       "items.listingId",
       "title featuredImage pricing vendor"
     );
-    return res.status(200).json({
+    return res.status(400).json({
       success: false,
       message: "Item is already in cart",
       data: cart.items,

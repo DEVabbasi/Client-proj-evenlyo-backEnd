@@ -251,13 +251,22 @@ const bookingRequestSchema = new mongoose.Schema(
       claimType: {
         type: String,
       },
+      stripeTransferIdToUser: {
+        type: String,
+      },
       claimedAt: Date,
+      paidAt: Date,
       status: {
         type: String,
-        enum: ["pending", "resolved", "rejected"],
+        enum: ["pending", "resolved", "rejected", "paid"],
         default: "pending",
       },
       amount: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      AmountPaidByAdmin: {
         type: Number,
         default: 0,
         min: 0,
@@ -331,6 +340,14 @@ const bookingRequestSchema = new mongoose.Schema(
     isSecurityReturned: {
       type: Boolean,
       default: false
+    },
+    securityReturnedAt: {
+      type: Date,
+      default: null
+    },
+    stripeRefundId: {
+      type: String,
+      default: null
     },
     vendorPaidAt: Date,
     stripeTransferId: String
