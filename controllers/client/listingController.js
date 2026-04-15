@@ -280,6 +280,15 @@ const getListingById = async (req, res) => {
       .populate("reviews.clientId", "firstName lastName profileImage");
     console.log(listing, "listinglistinglisting");
 
+    let businessLogo = "";
+    if (listing.vendor?._id) {
+      const vendorDetails = await Vendor.findOne({
+        userId: listing.vendor._id,
+      }).select("businessLogo");
+
+      businessLogo = vendorDetails?.businessLogo || "";
+    }
+
     const bookings = await BookingRequest.find({
       listingId: req.params.id,
     }).select("_id");
@@ -335,6 +344,7 @@ const getListingById = async (req, res) => {
 
     // Include contact information for detailed view and attach payment policy from subcategory
     const data = listing.toObject();
+    data.vendor.businessLogo = businessLogo;
     const sc = data.subCategory || {};
     console.log(sc, "scscscscscsc");
 
