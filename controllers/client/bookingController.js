@@ -1368,7 +1368,7 @@ const cancelBooking = asyncHandler(async (req, res) => {
   }
 
   booking.status = "cancelled";
-
+  booking.cancellationDetails.reason = reason || "No reason provided";
   booking.statusHistory.push({
     status: "cancelled",
     updatedBy: {

@@ -233,7 +233,7 @@ const bookingRequestSchema = new mongoose.Schema(
       },
       requestedAt: Date,
       isWithinCancellationWindow: Boolean,
-      refundAmount: {
+      refundedAmount: {
         type: Number,
         default: 0,
       },
@@ -265,6 +265,10 @@ const bookingRequestSchema = new mongoose.Schema(
         type: Number,
         default: 0,
         min: 0,
+      },
+      refundAmount: {
+        type: Number,
+        default: 0,
       },
       AmountPaidByAdmin: {
         type: Number,
@@ -337,17 +341,23 @@ const bookingRequestSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
-    isSecurityReturned: {
-      type: Boolean,
-      default: false
-    },
-    securityReturnedAt: {
-      type: Date,
-      default: null
-    },
-    stripeRefundId: {
-      type: String,
-      default: null
+    securityRefundDetails: {
+      isSecurityReturned: {
+        type: Boolean,
+        default: false
+      },
+      securityReturnedAt: {
+        type: Date,
+        default: null
+      },
+      stripeRefundId: {
+        type: String,
+        default: null
+      },
+      securityRefundAmount: {
+        type: Number,
+        default: 0
+      }
     },
     vendorPaidAt: Date,
     stripeTransferId: String

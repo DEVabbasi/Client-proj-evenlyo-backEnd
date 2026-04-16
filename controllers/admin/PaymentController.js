@@ -18,6 +18,7 @@ const getVendorPayoutDashboard = async (req, res) => {
 
         const vendors = await Vendor.find()
             .populate("userId", "firstName lastName email contactNumber stripeOnboardingComplete")
+            .select("businessLogo userId")
             .skip(skip)
             .limit(limitNumber)
             .lean();
@@ -99,6 +100,7 @@ const getVendorPayoutDashboard = async (req, res) => {
                     lastName: vendor.userId?.lastName,
                     email: vendor.userId?.email,
                     businessName: vendor.businessName,
+                    businessLogo: vendor.businessLogo,
                     contactNumber: vendor.userId?.contactNumber
                 },
                 totalCompletedOrders,
@@ -255,7 +257,10 @@ const payoutVendorBookings = async (req, res) => {
         if (!vendor.stripeAccountId || !vendor.stripeOnboardingComplete) {
             return res.status(400).json({
                 success: false,
-                message: "Vendor is not connected/onboarded with Stripe",
+                message: {
+                    en: "Vendor is not connected/onboarded with Stripe",
+                    nl: "De verkoper is niet verbonden / onboarded met Stripe",
+                },
             });
         }
 
@@ -274,9 +279,6 @@ const payoutVendorBookings = async (req, res) => {
         }
 
         const stripeAmount = Math.round(Number(amount) * 100);
-
-        console.log(stripeAmount, vendor, "stripeAmountstripeAmountstripeAmount");
-
 
         const transfer = await stripe.transfers.create({
             amount: stripeAmount,
@@ -333,9 +335,7 @@ const getRefundCases = async (req, res) => {
             status,
             search,
         } = req.query;
-
         const skip = (page - 1) * limit;
-
         const bookings = await Booking.find({
             $or: [
                 { "claimDetails.claimedBy": { $in: ["client", "vendor"] } },
@@ -345,9 +345,10 @@ const getRefundCases = async (req, res) => {
             .populate("userId", "firstName lastName email")
             .populate("vendorId", "firstName lastName email")
             .select(
-                "trackingId status claimDetails pricingBreakdown completedAt userId vendorId isSecurityReturned"
+                "trackingId securityRefundDetails status claimDetails pricingBreakdown completedAt userId vendorId"
             )
-            .lean();
+            .lean()
+            .sort({ createdAt: -1 });
 
         let allCases = [];
 
@@ -360,6 +361,7 @@ const getRefundCases = async (req, res) => {
                 vendorName: `${booking.vendorId?.firstName || ""} ${booking.vendorId?.lastName || ""}`.trim(),
                 vendorEmail: booking.vendorId?.email || "",
                 bookingDate: booking.completedAt,
+                bookingPricingBreakdown: booking.pricingBreakdown,
             };
 
             // ✅ CLIENT CLAIM
@@ -391,7 +393,7 @@ const getRefundCases = async (req, res) => {
                     ...baseData,
                     type: "security_refund",
                     amount: booking.pricingBreakdown.securityFee,
-                    status: booking.isSecurityReturned ? "returned" : "pending",
+                    status: booking?.securityRefundDetails?.isSecurityReturned ? "paid" : "pending",
                 });
             }
         });
@@ -466,10 +468,13 @@ const payVendorClaim = async (req, res) => {
         if (!vendor?.stripeAccountId || !vendor?.stripeOnboardingComplete) {
             return res.status(400).json({
                 success: false,
-                message: "Vendor not onboarded with Stripe",
+                message: {
+                    en: "Vendor not onboarded with Stripe",
+                    nl: "Verkoper niet onboarded met Stripe",
+
+                },
             });
         }
-
 
         const transfer = await stripe.transfers.create({
             amount: Math.round(amount * 100),
@@ -481,13 +486,11 @@ const payVendorClaim = async (req, res) => {
             },
         });
 
-        booking.claimDetails.status = "resolved";
+        booking.claimDetails.status = "paid";
         booking.claimDetails.paidAt = new Date();
         booking.claimDetails.stripeTransferId = transfer.id;
         booking.claimDetails.AmountPaidByAdmin = amount;
-
         await booking.save();
-
         return res.status(200).json({
             success: true,
             message: "Vendor claim paid successfully",
@@ -548,14 +551,17 @@ const refundClient = async (req, res) => {
             if (booking.claimDetails?.claimedBy !== "client") {
                 return res.status(400).json({
                     success: false,
-                    message: "Not a client claim",
+                    message: { en: "Not a client claim", nl: "Geen klantclaim" },
                 });
             }
 
             if (booking.claimDetails?.status === "paid") {
                 return res.status(400).json({
                     success: false,
-                    message: "Already refunded",
+                    message: {
+                        en: "Already refunded",
+                        nl: "Al terugbetaald",
+                    },
                 });
             }
             if (!amount || amount <= 0) {
@@ -576,29 +582,30 @@ const refundClient = async (req, res) => {
         // ✅ UPDATE BOOKING
 
         if (type === "security_fee") {
-            booking.isSecurityReturned = true;
-            booking.securityReturnedAt = new Date();
+            booking.securityRefundDetails.isSecurityReturned = true;
+            booking.securityRefundDetails.securityReturnedAt = new Date();
+            booking.securityRefundDetails.stripeRefundId = refund.id;
+            booking.securityRefundDetails.securityRefundAmount = refundAmount;
         }
 
         if (type === "client_claim") {
             booking.claimDetails.status = "paid";
             booking.claimDetails.paidAt = new Date();
             booking.claimDetails.refundedAmount = refundAmount;
+            booking.claimDetails.stripeTransferIdToUser = refund.id;
         }
-
-        booking.stripeRefundId = refund.id;
-
         await booking.save();
-
         return res.status(200).json({
             success: true,
-            message: "Refund successful",
+            message: {
+                en: "Refund successful",
+                nl: "Terugbetaling succesvol",
+            },
             data: refund,
         });
 
     } catch (error) {
         console.error("Refund error:", error);
-
         return res.status(500).json({
             success: false,
             message: "Refund failed",

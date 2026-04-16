@@ -4,9 +4,9 @@ const { refundClient, payVendorClaim, getVendorPayoutDashboard, getVendorPayoutO
 
 
 router.get('/', getVendorPayoutDashboard);
-router.get('/refund-cases', getRefundCases);
 router.get('/:vendorId/payout-orders', getVendorPayoutOrders);
 router.post('/:vendorId/disburse-payments', payoutVendorBookings);
+router.get('/refund-cases', getRefundCases);
 router.post('/vendor-claims', payVendorClaim);
 router.post('/refund', refundClient);
 
