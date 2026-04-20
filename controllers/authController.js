@@ -43,7 +43,7 @@ const clientLogin = async (req, res) => {
     }
 
     // Find user
-    const user = await User.findOne({ email, isActive: true });
+    const user = await User.findOne({ email, isActive: true, userType: "client" });
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -344,7 +344,10 @@ const performLogin = async (req, res, userType) => {
       if (!user) {
         return res.status(401).json({
           success: false,
-          message: "Account not found",
+          message: {
+            en: "Account not found",
+            nl: "Account niet gevonden",
+          },
         });
       }
 
@@ -1608,7 +1611,7 @@ const vendorLogin = async (req, res) => {
         message: "Email is required",
       });
     }
-    let user = await User.findOne({ email });
+    let user = await User.findOne({ email, userType: 'vendor' });
     let isEmployee = false;
     console.log(user, "useruseruseruser");
 
@@ -1652,7 +1655,6 @@ const vendorLogin = async (req, res) => {
       const responseUser = {
         id: user._id,
         firstName: user.firstName,
-        lastName: user.lastName,
         email: user.email,
         profileImage: user.profileImage,
         userType: "customer",
@@ -1695,7 +1697,7 @@ const vendorLogin = async (req, res) => {
     // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({
+      return res.status(400).json({
         success: false,
         message: {
           en: "Invalid email or password",

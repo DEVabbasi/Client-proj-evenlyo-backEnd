@@ -36,150 +36,171 @@ async function sendEmail(to, subject, html) {
 
 
 const sendReminderEmail = async (booking, daysLeft) => {
-    console.log(booking.userId.email, "booking.userId.emailbooking.userId.emailbooking.userId.email");
-
     const remainingAmount =
-        ((booking.pricingBreakdown?.total || 0) - (booking.AmountPaid || 0))
-            .toFixed(2);
+        ((booking.pricingBreakdown?.total || 0) - (booking.AmountPaid || 0)).toFixed(2);
 
     const eventDateFormatted = moment(booking.details.startDate)
         .format("DD MMM YYYY HH:mm");
 
-    // ⚠ Conditional warning only for 1-day reminder
     const cancellationWarning =
         daysLeft === 1
             ? `
-  < div style = "margin-top:20px;padding:15px;background:#fff3cd;border:1px solid #ffeeba;border-radius:6px;" >
-          <strong style="color:#856404;">⚠ Important Notice:</strong>
-          <p style="margin:8px 0 0 0;color:#856404;">
-            If the remaining payment is not completed before the event date and time,
-            your booking will be automatically cancelled.
-          </p>
-        </div >
+    <div style="margin-top:20px;padding:15px;background:#fff3cd;border:1px solid #ffeeba;border-radius:6px;">
+      <strong style="color:#856404;">⚠ Belangrijk bericht:</strong>
+      <p style="margin:8px 0 0 0;color:#856404;">
+        Indien het resterende bedrag niet vóór de evenementdatum wordt betaald,
+        wordt uw boeking automatisch geannuleerd.
+      </p>
+    </div>
   `
             : "";
 
     const emailHtml = `
-  <div style = "font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;" >
-      <h2 style="color:#333;">Payment Reminder</h2>
+  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;">
+      
+      <h2 style="color:#333;">Betalingsherinnering</h2>
 
-      <p>Dear ${booking.userId.firstName},</p>
+      <p>Beste ${booking.userId.firstName},</p>
 
       <p>
-        This is a friendly reminder that your event is in 
-        <strong>${daysLeft} day${daysLeft > 1 ? "s" : ""}</strong>.
+        Dit is een vriendelijke herinnering dat uw evenement over 
+        <strong>${daysLeft} dag${daysLeft > 1 ? "en" : ""}</strong> plaatsvindt.
       </p>
 
       <p>
-        Please complete the remaining payment of 
-        <strong>€${remainingAmount}</strong> to ensure your booking remains confirmed.
+        Gelieve het resterende bedrag van 
+        <strong>€${remainingAmount}</strong> te betalen om uw boeking bevestigd te houden.
       </p>
 
-      <h3>Booking Details:</h3>
-      <p><strong>Booking ID:</strong> ${booking._id}</p>
-      <p><strong>Event Date:</strong> ${eventDateFormatted}</p>
-      <p><strong>Service:</strong> ${booking.listingId?.title.en}-- ${booking.listingId?.title?.nl}</p>
+      <h3>Boekingsdetails:</h3>
+      <p><strong>Boekings-ID:</strong> ${booking._id}</p>
+      <p><strong>Evenementdatum:</strong> ${eventDateFormatted}</p>
+      <p><strong>Service:</strong> ${booking.listingId?.title.en} - ${booking.listingId?.title?.nl}</p>
 
       ${cancellationWarning}
 
       <br/>
 
-      <a href="${process.env.NODE_ENV === 'development' ? process.env.PAYMENT_URL_STAGING : process.env.PAYMENT_URL_LIVE}/pay/${booking._id}"
+      <a href="${process.env.NODE_ENV === 'development'
+            ? process.env.PAYMENT_URL_STAGING
+            : process.env.PAYMENT_URL_LIVE
+        }/pay/${booking._id}"
          style="display:inline-block;margin-top:20px;background:#007bff;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">
-         Pay Now
+         Nu Betalen
       </a>
 
       <p style="margin-top:30px;">
-        If you need assistance, please contact our support team.
+        Indien u hulp nodig heeft, neem gerust contact op met onze support.
       </p>
 
-      <p>Warm regards,<br/>Evenlyo Team</p>
-    </div >
+      <p>Met vriendelijke groet,<br/>Evenlyo Team</p>
+    </div>
   `;
 
     await sendEmail(
-        booking.userId.email, // booking.userId.email
-        `Your Event is in ${daysLeft} Day${daysLeft > 1 ? "s" : ""} – Payment Reminder`,
+        booking.userId.email,
+        `Uw evenement is over ${daysLeft} dag(en) – Betalingsherinnering`,
+        emailHtml
+    );
+};
+
+const sendAdminCancellationEmail = async (booking) => {
+
+    const eventDate = moment(booking.details.startDate).format("DD MMM YYYY");
+
+    const emailHtml = `
+  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;">
+
+    <h2>Admin Alert: Boeking Geannuleerd</h2>
+
+    <p>Een boeking is geannuleerd wegens niet-betaling.</p>
+
+    <p><strong>Boeking ID:</strong> ${booking._id}</p>
+    <p><strong>Tracking ID:</strong> ${booking.trackingId}</p>
+    <p><strong>Datum:</strong> ${eventDate}</p>
+    <p><strong>Klant:</strong> ${booking.userId?.firstName}</p>
+    <p><strong>Leverancier:</strong> ${booking.vendorId?.firstName}</p>
+
+    <p style="margin-top:20px;">Systeem melding Evenlyo</p>
+
+  </div>
+  `;
+
+    await sendEmail(
+        process.env.EMAIL_USER,
+        `Admin: Boeking ${booking.trackingId} geannuleerd`,
         emailHtml
     );
 };
 
 const sendVendorCancellationEmail = async (booking, reasonType) => {
-    /*
-      reasonType:
-      "client_cancelled"
-      "non_payment"
-    */
 
-    const eventDate = moment(booking.details.startDate)
-        .format("DD MMM YYYY HH:mm");
+    const eventDate = moment(booking.details.startDate).format("DD MMM YYYY");
 
     const cancellationReason =
         reasonType === "client_cancelled"
-            ? "The client has chosen to cancel this booking."
-            : "The booking has been automatically cancelled due to non-payment by the client.";
+            ? "De klant heeft deze boeking geannuleerd."
+            : "De boeking is automatisch geannuleerd wegens niet-betaling door de klant.";
 
     const emailHtml = `
   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;">
 
-    <h2 style="color:#d9534f;">Booking Cancelled</h2>
+    <h2 style="color:#d9534f;">Boeking Geannuleerd</h2>
 
-    <p>Dear ${booking.vendorId?.firstName || "Vendor"},</p>
+    <p>Beste ${booking.vendorId?.firstName || "Leverancier"},</p>
 
     <p>
-      We would like to inform you that the following booking has been cancelled.
+      Wij willen u informeren dat de volgende boeking is geannuleerd.
     </p>
 
     <div style="margin:20px 0;padding:15px;background:#f8d7da;border:1px solid #f5c6cb;border-radius:6px;">
-      <strong>Reason:</strong>
+      <strong>Reden:</strong>
       <p style="margin:8px 0 0 0;">
         ${cancellationReason}
       </p>
     </div>
 
-    <h3>Booking Details:</h3>
+    <h3>Boekingsdetails:</h3>
 
-    <p><strong>Booking ID:</strong> ${booking._id}</p>
-    <p><strong>Event Date:</strong> ${eventDate}</p>
-    <p><strong>Service:</strong> ${booking.listingId?.title?.en || "Service Package"}</p>
-    <p><strong>Client Name:</strong> ${booking.userId?.firstName || "Client"}</p>
+    <p><strong>Boekings-ID:</strong> ${booking._id}</p>
+    <p><strong>Evenementdatum:</strong> ${eventDate}</p>
+    <p><strong>Service:</strong> ${booking.listingId?.title?.nl || "Service Pakket"}</p>
+    <p><strong>Klant:</strong> ${booking.userId?.firstName || "Klant"}</p>
 
     <br/>
 
     <p>
-      If you have any questions or require further clarification, please contact our support team.
+      Indien u vragen heeft, neem gerust contact op met ons supportteam.
     </p>
 
-    <p>Thank you for being a valued partner.</p>
+    <p>Bedankt voor uw samenwerking.</p>
 
-    <p>Warm regards,<br/>Evenlyo Team</p>
+    <p>Met vriendelijke groet,<br/>Evenlyo Team</p>
 
   </div>
   `;
 
     await sendEmail(
         booking.vendorId.email,
-        "Booking Cancellation Notification",
+        "Kennisgeving: Boeking Geannuleerd",
         emailHtml
     );
 
     const admin = await Admin.findOne({ role: "Admin" }).lean();
-    console.log(process.env.EMAIL_USER, "process.env.EMAIL_USERprocess.env.EMAIL_USERprocess.env.EMAIL_USER");
 
     if (admin && admin.notificationSettings.email.orderCancellation === true) {
         await sendEmail(
             process.env.EMAIL_USER,
-            `Admin Alert: Booking ${booking._id} Cancelled`,
+            `Admin melding: Boeking ${booking._id} geannuleerd`,
             emailHtml
         );
     }
-
 };
 
-
 // LIVE MODE — run daily at midnight
-cron.schedule("0 */5 * * *", async () => {
+cron.schedule("* * * * *", async () => {
     console.log("🔄 Cron Job Running: Reminder + Auto Cancel...");
+
     try {
         const now = moment();
         const today = moment().startOf("day");
@@ -192,35 +213,36 @@ cron.schedule("0 */5 * * *", async () => {
             .populate("listingId", "title")
             .populate("vendorId", "firstName email notifications")
             .lean();
-        console.log(bookings[0], "bookingsbookings");
-        const vendorDetails = await User.findById(bookings[0].vendorId._id).lean();
 
+        console.log(bookings.length, "total bookings found");
 
         for (const booking of bookings) {
-            console.log(booking, "bookingbookingbookingbooking");
+
+            if (!booking?.details?.startDate) continue;
+
             const eventDate = moment(booking.details.startDate).startOf("day");
-            console.log(eventDate, today, "THINGSSS");
             const diffDays = eventDate.diff(today, "days");
-            console.log(diffDays, "diffDaysdiffDaysdiffDays");
+            console.log(booking, "bookingbookingbookingbooking");
+
+            const vendorDetails = booking.vendorId; // ✅ FIXED (already populated)
+            console.log(vendorDetails, "vendorDetailsvendorDetailsvendorDetailsvendorDetails");
 
             // -------------------------------
-            // 📩 3 DAYS BEFORE — SEND REMINDER
+            // 📩 3 DAYS REMINDER
             // -------------------------------
             if (diffDays === 3 && !booking.reminder3DaysSent) {
                 await sendReminderEmail(booking, "3");
+
                 await Booking.findByIdAndUpdate(booking._id, {
                     reminder3DaysSent: true,
                 });
 
                 console.log(`📧 3-day reminder sent: ${booking._id}`);
             }
-            // -------------------------------
-            // ❌ 1 DAY BEFORE — AUTO CANCEL
-            // -------------------------------
 
-            // ----------------------------------
-            // 📩 1 DAY BEFORE REMINDER
-            // ----------------------------------
+            // -------------------------------
+            // 📩 1 DAY REMINDER
+            // -------------------------------
             if (diffDays === 1 && !booking.reminder1DaysSent) {
                 await sendReminderEmail(booking, "1");
 
@@ -231,7 +253,11 @@ cron.schedule("0 */5 * * *", async () => {
                 console.log(`📧 1-day reminder sent: ${booking._id}`);
             }
 
+            // -------------------------------
+            // ❌ AUTO CANCEL AFTER EVENT
+            // -------------------------------
             if (now.isAfter(eventDate) && !booking.isFullyPaid) {
+
                 await Booking.findByIdAndUpdate(booking._id, {
                     status: "cancelled",
                     paymentStatus: "cancelled_due_to_non_payment",
@@ -245,49 +271,40 @@ cron.schedule("0 */5 * * *", async () => {
                     createdBy: booking.userId,
                 });
 
-                if (vendorDetails.notifications.push == true) {
+                // ---------------- PUSH NOTIFICATION
+                if (vendorDetails?.notifications?.push) {
                     await notificationController.createNotification({
                         title: {
                             en: "Booking Cancelled Due to Non-Payment",
-                            nl: "Boeking geannuleerd vanwege niet-betalings"
+                            nl: "Boeking geannuleerd vanwege niet-betaling"
                         },
                         notificationFor: "Vendor",
-                        vendorId: booking.vendorId, // vendor's user account receives notification
-                        clientId: booking.userId, // 
+                        vendorId: booking.vendorId._id,
+                        clientId: booking.userId._id,
                         bookingId: booking._id,
                         message: {
-                            en: `Booking against ${booking.trackingId} has been cancelled due to non-payment`,
-                            nl: `Boeking tegen ${booking.trackingId} is geannuleerd vanwege niet-betaling`
+                            en: `Booking ${booking.trackingId} cancelled due to non-payment`,
+                            nl: `Boeking ${booking.trackingId} is geannuleerd wegens niet-betaling`
                         }
                     });
                 }
+                console.log(vendorDetails, 'vendorDetails?.notifications?vendorDetails?.notifications?');
 
-                if (vendorDetails.notifications.email == true) {
-                    sendVendorCancellationEmail(booking, "non-payment");
+                // ---------------- EMAIL NOTIFICATION
+                if (vendorDetails?.notifications?.email) {
+                    await sendVendorCancellationEmail(booking, "non-payment");
                 }
-
                 const admin = await Admin.findOne({ role: "Admin" }).lean();
+                console.log(admin, "adminadminadmin");
 
-                if (admin && admin.notificationSettings.push.evenlyoProtect === true && booking.pricingBreakdown.paymentPolicy
-                    .isEvenlyoProtectEnabled === true) {
-                    await notificationController.createNotification({
-                        title: {
-                            en: "Evenlyo protected booking cancelled Due to Non-Payment",
-                            nl: "Evenlyo beschermde boeking geannuleerd vanwege niet-betaling"
-                        },
-                        notificationFor: "Admin",
-                        vendorId: booking.vendorId, // vendor's user account receives notification
-                        clientId: booking.userId, // 
-                        bookingId: booking._id,
-                        message: {
-                            en: `A evenlyo protected booking against ${booking.trackingId} has been cancelled due to non-payment`,
-                            nl: `Een evenlyo beschermde boeking tegen ${booking.trackingId} is geannuleerd vanwege niet-betaling`
-                        }
-                    });
-                    console.log(`❌ Booking Auto- Cancelled: ${booking._id}`);
+                if (admin?.notificationSettings?.email?.orderCancellation) {
+                    await sendAdminCancellationEmail(booking);
                 }
+
+                console.log(`❌ Booking Auto-Cancelled: ${booking._id}`);
             }
         }
+
     } catch (err) {
         console.error("Cron Error:", err);
     }

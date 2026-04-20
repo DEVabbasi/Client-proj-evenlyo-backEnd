@@ -59,6 +59,7 @@ const getProfile = async (req, res) => {
         subCategories: mappedSubCategories,
         tagline: vendor.tagline,
         deliveryCharges: vendor.userId.deliveryCharges,
+        stripeOnboardingComplete: vendor.userId.stripeOnboardingComplete || false,
       };
     } else {
       profile = {

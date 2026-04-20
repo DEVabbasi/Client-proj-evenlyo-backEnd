@@ -253,7 +253,10 @@ const createBookingRequest = asyncHandler(async (req, res) => {
     if (bookingStartDateTime.isBefore(now)) {
       return res.status(400).json({
         success: false,
-        message: "You cannot create a booking for a past date or time.",
+        message: {
+          en: "You cannot create a booking for a past date or time.",
+          nl: "Je kunt geen boeking maken voor een datum of tijd in het verleden."
+        },
       });
     }
 
@@ -1249,7 +1252,7 @@ const createClaim = asyncHandler(async (req, res) => {
     });
   }
 
-  booking.status = "claim";
+  booking.status = "complain";
   booking.claimDetails = {
     reason: reason,
     claimedBy: "client",
@@ -1365,7 +1368,7 @@ const cancelBooking = asyncHandler(async (req, res) => {
   }
 
   booking.status = "cancelled";
-
+  booking.cancellationDetails.reason = reason || "No reason provided";
   booking.statusHistory.push({
     status: "cancelled",
     updatedBy: {
