@@ -334,24 +334,18 @@ const getVendorPayoutOrders = async (req, res) => {
             const formattedBooking = {
                 bookingId: booking._id,
                 trackingId: booking.trackingId,
-
-                // ✅ STATUS ADDED HERE
                 status: booking.status,
-
-                vendorName: `${vendor.firstName} ${vendor.lastName}`,
+                vendorName: `${vendor.firstName}`,
                 orderType: booking.orderType,
                 userName: `${booking.userId?.firstName || ""} ${booking.userId?.lastName || ""}`.trim(),
                 userEmail: booking.userId?.email || "",
                 amount: payoutAmount.toFixed(2),
                 bookingDate: booking.completedAt,
-
                 serviceName: {
                     en: booking.listingId?.title?.en || "",
                     nl: booking.listingId?.title?.nl || "",
                 },
-
                 payoutReadyAt,
-
                 claimDetails: booking.claimDetails || null,
             };
 
