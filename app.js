@@ -147,6 +147,7 @@ app.use("/api/items", require("./routes/client/Items"));
 app.use("/api/client/purchases", require("./routes/client/purchases"));
 app.use("/api/faqs", require("./routes/client/faqs"));
 app.use("/api", require("./routes/client/saleItemPurchase"));
+app.use("/api/chatbot", require("./routes/client/chatbot"));
 
 // Vendor routes
 app.use("/api/vendor/dashboard", require("./routes/vendor/dashboard"));
