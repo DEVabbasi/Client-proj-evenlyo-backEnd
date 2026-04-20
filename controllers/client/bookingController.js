@@ -1252,7 +1252,7 @@ const createClaim = asyncHandler(async (req, res) => {
     });
   }
 
-  booking.status = "claim";
+  booking.status = "complain";
   booking.claimDetails = {
     reason: reason,
     claimedBy: "client",

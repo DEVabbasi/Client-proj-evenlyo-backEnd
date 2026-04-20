@@ -172,6 +172,7 @@ const bookingRequestSchema = new mongoose.Schema(
         "claim",
         "finished",
         "received_back",
+        "complain"
       ],
       default: "pending",
     },
@@ -325,6 +326,15 @@ const bookingRequestSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    payments: [
+      {
+        paymentIntentId: String,
+        amount: Number,
+        type: { type: String, enum: ["advance", "remaining", "full"] },
+        status: String,
+        createdAt: Date,
+      }
+    ],
     paymentPolicy: {
       type: Object,
       default: null,

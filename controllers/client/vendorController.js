@@ -1,9 +1,9 @@
 const Vendor = require("../../models/Vendor");
 const User = require("../../models/User");
 const Listing = require("../../models/Listing");
+const BookingRequest = require("../../models/Booking");
 const ServiceItem = require("../../models/Item");
 const Review = require("../../models/Review");
-const BookingRequest = require("../../models/Booking");
 const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 
@@ -13,104 +13,131 @@ const asyncHandler = require("express-async-handler");
 const getVendorFullDetails = async (req, res) => {
   try {
     const { vendorId } = req.params;
-    console.log(vendorId, "vendorIdvendorIdvendorId");
 
     if (!mongoose.Types.ObjectId.isValid(vendorId)) {
       return res
         .status(400)
         .json({ success: false, message: "Invalid vendor ID" });
     }
-    // ✅ Try finding vendor by _id first, if not found, search by userId
+
+    // ✅ Get vendor (by _id or userId)
     let vendor = await Vendor.findById(vendorId).populate(
       "userId",
       "firstName lastName email profileImage userType"
     );
+
     if (!vendor) {
       vendor = await Vendor.findOne({ userId: vendorId }).populate(
         "userId",
-        "firstName lastName email profileImage userType description"
+        "firstName lastName email profileImage userType"
       );
     }
-    console.log(vendor, "vendorvendorvendorvendorvendor");
+
     if (!vendor) {
       return res
         .status(404)
         .json({ success: false, message: "Vendor not found" });
     }
-    // ✅ Prepare reviews with client details
-    console.log(vendorId, "vendorIdvendorIdvendorId");
 
-    const saleItems = await ServiceItem.find({ vendor: vendorId }).lean();
-    const listingItems = await Listing.find({ vendor: vendorId }).lean();
-    const reviews = await Review.find({ vendorId })
-      .populate({
-        path: "userId",
-        select: "firstName lastName email image",
-      })
+    // ✅ Fetch Listings
+    const listingItemsRaw = await Listing.find({ vendor: vendorId }).lean();
+    console.log(listingItemsRaw, "listingItemsRawlistingItemsRawlistingItemsRawlistingItemsRaw");
+
+    const listingItems = listingItemsRaw.map((item) => ({
+      ...item,
+      businessLogo: vendor.businessLogo || "",
+    }));
+
+    // ✅ Fetch Service Items
+    const saleItems = await ServiceItem.find({ vendor: vendor._id }).lean();
+
+    // =====================================================
+    // 🔥 POPULAR ITEMS (TOP 5 BY BOOKINGS)
+    // =====================================================
+
+    const listingIds = listingItemsRaw.map((item) => item._id);
+
+    const popularListingsAgg = await BookingRequest.aggregate([
+      {
+        $match: {
+          listingId: { $in: listingIds },
+          status: { $in: ["accepted", "completed"] },
+        },
+      },
+      {
+        $group: {
+          _id: "$listingId",
+          totalBookings: { $sum: 1 },
+        },
+      },
+      { $sort: { totalBookings: -1 } },
+      { $limit: 5 },
+    ]);
+
+    const bookingCountMap = {};
+    popularListingsAgg.forEach((item) => {
+      bookingCountMap[item._id.toString()] = item.totalBookings;
+    });
+
+    const popularItems = listingItemsRaw
+      .filter((item) => bookingCountMap[item._id.toString()])
+      .sort(
+        (a, b) =>
+          bookingCountMap[b._id.toString()] -
+          bookingCountMap[a._id.toString()]
+      )
+      .slice(0, 5)
+      .map((item) => ({
+        ...item,
+        totalBookings: bookingCountMap[item._id.toString()] || 0,
+        businessLogo: vendor.businessLogo || "",
+      }));
+
+    // =====================================================
+    // ✅ REVIEWS
+    // =====================================================
+
+    const reviews = await Review.find({ vendorId: vendor._id })
+      .populate("userId", "firstName lastName email profileImage")
       .lean();
-    console.log(reviews, "reviewsreviewsreviews");
+
     const totalReviews = reviews.length;
 
     const averageRating =
       totalReviews === 0
         ? 0
-        : reviews.reduce((sum, review) => sum + review.rating, 0) /
-        totalReviews;
+        : Number(
+          (
+            reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
+          ).toFixed(1)
+        );
 
-    console.log(averageRating);
-    // let vendorReviews = [];
-    // if (Array.isArray(vendor.reviews) && vendor.reviews.length > 0) {
-    //   const clientIds = vendor.reviews.map((r) => r.clientId).filter(Boolean);
-    //   const clients = await User.find({ _id: { $in: clientIds } })
-    //     .select("firstName lastName profileImage")
-    //     .lean();
+    // =====================================================
+    // ✅ BUSINESS DETAILS
+    // =====================================================
 
-    //   const clientMap = {};
-    //   clients.forEach((c) => {
-    //     clientMap[c._id.toString()] = c;
-    //   });
-
-    //   vendorReviews = vendor.reviews.map((r) => {
-    //     const client = clientMap[r.clientId?.toString()] || {};
-    //     return {
-    //       rating: r.rating,
-    //       review: r.review,
-    //       bookingId: r.bookingId,
-    //       createdAt: r.createdAt,
-    //       client: {
-    //         _id: r.clientId,
-    //         name:
-    //           client.firstName && client.lastName
-    //             ? `${client.firstName} ${client.lastName}`
-    //             : "",
-    //         firstName: client.firstName,
-    //         lastName: client.lastName,
-    //         profileImage: client.profileImage,
-    //       },
-    //     };
-    //   });
-    // }
-
-    // ✅ Business details
     const businessDetails = {
       _id: vendor._id,
       kvkNumber: vendor.kvkNumber,
       email: vendor.businessEmail,
       phone: vendor.businessPhone,
-      rating: parseFloat((vendor.rating?.average || 0).toFixed(1)),
+      rating: averageRating,
       businessName: vendor.businessName,
       location: vendor.businessLocation || "",
       employees: vendor.teamSize || "",
       description: vendor.description,
       whyChooseUs: vendor.whyChooseUs || "",
-      reviews: vendor.rating?.totalReviews || 0,
+      reviews: totalReviews,
       bannerImage: vendor.bannerImage || "",
       profileImage: vendor.userId?.profileImage || "",
-      buisnessLogo: vendor.businessLogo || "",
+      businessLogo: vendor.businessLogo || "",
       businessImage: vendor.businessImage || "",
     };
 
-    // ✅ User details
+    // =====================================================
+    // ✅ USER DETAILS
+    // =====================================================
+
     const userDetails = {
       name: vendor.userId
         ? `${vendor.userId.firstName} ${vendor.userId.lastName}`
@@ -120,20 +147,20 @@ const getVendorFullDetails = async (req, res) => {
       profileImage: vendor.userId?.profileImage || "",
     };
 
-    // ✅ Fetch listings and services as before
-    // (Keep your existing listing, service item, and popular section code unchanged)
+    // =====================================================
+    // ✅ FINAL RESPONSE
+    // =====================================================
 
     res.json({
       success: true,
       data: {
         saleItems,
         listingItems,
+        popularItems, // 🔥 NEW
         reviews,
         businessDetails,
         userDetails,
         averageRating,
-        // reviews: vendorReviews,
-        // rating: vendor.rating || {},
       },
     });
   } catch (error) {
@@ -145,6 +172,7 @@ const getVendorFullDetails = async (req, res) => {
     });
   }
 };
+
 
 // @desc    Get vendor profile (public and private access)
 // @route   GET /api/vendor/profile/:vendorId (public)
@@ -764,16 +792,22 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
     sortBy = "rating",
     sortOrder = "desc",
   } = req.query;
+  console.log("CALLED");
 
+  // Handle both path parameter and query parameter for category
   const categoryId = req.params.categoryId || category;
 
+  // Build query object - Include all vendors regardless of approval status to include personal accounts
   const query = {};
 
+  // Filter by main category (use categoryId from path param or category from query param)
   if (categoryId) {
     query.mainCategories = categoryId;
   }
 
+  // Filter by subcategory (expecting ObjectId)
   if (subcategory) {
+    // Validate if subcategory is a valid ObjectId
     if (mongoose.Types.ObjectId.isValid(subcategory)) {
       query.subCategories = subcategory;
     } else {
@@ -786,6 +820,18 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
 
   const skip = (page - 1) * limit;
 
+  // Build sort object
+  const sortOptions = {};
+  if (sortBy === "rating") {
+    sortOptions["rating.average"] = sortOrder === "desc" ? -1 : 1;
+  } else if (sortBy === "bookings") {
+    sortOptions["totalBookings"] = sortOrder === "desc" ? -1 : 1;
+  } else if (sortBy === "name") {
+    sortOptions["businessName"] = sortOrder === "desc" ? -1 : 1;
+  } else {
+    sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
+  }
+
   const vendors = await Vendor.find(query)
     .populate(
       "userId",
@@ -793,13 +839,15 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
     )
     .populate("mainCategories", "name icon description")
     .populate("subCategories", "name icon description")
-    .select(`
+    .select(
+      `
       businessName 
       businessEmail
       businessPhone
       description
       businessLocation 
       businessLogo 
+      rating 
       totalBookings 
       completedBookings
       contactMeEnabled
@@ -807,72 +855,28 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
       createdAt
       bannerImage
       accountType
-    `)
+    `
+    )
+    .sort(sortOptions)
     .skip(skip)
     .limit(parseInt(limit));
 
   const total = await Vendor.countDocuments(query);
 
-  // ✅ STEP 1: Get vendor userIds
-  const vendorUserIds = vendors.map(v => v.userId?._id).filter(Boolean);
-
-  // ✅ STEP 2: Get bookings of these vendors
-  const bookings = await BookingRequest.find({
-    vendorId: { $in: vendorUserIds },
-  }).select("_id vendorId");
-
-  const bookingIds = bookings.map(b => b._id);
-
-  // bookingId → vendorId map
-  const bookingVendorMap = {};
-  bookings.forEach(b => {
-    bookingVendorMap[b._id.toString()] = b.vendorId.toString();
-  });
-
-  // ✅ STEP 3: Get reviews
-  const reviews = await Review.find({
-    bookingId: { $in: bookingIds },
-  }).select("bookingId rating");
-
-  // ✅ STEP 4: Calculate ratings per vendor
-  const ratingMap = {};
-
-  reviews.forEach((review) => {
-    const vendorId = bookingVendorMap[review.bookingId.toString()];
-    if (!vendorId) return;
-
-    if (!ratingMap[vendorId]) {
-      ratingMap[vendorId] = {
-        total: 0,
-        count: 0,
-      };
-    }
-
-    ratingMap[vendorId].total += review.rating;
-    ratingMap[vendorId].count += 1;
-  });
-
-  // ✅ FORMAT RESPONSE
+  // Format data with requested information
   const formattedVendors = vendors.map((vendor) => {
+    // Get business description in preferred language
     const description =
       typeof vendor.description === "object"
         ? vendor.description.en || vendor.description.nl || ""
         : vendor.description || "";
 
+    // Handle business name for personal accounts
     const displayBusinessName =
       vendor.businessName ||
       (vendor.userId?.firstName && vendor.userId?.lastName
         ? `${vendor.userId.firstName} ${vendor.userId.lastName}`
         : "Business Name Not Set");
-
-    const vendorId = vendor.userId?._id?.toString();
-
-    const ratingData = ratingMap[vendorId] || { total: 0, count: 0 };
-
-    const average =
-      ratingData.count > 0
-        ? Number((ratingData.total / ratingData.count).toFixed(1))
-        : 0;
 
     return {
       _id: vendor._id,
@@ -882,24 +886,19 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
       businessLocation: vendor.businessLocation,
       accountType: vendor.userId?.accountType || vendor.accountType,
       userType: vendor.userId?.userType,
-
-      // ✅ REAL RATING
       rating: {
-        stars: Math.round(average),
-        average: average,
-        totalReviews: ratingData.count,
+        stars: Math.round(vendor.rating?.average || 0),
+        average: vendor.rating?.average || 0,
+        totalReviews: vendor.rating?.totalReviews || 0,
       },
-
       availability:
         vendor.contactMeEnabled && vendor.userId?.isActive
           ? "AVAILABLE"
           : "UNAVAILABLE",
-
       whyChooseUs:
         description.length > 100
           ? description.substring(0, 100) + "..."
           : description,
-
       businessEmail: vendor.businessEmail,
       businessPhone: vendor.businessPhone,
       businessDescription: vendor.description,
@@ -917,6 +916,13 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
       total,
       limit: parseInt(limit),
     },
+    filters: {
+      category: categoryId || "",
+      subcategory: subcategory || "",
+      sortBy,
+      sortOrder,
+    },
+    note: "Returns all vendors (personal and business accounts) based on category and subcategory",
   });
 });
 
