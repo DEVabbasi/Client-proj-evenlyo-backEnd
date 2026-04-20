@@ -11,11 +11,14 @@ const notificationController = require("../notificationController");
 const SupportTicket = require("../../models/SupportTicket");
 const { sendBookingCompletionEmail } = require("../../utils/mailer");
 const moment = require("moment/moment");
+const momentTime = require("moment-timezone");
+
 
 // GET /api/vendor/tracking
 const getVendorBookings = async (req, res) => {
   try {
     // Find the vendor profile for the logged-in user
+    console.log("CALLED");
 
     const vendor = await Vendor.findOne({ userId: req.user.id });
     console.log(vendor, "vendorvendorvendorvendorvendorvendorvendorasdasd");
@@ -28,7 +31,7 @@ const getVendorBookings = async (req, res) => {
     const bookings = await Booking.find({ vendorId: vendor.userId })
       .populate({
         path: "userId",
-        select: "firstName lastName profileImage address contactNumber",
+        select: "firstName lastName profileImage address contactNumber startTime endTime",
       })
       .populate({
         path: "vendorId",
@@ -40,7 +43,12 @@ const getVendorBookings = async (req, res) => {
       })
       .sort({ createdAt: -1 });
 
+    console.log(bookings, "bookingsbookingsbookingsbookings");
+
+
     const result = bookings.map((b) => ({
+      startTime: b.details.startTime,
+      endTime: b.details.endTime,
       paymentStatus: b.paymentStatus,
       trackingId: b.trackingId,
       eventDate: b.details?.startDate,
@@ -118,7 +126,10 @@ const markBookingOnTheWay = asyncHandler(async (req, res) => {
   }
   res.json({
     success: true,
-    message: "Booking marked as on the way",
+    message: {
+      en: "Booking marked as on the way",
+      nl: "Boeking gemarkeerd als onderweg"
+    },
     data: { booking },
   });
 });
@@ -285,7 +296,10 @@ const markBookingPickedUp = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: "Booking marked as picked up",
+    message: {
+      en: "Booking marked as picked up",
+      nl: "Boeking gemarkeerd als opgehaald"
+    },
     data: {
       booking: {
         _id: booking._id,
@@ -331,6 +345,7 @@ const markBookingCompleted = asyncHandler(async (req, res) => {
   }
   console.log(booking, "bookingbookingbooking");
   booking.status = "completed";
+  booking.completedAt = new Date();
   // return res.status(200).json({ success: true, message: "Booking marked as complete", data: { booking } });
 
   // Atomically increment listing quantity by 1 (item returned to stock)
@@ -422,7 +437,7 @@ const markBookingCompleted = asyncHandler(async (req, res) => {
   }
   res.json({
     success: true,
-    message: "Booking marked as complete",
+    message: { en: "Booking marked as complete", nl: "Boeking gemarkeerd als voltooid" },
     data: { booking },
   });
 });
@@ -492,7 +507,10 @@ const markAsReceivedBack = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: "Booking marked as received back successfully",
+    message: {
+      en: "Booking marked as received back successfully",
+      nl: "Boeking gemarkeerd als terugontvangen succesvol"
+    },
     data: {
       booking,
     },

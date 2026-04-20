@@ -180,6 +180,7 @@ app.use("/api/admin/support", require("./routes/admin/support"));
 app.use("/api/admin/settings", require("./routes/admin/settings"));
 app.use("/api/admin/blogs", require("./routes/admin/blog"));
 app.use("/api/admin/faqs", require("./routes/admin/faqs"));
+app.use("/api/admin/payments", require("./routes/admin/Payment"));
 
 // Chat routes
 app.use("/api/messages", require("./routes/messageRoutes"));
@@ -203,7 +204,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// const Admin = require("./models/AdminEmployee");
+
 
 // async function createCategory({
 //   name,
@@ -242,22 +243,31 @@ app.use((err, req, res, next) => {
 //   process.exit(0);
 // }
 // // run();
-// // async function addCreatedByIdToUsers() {
-// //   try {
-// //     const result = await Booking.updateMany(
-// //       {},
-// //       {
-// //         $set: {
-// //           orderType: "normal"
-// //         }
-// //       }
-// //     );
-// //   } catch (error) {
-// //     console.error("❌ Error:", error);
-// //     process.exit(1);
-// //   }
-// // }
 
-// // addCreatedByIdToUsers()
+// const Settings = require("./models/Settings");
+
+const Booking = require("./models/Booking");
+const moment = require("moment");
+
+async function addCreatedByIdToUsers() {
+  try {
+    const result = await Booking.updateMany(
+      {},
+      {
+        $set: {
+          vendorPaid: false
+        }
+      }
+    );
+
+    console.log("Updated Bookings:", result.modifiedCount);
+    process.exit();
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
+}
+
+// addCreatedByIdToUsers()
 
 module.exports = app;

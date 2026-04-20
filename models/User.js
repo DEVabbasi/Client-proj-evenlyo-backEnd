@@ -125,7 +125,14 @@ const userSchema = new mongoose.Schema(
         default: true,
       },
     },
-
+    stripeAccountId: {
+      type: String,
+      default: ""
+    },
+    stripeOnboardingComplete: {
+      type: Boolean,
+      default: false
+    },
     lastLogin: Date,
     role: {
       type: mongoose.Schema.Types.ObjectId,

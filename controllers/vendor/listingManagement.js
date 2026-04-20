@@ -87,7 +87,10 @@ const toggleListingStatus = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Listing status updated to ${listing.status}`,
+      message: {
+        en: `Listing status updated to ${listing.status}`,
+        nl: `Status van de listing bijgewerkt naar ${listing.status}`
+      },
       status: listing.status,
       isActive: listing.isActive,
     });
@@ -319,7 +322,10 @@ const createListing = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Listing created successfully",
+      message: {
+        en: "Listing created successfully",
+        nl: "Listing succesvol aangemaakt",
+      },
       data: populated,
     });
   } catch (err) {

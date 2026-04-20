@@ -370,7 +370,10 @@ const acceptBooking = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: "Booking request accepted successfully",
+    message: {
+      en: "Booking request accepted successfully",
+      nl: "Boeking aanvraag succesvol geaccepteerd",
+    },
     data: {
       booking,
     },
@@ -524,7 +527,10 @@ const rejectBooking = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: "Booking request rejected",
+    message: {
+      en: "Booking request rejected",
+      nl: "Boeking aanvraag geweigerd",
+    },
     data: {
       booking,
     },
@@ -563,7 +569,7 @@ const getAmountToPay = async (req, res) => {
 
 const createPaymentIntent = async (req, res) => {
   try {
-    const { amount, currency = "usd", bookingId } = req.body;
+    const { amount, currency = "eur", bookingId } = req.body;
 
     const booking = await Booking.findById(bookingId);
 

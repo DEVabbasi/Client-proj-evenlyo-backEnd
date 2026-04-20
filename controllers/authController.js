@@ -14,6 +14,7 @@ const { auth } = require("../config/firebase");
 const { signAccessToken, signToken } = require("../utils/jwtUtils");
 const logger = require("../utils/logger");
 const notificationController = require("./notificationController");
+const stripe = require("../config/stripe");
 
 // --- Model loading utility ---
 const getModelByUserType = (userType) => {
@@ -804,19 +805,28 @@ const sendOtpForRegister = async (req, res) => {
       if (existingUser.provider && existingUser.provider !== "email") {
         return res.status(409).json({
           success: false,
-          message: `An account with this email already exists and uses ${existingUser.provider} sign-in. Please use the social provider to sign in.`,
+          message: {
+            en: `An account with this email already exists and uses ${existingUser.provider} sign-in. Please use the social provider to sign in.`,
+            nl: `Een account met deze e-mail bestaat al en gebruikt ${existingUser.provider} inloggen. Gebruik de sociale provider om in te loggen.`,
+          }
         });
       }
       return res.status(409).json({
         success: false,
         message:
-          "Email is already registered. Please login or use password reset if you forgot your password.",
+        {
+          en: "Email is already registered. Please login or use password reset if you forgot your password.",
+          nl: "Email is al geregistreerd. Log in of gebruik wachtwoord reset als je je wachtwoord bent vergeten.",
+        }
       });
     }
     await generateAndSendOTPonRegister(email);
     res.json({
       success: true,
-      message: "OTP sent to email",
+      message: {
+        en: "OTP sent to email",
+        nl: "OTP verzonden naar e-mail",
+      },
     });
   } catch (err) {
     console.error("Send OTP error:", err);
@@ -888,7 +898,10 @@ const verifyOtpAndRegister = async (req, res, userType = "client") => {
     if (!valid) {
       return res.status(400).json({
         success: false,
-        message: "Invalid or expired OTP",
+        message: {
+          en: "Invalid or expired OTP",
+          nl: "Ongeldige of verlopen OTP",
+        }
       });
     }
 
@@ -963,8 +976,14 @@ const verifyOtpAndRegister = async (req, res, userType = "client") => {
 
     const successMessage =
       userType === "vendor"
-        ? "Vendor registration successful. Your account is pending approval."
-        : "Client registration successful";
+        ? {
+          en: "Vendor registration successful. Your account is pending approval.",
+          nl: "Registratie succesvol. Uw account wacht op goedkeuring.",
+        }
+        : {
+          en: "Client registration successful",
+          nl: "Registratie succesvol"
+        }
 
     res.status(201).json({
       success: true,
@@ -1066,7 +1085,10 @@ const verifyOtpForForgotPassword = async (req, res) => {
       return res.status(400).json({
         success: false,
         message:
-          "This account uses Google Sign-In. Password reset is not available for social login accounts.",
+        {
+          en: "This account uses Google Sign-In. Password reset is not available for social login accounts.",
+          nl: "Dit account gebruikt Google Sign-In. Wachtwoord reset is niet beschikbaar voor social login accounts.",
+        }
       });
     }
 
@@ -1074,7 +1096,10 @@ const verifyOtpForForgotPassword = async (req, res) => {
     if (!valid) {
       return res.status(400).json({
         success: false,
-        message: "Invalid or expired OTP",
+        message: {
+          en: "Invalid or expired OTP",
+          nl: "Ongeldige of verlopen OTP",
+        }
       });
     }
 
@@ -1083,7 +1108,10 @@ const verifyOtpForForgotPassword = async (req, res) => {
 
     res.json({
       success: true,
-      message: "OTP verified. You may now reset your password.",
+      message: {
+        en: "OTP verified. You may now reset your password.",
+        nl: "OTP geverifieerd. U kunt nu uw wachtwoord opnieuw instellen.",
+      },
       resetToken,
     });
   } catch (err) {
@@ -1137,7 +1165,12 @@ const resetPassword = async (req, res) => {
     user.password = hashedPassword;
     await user.save();
 
-    res.json({ success: true, message: "Password reset successful" });
+    res.json({
+      success: true, message: {
+        en: "Password reset successfully",
+        nl: "Wachtwoord succesvol gereset"
+      }
+    });
   } catch (err) {
     console.error("Reset password error:", err);
     res
@@ -1167,7 +1200,10 @@ const verifyOtpAndRegisterGeneral = async (req, res) => {
       return res.status(400).json({
         success: false,
         message:
-          "Vendor registration is not yet implemented. Please use client registration.",
+        {
+          en: "Vendor registration is not yet implemented. Please use client registration.",
+          nl: "Leverancier registratie is nog niet geïmplementeerd. Gebruik alstublieft client registratie."
+        },
       });
     }
 
@@ -1208,7 +1244,7 @@ const googleAuth = async (req, res) => {
           return res.status(403).json({
             success: false,
             message:
-              "This email is registered with email/password. Please login using email/password.",
+              { en: "This email is registered with email/password. Please login using email/password.", nl: "Dit email is geregistreerd met email/wachtwoord. Log alstublieft in met email/wachtwoord." },
           });
         }
 
@@ -1218,7 +1254,10 @@ const googleAuth = async (req, res) => {
 
         return res.json({
           success: true,
-          message: "Login successful",
+          message: {
+            en: "Login successful",
+            nl: "Inloggen gelukt"
+          },
           tokens: { access: accessToken },
           user: {
             id: user._id,
@@ -1482,7 +1521,12 @@ const registerVendor = async (req, res) => {
     if (!valid) {
       return res
         .status(400)
-        .json({ success: false, message: "Invalid or expired OTP" });
+        .json({
+          success: false, message: {
+            en: "Invalid or expired OTP",
+            nl: "Ongeldige of verlopen OTP",
+          }
+        });
     }
 
     // Hash password
@@ -1594,8 +1638,10 @@ const vendorLogin = async (req, res) => {
       if (user.provider && user.provider !== "google") {
         return res.status(403).json({
           success: false,
-          message:
-            "This email is registered with password. Please login using email/password.",
+          message: {
+            en: "This email is registered with password. Please login using email/password.",
+            nl: "Dit e-mailadres is geregistreerd met een wachtwoord. Log in met e-mail/wachtwoord.",
+          }
         });
       }
 
@@ -1615,7 +1661,10 @@ const vendorLogin = async (req, res) => {
 
       return res.json({
         success: true,
-        message: "Google login successful",
+        message: {
+          en: "Login successful",
+          nl: "Inloggen gelukt",
+        },
         token,
         user: responseUser,
       });
@@ -1625,7 +1674,10 @@ const vendorLogin = async (req, res) => {
     if (!password) {
       return res.status(400).json({
         success: false,
-        message: "Password is required for email login",
+        message: {
+          en: "Password is required for email login",
+          nl: "Wachtwoord is vereist voor e-mail login",
+        }
       });
     }
 
@@ -1633,7 +1685,10 @@ const vendorLogin = async (req, res) => {
       return res.status(403).json({
         success: false,
         message:
-          "This account was created with Google. Please login using Google.",
+        {
+          en: "This account was created with Google. Please login using Google.",
+          nl: "Dit account is aangemaakt met Google. Log in met Google.",
+        },
       });
     }
 
@@ -1642,7 +1697,10 @@ const vendorLogin = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password",
+        message: {
+          en: "Invalid email or password",
+          nl: "Ongeldig e-mailadres of wachtwoord",
+        }
       });
     }
 
@@ -1693,7 +1751,10 @@ const vendorLogin = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Login successful",
+      message: {
+        en: "Login successful",
+        nl: "Inloggen gelukt",
+      },
       token,
       user: responseUser,
     });
@@ -1727,7 +1788,10 @@ const resetPasswordForEmployee = async (req, res) => {
     await user.save();
     return res.json({
       success: true,
-      message: "Password reset successful",
+      message: {
+        en: "Password reset successful",
+        nl: "Wachtwoord reset gelukt"
+      }
     });
   } catch (err) {
     console.error("Error resetting password:", err);
@@ -1876,7 +1940,12 @@ const registerVendor2 = async (req, res) => {
     if (!(await verifyOTP(registrationEmail, otp)))
       return res
         .status(400)
-        .json({ success: false, message: "Invalid or expired OTP" });
+        .json({
+          success: false, message: {
+            en: "Invalid or expired OTP",
+            nl: "Ongeldige of verlopen OTP",
+          }
+        });
 
     // ✅ Create User
     const user = await User.create({
@@ -1952,7 +2021,10 @@ const registerVendor2 = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Vendor registration successful.",
+      message: {
+        en: "Vendor registration successful.",
+        nl: "Leverancier registratie geslaagd."
+      }
     });
   } catch (err) {
     console.error("Vendor registration error:", err);
@@ -1960,6 +2032,112 @@ const registerVendor2 = async (req, res) => {
       success: false,
       message: "Server error",
       error: err.message,
+    });
+  }
+};
+
+const connectVendorStripe = async (req, res) => {
+  try {
+    console.log(req.user, "req.userreq.userreq.userreq.userreq.user")
+    const vendor = await User.findOne({ _id: req.user.id });
+    console.log(vendor, "vendorvendorvendorvendor");
+
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found",
+      });
+    }
+
+    // Reuse existing account
+    if (vendor.stripeAccountId) {
+      return res.json({
+        success: true,
+        stripeAccountId: vendor.stripeAccountId,
+      });
+    }
+
+    const account = await stripe.accounts.create({
+      type: "express",
+      email: req.user.email,
+      capabilities: {
+        transfers: { requested: true },
+      },
+    });
+
+    vendor.stripeAccountId = account.id;
+    await vendor.save();
+
+    res.json({
+      success: true,
+      stripeAccountId: account.id,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getStripeOnboardingLink = async (req, res) => {
+  try {
+    const vendor = await User.findOne({ _id: req.user.id });
+    console.log(vendor, "vendorvendorvendorvendor");
+    if (!vendor?.stripeAccountId) {
+      return res.status(400).json({
+        success: false,
+        message: "Connect Stripe first",
+      });
+    }
+
+    const accountLink = await stripe.accountLinks.create({
+      account: vendor.stripeAccountId,
+      refresh_url: "http://localhost:5173/leverancier/profielbeheer/succes",
+      return_url: "http://localhost:5173/leverancier/succes",
+      type: "account_onboarding",
+    });
+
+    res.json({
+      success: true,
+      url: accountLink.url,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const checkStripeOnboardingStatus = async (req, res) => {
+  try {
+    const vendor = await User.findOne({ _id: req.user.id });
+
+    const account = await stripe.accounts.retrieve(
+      vendor.stripeAccountId
+    );
+
+    const onboarded =
+      account.details_submitted &&
+      account.charges_enabled &&
+      account.payouts_enabled;
+
+    vendor.stripeOnboardingComplete = onboarded;
+    await vendor.save();
+
+    res.json({
+      success: true,
+      onboarded,
+      account,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };
@@ -1988,5 +2166,8 @@ module.exports = {
   // Password Management
   resetPassword,
   checkRegisteredUser,
-  resetPasswordForEmployee
+  resetPasswordForEmployee,
+  connectVendorStripe,
+  getStripeOnboardingLink,
+  checkStripeOnboardingStatus
 };

@@ -219,6 +219,10 @@ const bookingRequestSchema = new mongoose.Schema(
         },
       },
     ],
+    completedAt: {
+      type: Date,
+      default: null,
+    },
     cancellationDetails: {
       reason: {
         type: String,
@@ -320,6 +324,12 @@ const bookingRequestSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    vendorPaid: {
+      type: Boolean,
+      default: false
+    },
+    vendorPaidAt: Date,
+    stripeTransferId: String
   },
   { timestamps: true }
 );

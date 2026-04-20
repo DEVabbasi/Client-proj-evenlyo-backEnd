@@ -9,7 +9,7 @@ const createPaymentIntent = asyncHandler(async (req, res) => {
   // Accept booking flow: { bookingId, items } OR listing flow: { listingId or productId }
   const { bookingId, items, listingId, productId, quantity = 1, metadata = {}, currency } = req.body;
 
-  let usedCurrency = currency || 'usd';
+  let usedCurrency = currency || 'eur';
   let amount = 0; // in smallest unit
   let listing;
   let booking;

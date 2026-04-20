@@ -62,7 +62,8 @@ const getPlatformFees = async (req, res) => {
         }
         res.json({
             bookingItemPlatformFee: settings.bookingItemPlatformFee,
-            salesItemPlatformFee: settings.salesItemPlatformFee
+            salesItemPlatformFee: settings.salesItemPlatformFee,
+            vatPercentage: settings.vat
         });
     } catch (error) {
         res.status(500).json({ message: 'Server error.', error: error.message });
@@ -71,7 +72,7 @@ const getPlatformFees = async (req, res) => {
 
 const setPlatformFees = async (req, res) => {
     try {
-        const { bookingItemPlatformFee, salesItemPlatformFee } = req.body;
+        const { bookingItemPlatformFee, salesItemPlatformFee, vat } = req.body;
         if (typeof bookingItemPlatformFee !== 'number' || bookingItemPlatformFee < 0 || typeof salesItemPlatformFee !== 'number' || salesItemPlatformFee < 0) {
             return res.status(400).json({ message: 'Both fees must be non-negative numbers.' });
         }
@@ -81,6 +82,7 @@ const setPlatformFees = async (req, res) => {
         } else {
             settings.bookingItemPlatformFee = bookingItemPlatformFee;
             settings.salesItemPlatformFee = salesItemPlatformFee;
+            settings.vat = vat
         }
         await settings.save();
         res.json({ message: 'Platform fees updated successfully.', bookingItemPlatformFee, salesItemPlatformFee });

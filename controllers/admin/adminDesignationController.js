@@ -15,7 +15,7 @@ exports.createDesignation = async (req, res) => {
 // Get all designations
 exports.getDesignations = async (req, res) => {
   try {
-    const designations = await AdminDesignation.find();
+    const designations = await AdminDesignation.find().sort({ createdAt: -1 });
     res.json(designations);
   } catch (err) {
     res.status(500).json({ error: err.message });

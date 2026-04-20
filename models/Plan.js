@@ -65,7 +65,7 @@ const planSchema = new mongoose.Schema({
   currency: {
     type: String,
     required: true,
-    default: 'usd',
+    default: 'eur',
     lowercase: true
   },
   // Additional useful fields
