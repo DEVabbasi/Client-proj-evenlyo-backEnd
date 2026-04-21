@@ -195,7 +195,7 @@ const sendVendorCancellationEmail = async (booking, reasonType) => {
 };
 
 // LIVE MODE — run daily at midnight
-cron.schedule("* * * * *", async () => {
+cron.schedule("*/30 * * * *", async () => {
     console.log("🔄 Cron Job Running: Reminder + Auto Cancel...");
 
     try {
