@@ -257,7 +257,7 @@ async function addCreatedByIdToUsers() {
       {},
       {
         $set: {
-          vendorPaid: false
+          isSecurityReturned: false
         }
       }
     );

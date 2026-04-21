@@ -614,9 +614,7 @@ const createPaymentIntent = async (req, res) => {
 const paymentConfirmation = async (req, res) => {
   try {
     const { bookingId, paymentIntent, amount } = req.body;
-    console.log(req.body, "req.bodyreq.bodyreq.body");
 
-    // Validate
     if (!bookingId || !paymentIntent || !amount) {
       return res.status(400).json({
         success: false,
@@ -641,107 +639,117 @@ const paymentConfirmation = async (req, res) => {
         message: "Amount must be a valid positive number.",
       });
     }
-    console.log(booking, "bookingbookingbookingbookingbooking");
 
-    // if (
-    //   booking.willPayUpfront === true &&
-    //   booking.isUpfrontPaid === true &&
-    //   booking.paymentStatus === "upfront_paid" &&
-    //   booking.AmountPaid > 0 &&
-    //   booking.AmountPaid < booking.pricingBreakdown.total &&
-    //   paidAmount === booking.pricingBreakdown.upfrontFee
-    // ) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: "Upfront payment has already been made."
-    //   });
-    // }
-
-    // ❌ Prevent any payment if already fully paid
-    if (booking.paymentStatus === "fully_paid") {
+    // ❌ Prevent payment if already fully paid
+    if (booking.paymentStatus === "paid" || booking.isFullyPaid) {
       return res.status(400).json({
         success: false,
         message: "This booking is already fully paid.",
       });
     }
 
-    // Update amounts
-    booking.paymentIntentId = paymentIntent;
-    booking.AmountPaid = (booking.AmountPaid || 0) + paidAmount;
-    booking.AmountLeft =
-      Number(booking.pricingBreakdown?.total || 0) - Number(paidAmount);
+    // ✅ INIT payments array if not exists
+    if (!booking.payments) {
+      booking.payments = [];
+    }
 
-    // Fully paid check
-    console.log(
-      booking.AmountPaid,
-      booking.pricingBreakdown,
-      "bookingbookingbooking"
+    // ✅ Prevent duplicate paymentIntent
+    const alreadyExists = booking.payments.find(
+      (p) => p.paymentIntentId === paymentIntent
     );
 
-    if (booking.AmountPaid >= (booking.pricingBreakdown?.total || 0)) {
+    if (alreadyExists) {
+      return res.status(400).json({
+        success: false,
+        message: "This payment is already recorded.",
+      });
+    }
+
+    // ✅ Calculate total before adding new payment
+    const currentPaid = booking.AmountPaid || 0;
+    const totalAmount = Number(booking.pricingBreakdown?.total || 0);
+
+    // ❌ Prevent overpayment
+    if (currentPaid + paidAmount > totalAmount) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment exceeds total booking amount.",
+      });
+    }
+
+    // ✅ Detect payment type
+    let paymentType = "remaining";
+
+    if (currentPaid === 0 && paidAmount === totalAmount) {
+      paymentType = "full";
+    } else if (currentPaid === 0) {
+      paymentType = "advance";
+    }
+
+    // ✅ PUSH PAYMENT (IMPORTANT FIX)
+    booking.payments.push({
+      paymentIntentId: paymentIntent,
+      amount: paidAmount,
+      type: paymentType,
+      status: "paid",
+      createdAt: new Date(),
+    });
+
+    // ✅ Update totals
+    booking.AmountPaid = currentPaid + paidAmount;
+    booking.AmountLeft = totalAmount - booking.AmountPaid;
+
+    // ✅ Fully Paid Check
+    if (booking.AmountPaid >= totalAmount) {
       booking.isFullyPaid = true;
       booking.AmountLeft = 0;
-      booking.paymentStatus = "paid"; // safety
+      booking.paymentStatus = "paid";
 
-      // await notificationController.createNotification({
-      //   notificationFor: "Vendor",
-      //   vendorId: booking?.vendorId, // vendor's user account receives notification
-      //   clientId: booking?.userId, //
-      //   bookingId: booking?._id,
-      //   message: `full payment against ${booking.trackingId} has been paid`,
-      // });
       await notificationController.createNotification({
         title: {
           en: "Payment Status",
           nl: "Betalingstatus",
         },
         notificationFor: "Vendor",
-        vendorId: booking?.vendorId, // vendor's user account receives notification
-        clientId: booking?.userId, //
+        vendorId: booking?.vendorId,
+        clientId: booking?.userId,
         bookingId: booking?._id,
         message: {
-          en: `full payment against ${booking.trackingId} has been paid`,
+          en: `Full payment against ${booking.trackingId} has been paid`,
           nl: `De volledige betaling voor ${booking.trackingId} is voldaan`,
         },
       });
     } else {
       booking.paymentStatus = "upfront_paid";
       booking.isUpfrontPaid = true;
-      // await notificationController.createNotification({
-      //   notificationFor: "Vendor",
-      //   vendorId: booking?.vendorId, // vendor's user account receives notification
-      //   clientId: booking?.userId, //
-      //   bookingId: booking?._id,
-      //   message: `Upfront payment against ${booking.trackingId} has been paid`,
-      // });
+
       await notificationController.createNotification({
         title: {
           en: "Payment Status",
           nl: "Betalingstatus",
         },
         notificationFor: "Vendor",
-        vendorId: booking?.vendorId, // vendor's user account receives notification
-        clientId: booking?.userId, //
+        vendorId: booking?.vendorId,
+        clientId: booking?.userId,
         bookingId: booking?._id,
         message: {
-          en: `Upfront payment against ${booking.trackingId} has been paid.`,
-          nl: `De vooruitbetaling voor ${booking.trackingId} is voldaan.`,
+          en: `Partial payment against ${booking.trackingId} has been received.`,
+          nl: `Gedeeltelijke betaling voor ${booking.trackingId} is ontvangen.`,
         },
       });
     }
-
-    // Optional: store payment intent ID
 
     await booking.save();
 
     res.status(200).json({
       success: true,
-      message: "Payment Received Successfully.",
+      message: "Payment recorded successfully.",
       data: {
         bookingId: booking._id,
         amountPaid: booking.AmountPaid,
         amountLeft: booking.AmountLeft,
         isFullyPaid: booking.isFullyPaid,
+        totalPayments: booking.payments.length,
       },
     });
   } catch (error) {
@@ -749,10 +757,10 @@ const paymentConfirmation = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message,
-      error: error.message,
     });
   }
 };
+
 
 module.exports = {
   acceptBooking,

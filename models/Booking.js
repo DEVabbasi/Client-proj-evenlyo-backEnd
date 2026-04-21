@@ -172,6 +172,7 @@ const bookingRequestSchema = new mongoose.Schema(
         "claim",
         "finished",
         "received_back",
+        "complain"
       ],
       default: "pending",
     },
@@ -233,7 +234,7 @@ const bookingRequestSchema = new mongoose.Schema(
       },
       requestedAt: Date,
       isWithinCancellationWindow: Boolean,
-      refundAmount: {
+      refundedAmount: {
         type: Number,
         default: 0,
       },
@@ -251,13 +252,26 @@ const bookingRequestSchema = new mongoose.Schema(
       claimType: {
         type: String,
       },
+      stripeTransferIdToUser: {
+        type: String,
+      },
       claimedAt: Date,
+      paidAt: Date,
       status: {
         type: String,
-        enum: ["pending", "resolved", "rejected"],
+        enum: ["pending", "resolved", "rejected", "paid"],
         default: "pending",
       },
       amount: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      refundAmount: {
+        type: Number,
+        default: 0,
+      },
+      AmountPaidByAdmin: {
         type: Number,
         default: 0,
         min: 0,
@@ -312,6 +326,15 @@ const bookingRequestSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    payments: [
+      {
+        paymentIntentId: String,
+        amount: Number,
+        type: { type: String, enum: ["advance", "remaining", "full"] },
+        status: String,
+        createdAt: Date,
+      }
+    ],
     paymentPolicy: {
       type: Object,
       default: null,
@@ -327,6 +350,24 @@ const bookingRequestSchema = new mongoose.Schema(
     vendorPaid: {
       type: Boolean,
       default: false
+    },
+    securityRefundDetails: {
+      isSecurityReturned: {
+        type: Boolean,
+        default: false
+      },
+      securityReturnedAt: {
+        type: Date,
+        default: null
+      },
+      stripeRefundId: {
+        type: String,
+        default: null
+      },
+      securityRefundAmount: {
+        type: Number,
+        default: 0
+      }
     },
     vendorPaidAt: Date,
     stripeTransferId: String

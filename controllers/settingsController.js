@@ -412,13 +412,13 @@ const getVendorFullData = async (req, res) => {
     }
 
     const listings = await Listing.find({ vendor: vendor.userId }).lean();
-    const saleItems = await SaleItem.find({ vendor: vendor.userId }).lean();
+    // const saleItems = await SaleItem.find({ vendor: vendor.userId }).lean();
     res.json({
       success: true,
       data: {
         vendorData: vendor,
         Listings: listings,
-        SaleItems: saleItems,
+        // SaleItems: saleItems,
       },
     });
   } catch (error) {
