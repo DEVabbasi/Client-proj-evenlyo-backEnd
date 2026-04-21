@@ -241,7 +241,7 @@ cron.schedule("* * * * *", async () => {
             }
 
             // -------------------------------
-            // 📩 1 DAY REMINDER
+            // 📩 1 DAY REMINDER OHH
             // -------------------------------
             if (diffDays === 1 && !booking.reminder1DaysSent) {
                 await sendReminderEmail(booking, "1");
