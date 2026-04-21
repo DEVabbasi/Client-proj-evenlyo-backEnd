@@ -186,6 +186,8 @@ app.use("/api/admin/payments", require("./routes/admin/Payment"));
 app.use("/api/messages", require("./routes/messageRoutes"));
 app.use("/api/conversations", require("./routes/conversationRoutes"));
 app.use("/api/chatrooms", require("./routes/chatRoomRoutes"));
+// QnA routes
+app.use("/api", require("./routes/admin/knowledgeBase"));
 
 // Root
 app.get("/", (req, res) => {
