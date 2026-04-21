@@ -81,10 +81,7 @@ const sendReminderEmail = async (booking, daysLeft) => {
 
       <br/>
 
-      <a href="${process.env.NODE_ENV === 'development'
-            ? process.env.PAYMENT_URL_STAGING
-            : process.env.PAYMENT_URL_LIVE
-        }/pay/${booking._id}"
+      <a href="https://staging.evenlyo.nl/pay/${booking._id}"
          style="display:inline-block;margin-top:20px;background:#007bff;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">
          Nu Betalen
       </a>
