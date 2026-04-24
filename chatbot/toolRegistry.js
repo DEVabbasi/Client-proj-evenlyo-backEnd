@@ -4,6 +4,7 @@ const { searchListings }           = require("./tools/searchListings");
 const { getSubcategories }         = require("./tools/getSubcategories");
 const { getVendorInfo }            = require("./tools/getVendorInfo");
 const { getBookingStatus }         = require("./tools/getBookingStatus");
+const { searchKnowledgeBase }      = require("./tools/searchKnowledgeBase");
 const logger                       = require("../utils/logger");
 
 const TOOL_MAP = {
@@ -12,6 +13,7 @@ const TOOL_MAP = {
   get_subcategories:          getSubcategories,
   get_vendor_info:            getVendorInfo,
   get_booking_status:         getBookingStatus,
+  search_knowledge_base:      searchKnowledgeBase, 
 };
 
 async function executeTool(toolName, args, context = {}) {

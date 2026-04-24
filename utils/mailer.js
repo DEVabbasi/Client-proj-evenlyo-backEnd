@@ -671,6 +671,52 @@ const sendEmail = async (to, subject, html) => {
   }
 };
 
+async function sendChatbotTicketReply({ toEmail, toName, subject, userMessage, adminReply, ticketId }) {
+  const mailOptions = {
+    from: `"Evenlyo Support" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: `Re: ${subject} — Ticket #${ticketId}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+        <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+
+          <div style="text-align: center; margin-bottom: 24px;">
+            <h1 style="margin: 0; font-size: 22px; color: #e91e8c;">Evenlyo Support</h1>
+            <p style="color: #888; font-size: 13px; margin-top: 4px;">Ticket #${ticketId}</p>
+          </div>
+
+          <p style="color: #333; font-size: 15px;">Hi <strong>${toName}</strong>,</p>
+          <p style="color: #333; font-size: 15px; line-height: 1.6;">
+            Thank you for reaching out to Evenlyo Support. Here is our response to your query:
+          </p>
+
+          <div style="background: #f3f4f6; border-left: 4px solid #e91e8c; padding: 16px 20px; border-radius: 6px; margin: 20px 0;">
+            <p style="color: #111; font-size: 14px; line-height: 1.7; margin: 0;">${adminReply}</p>
+          </div>
+
+          <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+
+          <p style="color: #999; font-size: 12px; margin-bottom: 4px;"><strong>Your original message:</strong></p>
+          <p style="color: #aaa; font-size: 12px; font-style: italic; line-height: 1.6;">${userMessage}</p>
+
+          <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+
+          <p style="color: #666; font-size: 13px; text-align: center;">
+            If you have further questions, feel free to contact us again through the Evenlyo chatbot or support page.
+          </p>
+
+          <p style="color: #999; font-size: 11px; text-align: center; margin-top: 20px;">
+            This is an automated response from Evenlyo. Please do not reply directly to this email.
+          </p>
+        </div>
+      </div>
+    `,
+    text: `Hi ${toName},\n\nThank you for contacting Evenlyo Support (Ticket #${ticketId}).\n\nOur response:\n${adminReply}\n\nYour original message:\n${userMessage}\n\nBest regards,\nEvenlyo Support Team`,
+  };
+
+  return transporter.sendMail(mailOptions);
+}
+
 
 
 module.exports = {
@@ -684,5 +730,6 @@ module.exports = {
   sendBookingCompletionEmail,
   sendReminderEmail,
   sendEvenlyoProtectBookingEmail,
+  sendChatbotTicketReply,
   // sendVendorCancellationEmail
 };

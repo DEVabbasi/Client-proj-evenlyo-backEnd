@@ -156,4 +156,39 @@ Use this when:
       },
     },
   },
+  // ── Tool 6: Search admin Q&A Knowledge Base ──────────────────────────────
+  {
+    type: "function",
+    function: {
+      name: "search_knowledge_base",
+      description: `Search the Evenlyo admin-managed Q&A knowledge base for policy and platform information.
+Use this when:
+- User asks about platform policies, rules, or how something works on Evenlyo
+- User asks about pricing rules, VAT, fees, deposits, or payment policies
+- User asks about the booking process, cancellation policy, or booking statuses
+- User asks about what services or categories are available
+- User asks about vendor chat, custom bookings, or contacting a vendor
+- User asks about support, complaints, or refunds
+- The question sounds like an FAQ — something an admin would have documented
+- You want to verify platform-specific rules before answering
+- User asks "how does X work?" or "what is your policy on Y?"
+
+This tool returns admin-curated answers. Always prefer this over guessing platform rules.
+If results are found, use them as the authoritative source for that policy/topic.`,
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "The user's question or topic to search for in the knowledge base. Use natural language — the full question or key topic phrase.",
+          },
+          category: {
+            type: "string",
+            description: "Optional: narrow search to a specific category. One of: 'Booking Flow', 'Pricing & Fees', 'Cancellation', 'Services & Categories', 'Vendor & Chat', 'Support'",
+          },
+        },
+        required: ["query"],
+      },
+    },
+  },
 ];

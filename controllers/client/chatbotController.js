@@ -14,6 +14,8 @@ const logger           = require("../../utils/logger");
 const SYSTEM_PROMPT    = require("../../chatbot/systemPrompt");
 const TOOL_DEFINITIONS = require("../../chatbot/toolDefinitions");
 const { executeTool }  = require("../../chatbot/toolRegistry");
+const ChatbotTicket = require("../../models/ChatbotTicket");
+
 
 // ── OpenAI client singleton ───────────────────────────────────────────────
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -52,8 +54,13 @@ function _buildHistory(rawHistory) {
 // @access  Public (add requireAuth in chatbot.js route to restrict to logged-in)
 // ─────────────────────────────────────────────────────────────────────────────
 const sendMessage = asyncHandler(async (req, res) => {
-  const { message, history = [] } = req.body;
+  const { message, history = [], language = "en" } = req.body;
+  const lang = ["en", "nl"].includes(language) ? language : "en";
   const userId = req.user?._id?.toString() || req.ip;
+
+  const languageInstruction = lang === "nl"
+  ? `\n\nLANGUAGE INSTRUCTION: The user's app is set to Dutch (NL). Respond in Dutch by default. If the user writes to you in English, switch to English and stay in English. If they switch back to Dutch, respond in Dutch again. Always match the language the user is actively writing in.`
+  : `\n\nLANGUAGE INSTRUCTION: The user's app is set to English (EN). Respond in English by default. If the user writes to you in Dutch, switch to Dutch and stay in Dutch. If they switch back to English, respond in English again. Always match the language the user is actively writing in.`;
 
   // ── Validation ───────────────────────────────────────────────────────────
   if (!message || typeof message !== "string" || !message.trim()) {
@@ -74,11 +81,11 @@ const sendMessage = asyncHandler(async (req, res) => {
     });
   }
 
-  const messages = [
-    { role: "system", content: SYSTEM_PROMPT },
-    ..._buildHistory(history),
-    { role: "user", content: message.trim() },
-  ];
+ const messages = [
+  { role: "system", content: SYSTEM_PROMPT + languageInstruction },
+  ..._buildHistory(history),
+  { role: "user", content: message.trim() },
+];
 
   logger.info(`[Chatbot] Round1 — user:${userId} | len:${message.length}`);
 
@@ -120,7 +127,8 @@ const sendMessage = asyncHandler(async (req, res) => {
     logger.info(`[Chatbot] Tool: ${toolName}`, toolArgs);
 
     // Run the MongoDB query via tool handler
-    const toolResult = await executeTool(toolName, toolArgs, { userId });
+   const toolResult = await executeTool(toolName, toolArgs, { userId, language: lang });
+
 
     // ── ROUND 2: Feed DB result → GPT → human-readable reply ─────────────────
     const round2 = await openai.chat.completions.create({
@@ -181,4 +189,38 @@ const healthCheck = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { sendMessage, healthCheck };
+const createTicket = asyncHandler(async (req, res) => {
+  const { name, email, subject, message } = req.body;
+
+  if (!name?.trim() || !email?.trim() || !subject?.trim() || !message?.trim()) {
+    res.status(400);
+    throw new Error("name, email, subject, and message are required.");
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email.trim())) {
+    res.status(400);
+    throw new Error("Invalid email address.");
+  }
+
+  const ticket = new ChatbotTicket({
+    name:    name.trim(),
+    email:   email.trim().toLowerCase(),
+    subject: subject.trim(),
+    message: message.trim(),
+    status:  "new",
+  });
+
+  await ticket.save();
+
+  logger.info(`[Chatbot] Ticket created: ${ticket._id} | ${email}`);
+
+  return res.status(201).json({
+    success:  true,
+    message:  "Ticket created successfully.",
+    ticketId: ticket._id.toString().slice(-8).toUpperCase(),
+  });
+});
+
+
+module.exports = { sendMessage, healthCheck, createTicket };

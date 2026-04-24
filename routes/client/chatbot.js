@@ -6,7 +6,7 @@
 
 const express = require("express");
 const router = express.Router();
-const { sendMessage, healthCheck } = require("../../controllers/client/chatbotController");
+const { sendMessage, healthCheck, createTicket } = require("../../controllers/client/chatbotController");
 
 // Optional: uncomment to restrict chatbot to logged-in clients only
 // const { requireAuth } = require("../../middleware/authMiddleware");
@@ -15,7 +15,7 @@ const { sendMessage, healthCheck } = require("../../controllers/client/chatbotCo
 // Add requireAuth before sendMessage to restrict to logged-in users:
 // router.post("/message", requireAuth, sendMessage);
 router.post("/message", sendMessage);
-
+router.post("/ticket",  createTicket);
 // GET /api/chatbot/health — service health check
 router.get("/health", healthCheck);
 

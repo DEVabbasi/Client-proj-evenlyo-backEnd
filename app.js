@@ -77,7 +77,9 @@ app.use(
       if (
         !origin ||
         allowedOrigins.includes(origin) ||
-        origin.endsWith("vercel.app")
+        origin.endsWith("vercel.app") ||
+      /^http:\/\/localhost:\d+$/.test(origin) || 
+    origin.endsWith("devtunnels.ms")  
       ) {
         return callback(null, true);
       } else {
@@ -188,6 +190,11 @@ app.use("/api/conversations", require("./routes/conversationRoutes"));
 app.use("/api/chatrooms", require("./routes/chatRoomRoutes"));
 // QnA routes
 app.use("/api", require("./routes/admin/knowledgeBase"));
+
+app.use("/api", require("./routes/admin/chatbotTickets"));
+
+
+
 
 // Root
 app.get("/", (req, res) => {
