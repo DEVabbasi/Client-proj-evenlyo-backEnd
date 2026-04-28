@@ -5,6 +5,7 @@ const listingController = require("../../controllers/client/listingController");
 // Public routes (no authentication required)
 router.get("/search/subcategories", listingController.getSubCategoryByName);
 router.get("/", listingController.getListings);
+router.get("/all", listingController.fetchAllListings);
 router.get("/filter", listingController.filterListings);
 router.get("/search", listingController.searchListings);
 router.get("/featured", listingController.getFeaturedListings);

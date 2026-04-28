@@ -1274,6 +1274,25 @@ const getHomeData = async (req, res) => {
   }
 };
 
+const fetchAllListings = async (req, res) => {
+  try {
+    const listings = await Listing.find({ isActive: true });
+    res.status(200).json({
+      success: true,
+      data: listings,
+    });
+  }
+  catch (error) {
+    console.error("Fetch all listings error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch listings",
+    });
+  }
+}
+
+
+
 module.exports = {
   getListings,
   getListingById,
@@ -1285,5 +1304,6 @@ module.exports = {
   getListingCalendar,
   filterListings,
   getHomeData,
-  getSubCategoryByName
+  getSubCategoryByName,
+  fetchAllListings
 };

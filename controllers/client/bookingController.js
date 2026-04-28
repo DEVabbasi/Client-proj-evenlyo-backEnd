@@ -678,7 +678,7 @@ const createBookingRequest = asyncHandler(async (req, res) => {
         nl: "Boekingsaanvraag succesvol aangemaakt",
       },
       data: {
-        vendorName: `${vendor.firstName} ${vendor.lastName}`,
+        vendorName: `${vendor.firstName}`,
         bookingRequest,
         paymentPolicy: {
           escrowEnabled: policy.escrowEnabled,
