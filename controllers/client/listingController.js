@@ -278,8 +278,16 @@ const getListingById = async (req, res) => {
         "name icon description isUpfrontEnabled upfrontFeePercent escrowHours isEvenlyoProtectEnabled evenlyoProtectFeePercent",
       )
       .populate("reviews.clientId", "firstName lastName profileImage");
-    console.log(listing, "listinglistinglisting");
 
+    // ❌ Agar listing hi nahi mili
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        message: "Listing not found",
+      });
+    }
+
+    // ✅ Vendor logo fetch
     let businessLogo = "";
     if (listing.vendor?._id) {
       const vendorDetails = await Vendor.findOne({
@@ -289,13 +297,15 @@ const getListingById = async (req, res) => {
       businessLogo = vendorDetails?.businessLogo || "";
     }
 
+    // ✅ Booking IDs
     const bookings = await BookingRequest.find({
       listingId: req.params.id,
     }).select("_id");
 
     const bookingIds = bookings.map((b) => b._id);
 
-    const ddd = await Review.aggregate([
+    // ✅ Reviews aggregation
+    const reviewAgg = await Review.aggregate([
       {
         $match: {
           bookingId: { $in: bookingIds },
@@ -329,31 +339,36 @@ const getListingById = async (req, res) => {
         },
       },
     ]);
-    console.log(ddd, "ddddddddd");
 
-    if (listing.status !== "active") {
-      return res.status(404).json({
-        success: false,
-        message: "Listing not found",
-      });
-    }
+    // ✅ Safe reviews object
+    const reviewsData = reviewAgg[0] || {
+      averageRating: 0,
+      totalReviews: 0,
+      reviews: [],
+    };
 
-    // Increment view count
-    listing.views += 1;
+    // ✅ Views increment safe
+    listing.views = (listing.views || 0) + 1;
     await listing.save();
 
-    // Include contact information for detailed view and attach payment policy from subcategory
+    // ✅ Convert object
     const data = listing.toObject();
-    data.vendor.businessLogo = businessLogo;
-    const sc = data.subCategory || {};
-    console.log(sc, "scscscscscsc");
 
-    let settings = await Settings.findOne();
+    // ✅ Attach extra data
+    data.vendor = data.vendor || {};
+    data.vendor.businessLogo = businessLogo;
+
+    const sc = data.subCategory || {};
+    const settings = await Settings.findOne();
+
+    // ✅ IMPORTANT: toggle flag for frontend
+    data.isActiveListing = listing.status === "active";
 
     data.paymentPolicy = sc;
     data.settings = settings;
-    data.reviews = ddd;
-    res.json({
+    data.reviews = reviewsData;
+
+    return res.json({
       success: true,
       data,
     });
@@ -367,7 +382,7 @@ const getListingById = async (req, res) => {
       });
     }
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Error fetching listing",
       error: error.message,
@@ -1026,8 +1041,9 @@ const filterListings = async (req, res) => {
         rating: listing.ratings?.average || 0,
         ratingCount: listing.ratings?.count || 0,
         pricingPerEvent,
-        location: `${listing.location.city}${listing.location.region ? ", " + listing.location.region : ""
-          }`,
+        location: `${listing.location.city}${
+          listing.location.region ? ", " + listing.location.region : ""
+        }`,
         featuredImage: listing.images?.[0] || "",
         images: listing.images || [],
         category: listing.category?.name,
@@ -1076,7 +1092,7 @@ const getSubCategoryByName = async (req, res) => {
     if (!q || q.trim().length === 0) {
       return res.status(200).json({
         success: true,
-        data: []
+        data: [],
       });
     }
 
@@ -1084,8 +1100,8 @@ const getSubCategoryByName = async (req, res) => {
       isActive: true,
       $or: [
         { "name.en": { $regex: q, $options: "i" } },
-        { "name.nl": { $regex: q, $options: "i" } }
-      ]
+        { "name.nl": { $regex: q, $options: "i" } },
+      ],
     };
 
     // Optional main category filter
@@ -1100,17 +1116,16 @@ const getSubCategoryByName = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: subCategories
+      data: subCategories,
     });
-
   } catch (error) {
     console.error("SubCategory search failed:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to search subcategories"
+      message: "Failed to search subcategories",
     });
   }
-}
+};
 
 const getDayKey = (date) => {
   const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -1127,9 +1142,9 @@ const getDistanceInKm = (lat1, lon1, lat2, lon2) => {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRad(lat1)) *
-    Math.cos(toRad(lat2)) *
-    Math.sin(dLon / 2) *
-    Math.sin(dLon / 2);
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
@@ -1137,7 +1152,8 @@ const getDistanceInKm = (lat1, lon1, lat2, lon2) => {
 
 const getHomeData = async (req, res) => {
   try {
-    const { subCategoryId, categoryId, latitude, longitude, date, radius } = req.body;
+    const { subCategoryId, categoryId, latitude, longitude, date, radius } =
+      req.body;
 
     const query = {
       isActive: true,
@@ -1165,7 +1181,7 @@ const getHomeData = async (req, res) => {
       .populate("category", "name")
       .populate("subCategory", "name")
       .select(
-        "title description pricing location ratings images media.featuredImage availability vendor"
+        "title description pricing location ratings images media.featuredImage availability vendor",
       );
 
     const listingIds = listings.map((l) => l._id);
@@ -1264,7 +1280,6 @@ const getHomeData = async (req, res) => {
       count: enrichedListings.length,
       data: enrichedListings,
     });
-
   } catch (error) {
     console.error("Search listings error:", error);
     res.status(500).json({
@@ -1281,17 +1296,14 @@ const fetchAllListings = async (req, res) => {
       success: true,
       data: listings,
     });
-  }
-  catch (error) {
+  } catch (error) {
     console.error("Fetch all listings error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch listings",
     });
   }
-}
-
-
+};
 
 module.exports = {
   getListings,
@@ -1305,5 +1317,5 @@ module.exports = {
   filterListings,
   getHomeData,
   getSubCategoryByName,
-  fetchAllListings
+  fetchAllListings,
 };

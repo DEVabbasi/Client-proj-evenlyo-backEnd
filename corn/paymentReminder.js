@@ -195,13 +195,11 @@ const sendVendorCancellationEmail = async (booking, reasonType) => {
 };
 
 // LIVE MODE — run daily at midnight
-cron.schedule("*/30 * * * *", async () => {
+cron.schedule("0 */5 * * *", async () => {
     console.log("🔄 Cron Job Running: Reminder + Auto Cancel...");
-
     try {
         const now = moment();
         const today = moment().startOf("day");
-
         const bookings = await Booking.find({
             paymentStatus: "upfront_paid",
             isFullyPaid: false,
@@ -210,20 +208,14 @@ cron.schedule("*/30 * * * *", async () => {
             .populate("listingId", "title")
             .populate("vendorId", "firstName email notifications")
             .lean();
-
         console.log(bookings.length, "total bookings found");
-
         for (const booking of bookings) {
-
             if (!booking?.details?.startDate) continue;
-
             const eventDate = moment(booking.details.startDate).startOf("day");
             const diffDays = eventDate.diff(today, "days");
             console.log(booking, "bookingbookingbookingbooking");
-
             const vendorDetails = booking.vendorId; // ✅ FIXED (already populated)
             console.log(vendorDetails, "vendorDetailsvendorDetailsvendorDetailsvendorDetails");
-
             // -------------------------------
             // 📩 3 DAYS REMINDER
             // -------------------------------
