@@ -1761,8 +1761,11 @@ const vendorLogin = async (req, res) => {
       userType: isEmployee ? "Employee" : "vendor",
       vendorId,
       vendorDetails,
-      pages,
     };
+
+    if (isEmployee) {
+      responseUser.pages = pages;
+    }
 
     return res.json({
       success: true,
