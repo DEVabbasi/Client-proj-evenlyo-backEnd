@@ -1768,6 +1768,10 @@ const vendorLogin = async (req, res) => {
       responseUser.pages = pages;
     }
 
+    if (isEmployee) {
+      responseUser.pages = pages;
+    }
+
     return res.json({
       success: true,
       message: {
