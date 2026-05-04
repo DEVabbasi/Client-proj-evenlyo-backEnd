@@ -266,6 +266,8 @@ const getListings = async (req, res) => {
 // @route   GET /api/listings/:id
 // @access  Public
 const getListingById = async (req, res) => {
+  console.log("yahi wala hy");
+
   try {
     const listing = await Listing.findById(req.params.id)
       .populate(
@@ -287,14 +289,16 @@ const getListingById = async (req, res) => {
       });
     }
 
-    // ✅ Vendor logo fetch
+    // ✅ Vendor details fetch (business logo + Vendor model _id)
     let businessLogo = "";
+    let vendorModelId = null;
     if (listing.vendor?._id) {
       const vendorDetails = await Vendor.findOne({
         userId: listing.vendor._id,
-      }).select("businessLogo");
+      }).select("_id businessLogo");
 
       businessLogo = vendorDetails?.businessLogo || "";
+      vendorModelId = vendorDetails?._id || null;
     }
 
     // ✅ Booking IDs
@@ -353,10 +357,12 @@ const getListingById = async (req, res) => {
 
     // ✅ Convert object
     const data = listing.toObject();
+    console.log(data, "datadatadatadatadatadata");
 
     // ✅ Attach extra data
     data.vendor = data.vendor || {};
     data.vendor.businessLogo = businessLogo;
+    data.vendor.vendorModelId = vendorModelId;
 
     const sc = data.subCategory || {};
     const settings = await Settings.findOne();
