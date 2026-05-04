@@ -168,7 +168,10 @@ const getVendorListingsOverview = async (req, res) => {
       status: listing.status,
     }));
 
-    const uniqueCategories = await Listing.distinct("category");
+    const uniqueCategories = await Listing.distinct("category", {
+      vendor: vendorId,
+    });
+    
     console.log(
       uniqueCategories,
       "uniqueCategoriesuniqueCategoriesuniqueCategories"

