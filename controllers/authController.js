@@ -1731,6 +1731,7 @@ const vendorLogin = async (req, res) => {
     vendorId = vendor?._id;
 
     let designation = null;
+    console.log(isEmployee, user, "isEmployeeisEmployeeisEmployeeisEmployee");
 
     if (isEmployee) {
       designation = await VendorDesignations.findOne({
@@ -1742,6 +1743,7 @@ const vendorLogin = async (req, res) => {
         vendorId: user.createdById,
       });
     }
+    console.log(designation, "designationdesignationdesignationdesignation");
 
     pages = designation?.permissions?.map((p) => p.module) || [];
 
@@ -1761,8 +1763,10 @@ const vendorLogin = async (req, res) => {
       userType: isEmployee ? "Employee" : "vendor",
       vendorId,
       vendorDetails,
-      pages,
     };
+    if (isEmployee) {
+      responseUser.pages = pages;
+    }
 
     return res.json({
       success: true,
