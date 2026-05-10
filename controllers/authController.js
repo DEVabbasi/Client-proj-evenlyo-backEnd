@@ -1731,7 +1731,6 @@ const vendorLogin = async (req, res) => {
     vendorId = vendor?._id;
 
     let designation = null;
-    console.log(isEmployee, user, "isEmployeeisEmployeeisEmployeeisEmployee");
 
     if (isEmployee) {
       designation = await VendorDesignations.findOne({
@@ -1743,7 +1742,6 @@ const vendorLogin = async (req, res) => {
         vendorId: user.createdById,
       });
     }
-    console.log(designation, "designationdesignationdesignationdesignation");
 
     pages = designation?.permissions?.map((p) => p.module) || [];
 
@@ -1764,9 +1762,6 @@ const vendorLogin = async (req, res) => {
       vendorId,
       vendorDetails,
     };
-    if (isEmployee) {
-      responseUser.pages = pages;
-    }
 
     if (isEmployee) {
       responseUser.pages = pages;
@@ -1791,6 +1786,8 @@ const vendorLogin = async (req, res) => {
     });
   }
 };
+
+
 
 const resetPasswordForEmployee = async (req, res) => {
   try {
