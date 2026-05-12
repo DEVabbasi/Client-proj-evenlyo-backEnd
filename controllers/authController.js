@@ -1616,21 +1616,25 @@ const vendorLogin = async (req, res) => {
 
     if (!user) {
       user = await Employee.findOne({ email }).populate("vendor");
-
       if (!user) {
         return res.status(401).json({
           success: false,
-          message: "Account not found",
+          message: {
+            en: "Account not found",
+            nl: "Account niet gevonden",
+          }
         });
       }
-
       isEmployee = true;
     }
 
     if (!user.isActive) {
       return res.status(400).json({
         success: false,
-        message: "Account not active! Please contact support",
+        message: {
+          en: "Account not active! Please contact support",
+          nl: "Account niet actief! Neem contact op met support",
+        },
       });
     }
 
