@@ -47,7 +47,10 @@ const clientLogin = async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Account not found",
+        message: {
+          en: "Account not found",
+          nl: "Account niet gevonden"
+        },
       });
     }
 
