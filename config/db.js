@@ -11,6 +11,10 @@ const connectDB = async () => {
       maxPoolSize: 10, // 👈 limit to 10 connections
     });
     console.log('✅ Connected to MongoDB Atlas');
+
+    const { ensureAppSettings } = require('../utils/ensureAppSettings');
+    await ensureAppSettings();
+    console.log('✅ App settings fields synced to database');
     
   } catch (err) {
     console.error('❌ MongoDB connection error:', err);
