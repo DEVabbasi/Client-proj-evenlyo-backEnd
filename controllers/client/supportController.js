@@ -65,8 +65,14 @@ const createSupportTicket = async (req, res) => {
     });
 
     await notificationController.createNotification({
-      title: "New Support Ticket",
-      message: `A new Support ticket has been created`,
+      title: {
+        en: "New Support Ticket",
+        nl: "Nieuw supportticket",
+      },
+      message: {
+        en: "A new support ticket has been created",
+        nl: "Er is een nieuw supportticket aangemaakt",
+      },
       notificationFor: "Admin",
       clientId: null, // vendor's user account receives notification
       vendorId: null,// vendor's user account receives notification

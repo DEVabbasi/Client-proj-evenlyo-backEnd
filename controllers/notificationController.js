@@ -61,6 +61,8 @@ const createNotification = async ({
       bookingId,
     });
 
+    console.log(notification,"notificationnotificationnotificationnotification");
+    
     // 2️⃣ Find target user
     let user = null;
 
