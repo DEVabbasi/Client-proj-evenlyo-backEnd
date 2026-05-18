@@ -28,6 +28,22 @@ const SettingsSchema = new mongoose.Schema({
                 newAccount: true
             }
         }
+    },
+    androidVersion: {
+        type: Number,
+        default: 1
+    },
+    isAndroidPopUpShow: {
+        type: Boolean,
+        default: false
+    },
+    iosVersion: {
+        type: Number,
+        default: 1
+    },
+    isIosPopUpShow: {
+        type: Boolean,
+        default: false
     }
 });
 
