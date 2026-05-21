@@ -2,6 +2,7 @@ const Listing = require("../../models/Listing");
 const SaleItem = require("../../models/Item");
 const StockLog = require("../../models/StockLog");
 const Booking = require("../../models/Booking");
+const Review = require("../../models/Review");
 const Settings = require("../../models/Settings");
 const { toMultilingualText } = require("../../utils/textUtils");
 const { createActivityLog } = require("../../utils/activityLogger");
@@ -103,80 +104,178 @@ const toggleListingStatus = async (req, res) => {
 };
 
 // GET /api/vendor/listings/overview
+// const mongoose = require("mongoose");
+// const Listing = require("../models/Listing");
+// const Booking = require("../models/Booking");
+// const Review = require("../models/Review");
+
 const getVendorListingsOverview = async (req, res) => {
   try {
     const vendorId = req.user?.id;
+
     if (!vendorId) {
       return res.status(400).json({
         success: false,
         message: "Vendor not found in request.",
       });
     }
-    // Get all listings for this vendor
+
+    // ===============================
+    // 📦 GET LISTINGS
+    // ===============================
     const listings = await Listing.find({ vendor: vendorId })
       .populate("category", "name")
       .populate("subCategory", "name");
 
-    // Stats: unique main categories and subcategories
+    const listingIds = listings.map((l) => l._id);
+
+    // ===============================
+    // 📊 CATEGORY STATS
+    // ===============================
     const mainCategorySet = new Set();
     const subCategorySet = new Set();
-    listings.forEach((listing) => {
-      console.log(listing, "listinglistinglistinglisting");
 
-      if (listing.category)
+    listings.forEach((listing) => {
+      if (listing.category) {
         mainCategorySet.add(listing.category._id.toString());
-      if (listing.subCategory)
+      }
+      if (listing.subCategory) {
         subCategorySet.add(listing.subCategory._id.toString());
+      }
     });
 
-    // Total number of listings
     const totalListings = listings.length;
 
-    // Most booked listings (for bar chart)
+    // ===============================
+    // 📈 BOOKING STATS
+    // ===============================
     const bookings = await Booking.aggregate([
-      { $match: { vendorId: vendorId } },
-      { $group: { _id: "$listingId", count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
+      {
+        $match: {
+          vendorId: new mongoose.Types.ObjectId(vendorId),
+        },
+      },
+      {
+        $group: {
+          _id: "$listingId",
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
-    // Map booking counts to listingId
     const bookingCountMap = {};
     bookings.forEach((b) => {
-      bookingCountMap[b._id?.toString()] = b.count;
+      bookingCountMap[b._id.toString()] = b.count;
     });
 
-    // listingOverview: all listings with their booking count
-    const listingOverview = listings.map((listing) => ({
-      listingId: listing._id,
-      title: listing.title?.en || listing.title,
-      bookedCount: bookingCountMap[listing._id.toString()] || 0,
-    }));
+    // ===============================
+    // ⭐ REVIEW STATS (PER LISTING)
+    // ===============================
+    const reviewData = await Review.aggregate([
+      {
+        $match: {
+          bookingId: { $exists: true },
+        },
+      },
+      {
+        $lookup: {
+          from: "bookingrequests",
+          localField: "bookingId",
+          foreignField: "_id",
+          as: "booking",
+        },
+      },
+      { $unwind: "$booking" },
 
-    // listingTable: all listings with required details
-    // console.log(listings,"listingslistingslistings");
+      // OPTIONAL FILTERS
+      // {
+      //   $match: {
+      //     "booking.vendorId": new mongoose.Types.ObjectId(vendorId),
+      //     "booking.listingId": { $in: listingIds },
+      //   },
+      // },
 
-    const listingTable = listings.map((listing) => ({
-      ...listing.toObject(),
-      listingId: listing._id,
-      image: listing.images[0] || "",
-      title: listing.title || listing.title,
-      description: listing.description || listing.description,
-      category: listing.category || "",
-      subCategory: listing.subCategory || "",
-      pricing: listing.pricing,
-      date: listing.createdAt,
-      status: listing.status,
-    }));
+      {
+        $group: {
+          _id: "$booking.listingId",
 
-    const uniqueCategories = await Listing.distinct("category", {
-      vendor: vendorId,
+          avgRating: { $avg: "$rating" },
+          totalReviews: { $sum: 1 },
+          totalRating: { $sum: "$rating" },
+
+          // 🔥 ALL REVIEWS
+          allReviews: {
+            $push: {
+              review: "$review",
+              rating: "$rating",
+              userId: "$userId",
+              bookingId: "$bookingId",
+              createdAt: "$createdAt",
+            },
+          },
+        },
+      },
+    ]);
+
+    console.log(reviewData, vendorId, "reviewDatareviewDatareviewData");
+
+    const reviewMap = {};
+    let overallReviews = 0;
+    let overallRatingSum = 0;
+
+    reviewData.forEach((r) => {
+      reviewMap[r._id.toString()] = r;
+      overallReviews += r.totalReviews;
+      overallRatingSum += r.totalRating;
+      allReviews: r.allReviews
     });
-    
-    console.log(
-      uniqueCategories,
-      "uniqueCategoriesuniqueCategoriesuniqueCategories"
-    );
 
+    const overallAvgRating =
+      overallReviews > 0 ? overallRatingSum / overallReviews : 0;
+
+    // ===============================
+    // 📊 LISTING OVERVIEW
+    // ===============================
+    const listingOverview = listings.map((listing) => {
+      const review = reviewMap[listing._id.toString()] || {};
+
+      return {
+        listingId: listing._id,
+        title: listing.title?.en || listing.title,
+        bookedCount: bookingCountMap[listing._id.toString()] || 0,
+
+        // ⭐ REVIEW DATA
+        avgRating: review.avgRating || 0,
+        totalReviews: review.totalReviews || 0,
+        allReviews: review.allReviews || 0,
+      };
+    });
+
+    // ===============================
+    // 📋 LISTING TABLE
+    // ===============================
+    const listingTable = listings.map((listing) => {
+      const review = reviewMap[listing._id.toString()] || {};
+
+      return {
+        ...listing.toObject(),
+        listingId: listing._id,
+        image: listing.images?.[0] || "",
+        category: listing.category || "",
+        subCategory: listing.subCategory || "",
+        date: listing.createdAt,
+        status: listing.status,
+
+        // ⭐ REVIEW DATA
+        avgRating: review.avgRating || 0,
+        totalReviews: review.totalReviews || 0,
+        allReviews: review.allReviews || 0,
+      };
+    });
+
+    // ===============================
+    // 📦 TOP BOOKED ITEMS
+    // ===============================
     const startOfMonth = new Date(
       new Date().getFullYear(),
       new Date().getMonth(),
@@ -196,37 +295,27 @@ const getVendorListingsOverview = async (req, res) => {
           status: "completed",
           createdAt: {
             $gte: startOfMonth,
-            $lt: endOfMonth
-          }
-        }
+            $lt: endOfMonth,
+          },
+        },
       },
-
-      // Group by listing
       {
         $group: {
           _id: "$listingId",
-          totalBookings: { $sum: 1 }
-        }
+          totalBookings: { $sum: 1 },
+        },
       },
-
-      // Sort by booking count
       { $sort: { totalBookings: -1 } },
-
-      // Top 5
       { $limit: 5 },
-
-      // Lookup listing details
       {
         $lookup: {
           from: "listings",
           localField: "_id",
           foreignField: "_id",
-          as: "listing"
-        }
+          as: "listing",
+        },
       },
       { $unwind: "$listing" },
-
-      // Shape final response
       {
         $project: {
           _id: 0,
@@ -234,33 +323,40 @@ const getVendorListingsOverview = async (req, res) => {
           totalBookings: 1,
           title: "$listing.title",
           image: "$listing.image",
-          price: "$listing.price"
-        }
-      }
+          price: "$listing.price",
+        },
+      },
     ]);
 
-    console.log(topBookedItems, "topBookedItemstopBookedItems");
-
-
-
-    res.json({
+    // ===============================
+    // ✅ RESPONSE
+    // ===============================
+    return res.json({
       success: true,
       stats: {
-        totalMainCategories: uniqueCategories.length,
+        totalMainCategories: mainCategorySet.size,
         totalSubCategories: subCategorySet.size,
         totalListings,
+
+        // ⭐ GLOBAL REVIEW STATS
+        totalReviews: overallReviews,
+        avgRating: overallAvgRating,
       },
       listingOverview,
       listingTable,
-      topBookedItems
+      topBookedItems,
     });
   } catch (err) {
     console.error("Vendor listing overview error:", err);
-    res
-      .status(500)
-      .json({ success: false, message: "Server error", error: err.message });
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
+
+// module.exports = { getVendorListingsOverview };
 
 // @desc    Create a new listing
 // @route   POST /api/listings
