@@ -18,7 +18,7 @@ router.get('/all', vendorController.getAllVendors);
 // @route   GET /api/vendor/bycategory/:categoryId (path param)
 // @access  Public
 router.get('/bycategory', vendorController.getVendorsByCategory);
-router.get('/bycategory/:categoryId', vendorController.getVendorsByCategory);
+router.post('/bycategory/:categoryId', vendorController.getVendorsByCategory);
 
 // @desc    Get featured vendors for homepage display
 // @route   GET /api/vendor/featured
@@ -56,6 +56,6 @@ router.get('/dashboard', requireAuth, requireVendor, vendorController.getVendorD
 // @desc    Get all details related to a vendor (business, user, listings, popular)
 // @route   GET /api/vendor/:vendorId/details
 // @access  Public
-router.get('/details/:vendorId', vendorController.getVendorFullDetails);
+router.post('/details/:vendorId', vendorController.getVendorFullDetails);
 
 module.exports = router;

@@ -309,7 +309,10 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       return res.status(400).json({
         success: false,
         message:
-          "distanceKm is required and must be a positive number for this listing.",
+        {
+          en: "distanceKm is required and must be a positive number for this listing.",
+          nl: "distanceKm is verplicht en moet een positief getal zijn voor deze vermelding."
+        }
       });
     }
 

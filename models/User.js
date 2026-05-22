@@ -143,7 +143,10 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    fcm: {
+    webFcm: {
+      type: String,
+    },
+    appFcm: {
       type: String,
     },
   },

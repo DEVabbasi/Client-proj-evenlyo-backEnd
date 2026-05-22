@@ -14,6 +14,11 @@ const getVendorFullDetails = async (req, res) => {
   try {
     const { vendorId } = req.params;
 
+    const loggedInUserId =
+      req.body.userId && mongoose.Types.ObjectId.isValid(req.body.userId)
+        ? new mongoose.Types.ObjectId(req.body.userId)
+        : null;
+
     if (!mongoose.Types.ObjectId.isValid(vendorId)) {
       return res
         .status(400)
@@ -97,7 +102,7 @@ const getVendorFullDetails = async (req, res) => {
     // ✅ REVIEWS
     // =====================================================
 
-    const reviews = await Review.find({ vendorId: vendor._id })
+    const reviews = await Review.find({ vendorId })
       .populate("userId", "firstName lastName email profileImage")
       .lean();
 
@@ -112,6 +117,33 @@ const getVendorFullDetails = async (req, res) => {
           ).toFixed(1)
         );
 
+
+    let showContact = false;
+    if (loggedInUserId) {
+      const eligibleBooking = await BookingRequest.findOne({
+        userId: loggedInUserId,
+        vendorId: vendorId,   // use actual vendor _id
+        $or: [
+          {
+            isFullyPaid: true,
+          },
+          {
+            willPayUpfront: true,
+            isUpfrontPaid: true,
+          },
+        ],
+      });
+
+      showContact = !!eligibleBooking;
+      console.log(
+        loggedInUserId,
+        vendor._id,
+        eligibleBooking,
+        showContact,
+        "CONTACT VISIBILITY CHECK"
+      );
+    }
+
     // =====================================================
     // ✅ BUSINESS DETAILS
     // =====================================================
@@ -119,8 +151,8 @@ const getVendorFullDetails = async (req, res) => {
     const businessDetails = {
       _id: vendor._id,
       kvkNumber: vendor.kvkNumber,
-      email: vendor.businessEmail,
-      phone: vendor.businessPhone,
+      email: showContact ? vendor.businessEmail : null,
+      phone: showContact ? vendor.businessPhone : null,
       rating: averageRating,
       businessName: vendor.businessName,
       location: vendor.businessLocation || "",
@@ -142,7 +174,7 @@ const getVendorFullDetails = async (req, res) => {
       name: vendor.userId
         ? `${vendor.userId.firstName} ${vendor.userId.lastName}`
         : "",
-      email: vendor.userId?.email || "",
+      email: showContact ? vendor.userId?.email : null,
       userType: vendor.userId?.userType || "",
       profileImage: vendor.userId?.profileImage || "",
     };
@@ -783,6 +815,7 @@ const getFeaturedVendors = asyncHandler(async (req, res) => {
 // @route   GET /api/vendor/bycategory (query params)
 // @route   GET /api/vendor/bycategory/:categoryId (path param)
 // @access  Public
+
 const getVendorsByCategory = asyncHandler(async (req, res) => {
   const {
     category,
@@ -792,22 +825,22 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
     sortBy = "rating",
     sortOrder = "desc",
   } = req.query;
+
   console.log("CALLED");
 
-  // Handle both path parameter and query parameter for category
   const categoryId = req.params.categoryId || category;
+  const loggedInUserId =
+    req.body.userId && mongoose.Types.ObjectId.isValid(req.body.userId)
+      ? new mongoose.Types.ObjectId(req.body.userId)
+      : null;
 
-  // Build query object - Include all vendors regardless of approval status to include personal accounts
   const query = {};
 
-  // Filter by main category (use categoryId from path param or category from query param)
   if (categoryId) {
     query.mainCategories = categoryId;
   }
 
-  // Filter by subcategory (expecting ObjectId)
   if (subcategory) {
-    // Validate if subcategory is a valid ObjectId
     if (mongoose.Types.ObjectId.isValid(subcategory)) {
       query.subCategories = subcategory;
     } else {
@@ -820,7 +853,6 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
 
   const skip = (page - 1) * limit;
 
-  // Build sort object
   const sortOptions = {};
   if (sortBy === "rating") {
     sortOptions["rating.average"] = sortOrder === "desc" ? -1 : 1;
@@ -839,8 +871,7 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
     )
     .populate("mainCategories", "name icon description")
     .populate("subCategories", "name icon description")
-    .select(
-      `
+    .select(`
       businessName 
       businessEmail
       businessPhone
@@ -855,28 +886,89 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
       createdAt
       bannerImage
       accountType
-    `
-    )
+      userId
+    `)
     .sort(sortOptions)
     .skip(skip)
     .limit(parseInt(limit));
 
   const total = await Vendor.countDocuments(query);
 
-  // Format data with requested information
+  // Get vendor userIds
+  const vendorIds = vendors.map(v => v.userId?._id).filter(Boolean);
+
+  // Get actual review stats
+  const reviewStats = await Review.aggregate([
+    {
+      $match: {
+        vendorId: { $in: vendorIds },
+      },
+    },
+    {
+      $group: {
+        _id: "$vendorId",
+        avgRating: { $avg: "$rating" },
+        totalReviews: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const reviewMap = {};
+  reviewStats.forEach((item) => {
+    reviewMap[item._id.toString()] = {
+      avgRating: item.avgRating || 0,
+      totalReviews: item.totalReviews || 0,
+    };
+  });
+
+  // Booking visibility logic
+  let bookingMap = {};
+
+  if (loggedInUserId) {
+    const bookings = await BookingRequest.find({
+      userId: loggedInUserId,
+      vendorId: { $in: vendorIds },
+    }).select(`
+      vendorId
+      isFullyPaid
+      willPayUpfront
+      isUpfrontPaid
+    `);
+
+    bookings.forEach((booking) => {
+      const vendorId = booking.vendorId.toString();
+
+      const canShow =
+        booking.isFullyPaid === true ||
+        (booking.willPayUpfront === true &&
+          booking.isUpfrontPaid === true);
+
+      if (canShow) {
+        bookingMap[vendorId] = true;
+      }
+    });
+  }
+
   const formattedVendors = vendors.map((vendor) => {
-    // Get business description in preferred language
     const description =
       typeof vendor.description === "object"
         ? vendor.description.en || vendor.description.nl || ""
         : vendor.description || "";
 
-    // Handle business name for personal accounts
     const displayBusinessName =
       vendor.businessName ||
       (vendor.userId?.firstName && vendor.userId?.lastName
         ? `${vendor.userId.firstName} ${vendor.userId.lastName}`
         : "Business Name Not Set");
+
+    const reviewData = reviewMap[vendor.userId?._id?.toString()] || {
+      avgRating: 0,
+      totalReviews: 0,
+    };
+
+    const canShowContact =
+      loggedInUserId &&
+      bookingMap[vendor.userId?._id?.toString()] === true;
 
     return {
       _id: vendor._id,
@@ -886,21 +978,30 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
       businessLocation: vendor.businessLocation,
       accountType: vendor.userId?.accountType || vendor.accountType,
       userType: vendor.userId?.userType,
+
+      avgRating: Number(reviewData.avgRating.toFixed(1)),
+      totalReviews: reviewData.totalReviews,
+
       rating: {
-        stars: Math.round(vendor.rating?.average || 0),
-        average: vendor.rating?.average || 0,
-        totalReviews: vendor.rating?.totalReviews || 0,
+        stars: Math.round(reviewData.avgRating || 0),
+        average: Number(reviewData.avgRating.toFixed(1)),
+        totalReviews: reviewData.totalReviews,
       },
+
       availability:
         vendor.contactMeEnabled && vendor.userId?.isActive
           ? "AVAILABLE"
           : "UNAVAILABLE",
+
       whyChooseUs:
         description.length > 100
           ? description.substring(0, 100) + "..."
           : description,
-      businessEmail: vendor.businessEmail,
-      businessPhone: vendor.businessPhone,
+
+      // CONDITIONAL CONTACT INFO
+      businessEmail: canShowContact ? vendor.businessEmail : "",
+      businessPhone: canShowContact ? vendor.businessPhone : "",
+
       businessDescription: vendor.description,
       isActive: vendor.userId?.isActive,
       isApproved: vendor.isApproved,
@@ -922,7 +1023,7 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
       sortBy,
       sortOrder,
     },
-    note: "Returns all vendors (personal and business accounts) based on category and subcategory",
+    note: "Contact details only visible if logged-in user has eligible paid booking with vendor",
   });
 });
 

@@ -33,7 +33,7 @@ const getModelByUserType = (userType) => {
 // --- Client Login ---
 const clientLogin = async (req, res) => {
   try {
-    const { email, password, provider, fcm } = req.body;
+    const { email, password, provider, webFcm } = req.body;
 
     if (!email) {
       return res.status(400).json({
@@ -65,8 +65,8 @@ const clientLogin = async (req, res) => {
       }
 
       // Update FCM token if provided
-      if (fcm) {
-        user.fcm = fcm;
+      if (webFcm) {
+        user.webFcm = webFcm;
         await user.save();
       }
 
@@ -1605,7 +1605,7 @@ const registerVendor = async (req, res) => {
 // --- Vendor Login ---
 const vendorLogin = async (req, res) => {
   try {
-    const { email, password, provider } = req.body;
+    const { email, password, provider, webFcm } = req.body;
 
     if (!email) {
       return res.status(400).json({
@@ -1654,7 +1654,11 @@ const vendorLogin = async (req, res) => {
           },
         });
       }
-
+      if (webFcm) {
+        user.webFcm = webFcm;
+        await user.save();
+      }
+      
       const token = signToken({
         id: user.createdById != null ? user.createdById : user._id,
         name: user.name,

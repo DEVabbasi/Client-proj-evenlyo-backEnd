@@ -78,8 +78,8 @@ app.use(
         !origin ||
         allowedOrigins.includes(origin) ||
         origin.endsWith("vercel.app") ||
-      /^http:\/\/localhost:\d+$/.test(origin) || 
-    origin.endsWith("devtunnels.ms")  
+        /^http:\/\/localhost:\d+$/.test(origin) ||
+        origin.endsWith("devtunnels.ms")
       ) {
         return callback(null, true);
       } else {
@@ -256,16 +256,17 @@ app.use((err, req, res, next) => {
 
 // const Settings = require("./models/Settings");
 
-const Booking = require("./models/Booking");
+const User = require("./models/User");
 const moment = require("moment");
 
 async function addCreatedByIdToUsers() {
   try {
-    const result = await Booking.updateMany(
+    const result = await User.updateMany(
       {},
       {
         $set: {
-          isSecurityReturned: false
+          webFcm: "",
+          appFcm: ""
         }
       }
     );
