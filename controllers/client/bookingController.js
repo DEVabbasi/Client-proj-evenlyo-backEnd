@@ -310,8 +310,8 @@ const createBookingRequest = asyncHandler(async (req, res) => {
         success: false,
         message:
         {
-          en: "distanceKm is required and must be a positive number for this listing.",
-          nl: "distanceKm is verplicht en moet een positief getal zijn voor deze vermelding."
+          en: "distance is required and must be a positive number for this listing.",
+          nl: "Afstand is verplicht en moet een positief getal zijn voor deze vermelding."
         }
       });
     }
