@@ -545,7 +545,12 @@ async function checkListingStock(listingId, requiredQty = 1, session) {
     if (!listing) return { ok: false, message: "Listing not found" };
     const available = Number(listing.quantity) || 0;
     if (available <= 0) {
-      return { ok: false, message: "Out of stock", availableQty: 0 };
+      return {
+        ok: false, message: {
+          en: "Out of stock",
+          nl: "Niet op voorraad"
+        }, availableQty: 0
+      };
     }
     if (available < qtyNeeded) {
       return {
