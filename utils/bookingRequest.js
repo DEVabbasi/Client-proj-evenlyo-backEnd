@@ -547,8 +547,8 @@ async function checkListingStock(listingId, requiredQty = 1, session) {
     if (available <= 0) {
       return {
         ok: false, message: {
-          en: "Out of stock",
-          nl: "Niet op voorraad"
+          en: "The item is out of stock",
+          nl: "Het artikel is niet op voorraad."
         }, availableQty: 0
       };
     }
