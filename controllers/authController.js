@@ -117,8 +117,8 @@ const clientLogin = async (req, res) => {
     }
 
     // Update FCM token if provided
-    if (fcm) {
-      user.fcm = fcm;
+    if (webFcm) {
+      user.webFcm = webFcm;
       await user.save();
     }
 
@@ -142,7 +142,7 @@ const clientLogin = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("Client Login Error:", err);
+    consoloe.lo(err, "ERRRRRR")
     res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -1658,7 +1658,7 @@ const vendorLogin = async (req, res) => {
         user.webFcm = webFcm;
         await user.save();
       }
-      
+
       const token = signToken({
         id: user.createdById != null ? user.createdById : user._id,
         name: user.name,
