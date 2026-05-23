@@ -117,8 +117,8 @@ const clientLogin = async (req, res) => {
     }
 
     // Update FCM token if provided
-    if (fcm) {
-      user.fcm = fcm;
+    if (webFcm) {
+      user.webFcm = webFcm;
       await user.save();
     }
 
