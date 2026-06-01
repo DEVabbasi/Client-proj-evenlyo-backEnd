@@ -81,7 +81,10 @@ const addToCart = asyncHandler(async (req, res) => {
     );
     return res.status(400).json({
       success: false,
-      message: "Item is already in cart",
+      message: {
+        en: "Item is already in cart",
+        nl: "Item zit al in de winkelmand",
+      },
       data: cart.items,
     });
   }
