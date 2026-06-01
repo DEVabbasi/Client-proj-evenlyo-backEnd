@@ -73,20 +73,22 @@ const getPlatformFees = async (req, res) => {
 const setPlatformFees = async (req, res) => {
     try {
         const { bookingItemPlatformFee, salesItemPlatformFee, vat } = req.body;
-        if (typeof bookingItemPlatformFee !== 'number' || bookingItemPlatformFee < 0 || typeof salesItemPlatformFee !== 'number' || salesItemPlatformFee < 0) {
-            return res.status(400).json({ message: 'Both fees must be non-negative numbers.' });
-        }
+        console.log(req.body, "req.bodyreq.bodyreq.body");
+
+        // if (typeof bookingItemPlatformFee !== 'number' || bookingItemPlatformFee < 0 || typeof salesItemPlatformFee !== 'number' || salesItemPlatformFee < 0) {
+        //     return res.status(400).json({ message: 'Both fees must be non-negative numbers.' });
+        // }
         let settings = await Settings.findOne();
         if (!settings) {
             settings = new Settings({ bookingItemPlatformFee, salesItemPlatformFee });
         } else {
             settings.bookingItemPlatformFee = bookingItemPlatformFee;
-            settings.salesItemPlatformFee = salesItemPlatformFee;
             settings.vat = vat
         }
         await settings.save();
         res.json({ message: 'Platform fees updated successfully.', bookingItemPlatformFee, salesItemPlatformFee });
     } catch (error) {
+        console.log(error, "errorerrorerror");
         res.status(500).json({ message: 'Server error.', error: error.message });
     }
 };
