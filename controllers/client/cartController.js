@@ -100,8 +100,8 @@ const addToCart = asyncHandler(async (req, res) => {
     message: {
       en: "Item added to cart successfully",
       nl: "Item succesvol toegevoegd aan winkelmand",
-    }
-      data: cart.items,
+    },
+    data: cart.items,
   });
 });
 
@@ -549,7 +549,7 @@ const addToCart2 = asyncHandler(async (req, res) => {
     message: {
       en: "Item added to cart successfully",
       nl: "Item succesvol toegevoegd aan winkelmand",
-    }
+    },
     data: cart.items,
   });
 });
