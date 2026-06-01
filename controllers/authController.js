@@ -2107,6 +2107,8 @@ const connectVendorStripe = async (req, res) => {
     });
 
   } catch (error) {
+    console.log(error,"errorerrorerror");
+    
     res.status(500).json({
       success: false,
       message: error.message,

@@ -99,13 +99,12 @@ const getDashboardAnalytics = async (req, res) => {
         $project: {
           month: { $month: "$createdAt" },
 
-          // ✅ Only vendor service amount
           completedRevenue: {
             $cond: [
               { $eq: ["$status", "completed"] },
-              { $ifNull: ["$pricingBreakdown.subtotal", 0] },
-              0
-            ]
+              { $toDouble: { $ifNull: ["$pricingBreakdown.subtotal", 0] } },
+              0,
+            ],
           },
           refundRevenue: {
             $cond: [
@@ -117,7 +116,7 @@ const getDashboardAnalytics = async (req, res) => {
               },
               {
                 $multiply: [
-                  { $ifNull: ["$pricingBreakdown.upfrontFee", 0] },
+                  { $toDouble: { $ifNull: ["$pricingBreakdown.upfrontFee", 0] } },
                   0.88,
                 ],
               },
@@ -130,15 +129,24 @@ const getDashboardAnalytics = async (req, res) => {
         $group: {
           _id: "$month",
           revenue: {
-            $sum: {
-              $add: ["$completedRevenue", "$refundRevenue"]
-            }
-          }
-        }
+            $sum: "$completedRevenue",
+          },
+          refundRevenue: {
+            $sum: "$refundRevenue",
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          revenue: {
+            $add: ["$revenue", "$refundRevenue"],
+          },
+        },
       },
       { $sort: { _id: 1 } },
     ]);
-    // Array of 12 months, fill missing with 0
+    
     console.log(
       monthlyRevenueAggAll,
       "monthlyRevenueAggAllmonthlyRevenueAggAll"

@@ -124,7 +124,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
               {
                 $cond: [
                   { $eq: ["$status", "completed"] },
-                  { $ifNull: ["$pricingBreakdown.subtotal", 0] },
+                  { $toDouble: { $ifNull: ["$pricingBreakdown.subtotal", 0] } },
                   0
                 ]
               },
@@ -200,7 +200,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
           completedRevenue: {
             $cond: [
               { $eq: ["$status", "completed"] },
-              { $ifNull: ["$pricingBreakdown.subtotal", 0] },
+              { $toDouble: { $ifNull: ["$pricingBreakdown.subtotal", 0] } },
               0
             ]
           },
@@ -226,7 +226,16 @@ const getVendorEarningsAnalytics = async (req, res) => {
       {
         $group: {
           _id: "$month",
-          revenue: { $sum: { $add: ["$completedRevenue", "$refundRevenue"] } }
+          revenue: { $sum: "$completedRevenue" },
+          refundRevenue: { $sum: "$refundRevenue" }
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          revenue: {
+            $add: ["$revenue", "$refundRevenue"]
+          }
         }
       },
       { $sort: { _id: 1 } }
@@ -251,7 +260,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
           completedRevenue: {
             $cond: [
               { $eq: ["$status", "completed"] },
-              { $ifNull: ["$pricingBreakdown.subtotal", 0] },
+              { $toDouble: { $ifNull: ["$pricingBreakdown.subtotal", 0] } },
               0
             ]
           },
@@ -277,7 +286,16 @@ const getVendorEarningsAnalytics = async (req, res) => {
       {
         $group: {
           _id: null,
-          revenue: { $sum: { $add: ["$completedRevenue", "$refundRevenue"] } }
+          revenue: { $sum: "$completedRevenue" },
+          refundRevenue: { $sum: "$refundRevenue" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          revenue: {
+            $add: ["$revenue", "$refundRevenue"]
+          }
         }
       }
     ]);
@@ -303,7 +321,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
           completedRevenue: {
             $cond: [
               { $eq: ["$status", "completed"] },
-              { $ifNull: ["$pricingBreakdown.subtotal", 0] },
+              { $toDouble: { $ifNull: ["$pricingBreakdown.subtotal", 0] } },
               0
             ]
           },
@@ -329,7 +347,16 @@ const getVendorEarningsAnalytics = async (req, res) => {
       {
         $group: {
           _id: null,
-          revenue: { $sum: { $add: ["$completedRevenue", "$refundRevenue"] } }
+          revenue: { $sum: "$completedRevenue" },
+          refundRevenue: { $sum: "$refundRevenue" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          revenue: {
+            $add: ["$revenue", "$refundRevenue"]
+          }
         }
       }
     ]);
@@ -350,7 +377,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
           completedRevenue: {
             $cond: [
               { $eq: ["$status", "completed"] },
-              { $ifNull: ["$pricingBreakdown.subtotal", 0] },
+              { $toDouble: { $ifNull: ["$pricingBreakdown.subtotal", 0] } },
               0
             ]
           },
@@ -376,8 +403,16 @@ const getVendorEarningsAnalytics = async (req, res) => {
       {
         $group: {
           _id: "$month",
+          revenue: { $sum: "$completedRevenue" },
+          refundRevenue: { $sum: "$refundRevenue" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          month: "$_id",
           totalEarnings: {
-            $sum: { $add: ["$completedRevenue", "$refundRevenue"] }
+            $add: ["$revenue", "$refundRevenue"]
           }
         }
       },
@@ -493,7 +528,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
           completedRevenue: {
             $cond: [
               { $eq: ["$status", "completed"] },
-              { $ifNull: ["$pricingBreakdown.subtotal", 0] },
+              { $toDouble: { $ifNull: ["$pricingBreakdown.subtotal", 0] } },
               0
             ]
           },
@@ -519,8 +554,15 @@ const getVendorEarningsAnalytics = async (req, res) => {
       {
         $group: {
           _id: null,
+          revenue: { $sum: "$completedRevenue" },
+          refundRevenue: { $sum: "$refundRevenue" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
           totalEarnings: {
-            $sum: { $add: ["$completedRevenue", "$refundRevenue"] }
+            $add: ["$revenue", "$refundRevenue"]
           }
         }
       }
