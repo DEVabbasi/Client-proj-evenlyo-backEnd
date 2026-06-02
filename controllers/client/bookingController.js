@@ -548,8 +548,8 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       console.error("Failed to remove item from cart:", cartError);
     }
 
-    const vendor = await User.findById(bookingRequest.vendorId).populate(
-      "firstName lastName",
+    const vendor = await User.findById(bookingRequest.vendorId).select(
+      "firstName lastName notifications",
     );
 
     try {
@@ -590,22 +590,20 @@ const createBookingRequest = asyncHandler(async (req, res) => {
           vendorId: bookingRequest?.vendorId,
           ActivityType: "booking",
         });
-        if (vendor.notifications.push === true) {
-          await notificationController.createNotification({
-            title: {
-              en: "New booking request",
-              nl: "Nieuwe boekingsaanvraag",
-            },
-            notificationFor: "Vendor",
-            vendorId: vendor._id, // vendor's user account receives notification
-            clientId: null, // vendor's user account receives notification
-            bookingId: bookingRequest._id,
-            message: {
-              en: `New booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
-              nl: `Nieuwe boekingsaanvraag van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
-            },
-          });
-        }
+        await notificationController.createNotification({
+          title: {
+            en: "New booking request",
+            nl: "Nieuwe boekingsaanvraag",
+          },
+          notificationFor: "Vendor",
+          vendorId: vendor._id,
+          clientId: bookingRequest.userId,
+          bookingId: bookingRequest._id,
+          message: {
+            en: `New booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
+            nl: `Nieuwe boekingsaanvraag van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
+          },
+        });
 
         const adminsToNotifyPush = await AdminEmployee.findOne({
           role: "Admin",

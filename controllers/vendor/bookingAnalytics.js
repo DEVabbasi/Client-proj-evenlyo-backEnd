@@ -288,7 +288,7 @@ const acceptBooking = asyncHandler(async (req, res) => {
         en: "Booking Status",
         nl: "Boekingstatus",
       },
-      notificationFor: "Vendor",
+      notificationFor: "Client",
       vendorId: booking.vendorId, // vendor's user account receives notification
       clientId: booking.userId, //
       bookingId: booking._id,
@@ -438,22 +438,20 @@ const rejectBooking = asyncHandler(async (req, res) => {
     // });
     console.log(vendor, "vendorvendorvendorvendor");
 
-    if (vendor?.notifications?.push === true) {
-      await notificationController.createNotification({
-        title: {
-          en: "Booking Status",
-          nl: "Boekingstatus",
-        },
-        notificationFor: "Vendor",
-        vendorId: booking.vendorId, // vendor's user account receives notification
-        clientId: booking.userId, //
-        bookingId: booking._id,
-        message: {
-          en: `Booking against ${booking.trackingId} has been rejected`,
-          nl: `Boeking met betrekking tot ${booking.trackingId} is Geweigerd.`,
-        },
-      });
-    }
+    await notificationController.createNotification({
+      title: {
+        en: "Booking Status",
+        nl: "Boekingstatus",
+      },
+      notificationFor: "Client",
+      vendorId: booking.vendorId,
+      clientId: booking.userId,
+      bookingId: booking._id,
+      message: {
+        en: `Booking against ${booking.trackingId} has been rejected`,
+        nl: `Boeking met betrekking tot ${booking.trackingId} is Geweigerd.`,
+      },
+    });
   } catch (e) {
     console.error(
       "Failed to create client notification for rejected booking:",
