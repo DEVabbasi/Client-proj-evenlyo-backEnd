@@ -5,6 +5,7 @@ const Vendor = require("../models/Vendor");
 const Admin = require("../models/Admin");
 const { sendNotification } = require("../utils/notifications");
 const { resolveUserFcmToken } = require("../utils/fcmToken");
+const { resolveVendorOwnerUserId } = require("../utils/resolveVendorUserId");
 
 const normalizeObjectId = (value) => {
   if (!value) return null;
@@ -80,13 +81,19 @@ const createNotification = async ({
   bookingId = null,
 }) => {
   try {
+    let resolvedVendorId = vendorId;
+    if (notificationFor === "Vendor" && vendorId) {
+      const ownerUserId = await resolveVendorOwnerUserId(vendorId);
+      if (ownerUserId) resolvedVendorId = ownerUserId;
+    }
+
     // 1️⃣ Save in DB
     const notification = await Notification.create({
       title,
       message,
       notificationFor,
       clientId,
-      vendorId,
+      vendorId: resolvedVendorId,
       bookingId,
     });
 
@@ -96,7 +103,7 @@ const createNotification = async ({
     const user = await resolveTargetUser({
       notificationFor,
       clientId,
-      vendorId,
+      vendorId: resolvedVendorId,
       projection: "appFcm webFcm fcm notifications",
     });
 
@@ -104,7 +111,7 @@ const createNotification = async ({
       console.warn("⚠️ createNotification: user not found for push", {
         notificationFor,
         clientId: normalizeObjectId(clientId),
-        vendorId: normalizeObjectId(vendorId),
+        vendorId: normalizeObjectId(resolvedVendorId),
       });
     }
 
@@ -140,7 +147,7 @@ const createNotification = async ({
       console.warn("⚠️ createNotification skipped push", {
         notificationFor,
         clientId: normalizeObjectId(clientId),
-        vendorId: normalizeObjectId(vendorId),
+        vendorId: normalizeObjectId(resolvedVendorId),
         userId: user?._id?.toString(),
         pushEnabled,
         hasToken: Boolean(fcmToken),

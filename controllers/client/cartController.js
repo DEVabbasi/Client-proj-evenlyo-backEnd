@@ -3,6 +3,8 @@ const Cart = require("../../models/Cart");
 const Listing = require("../../models/Listing");
 const BookingRequest = require("../../models/Booking");
 const Vendor = require("../../models/Vendor");
+const { resolveVendorUserId } = require("../../utils/resolveVendorUserId");
+const { notifyVendorNewBooking } = require("../../utils/notifyVendorNewBooking");
 
 // Helper function to create listing snapshot
 const createListingSnapshot = (listing) => {
@@ -416,6 +418,24 @@ const submitCart = asyncHandler(async (req, res) => {
       });
 
       await bookingRequest.save();
+
+      const vendorUserId = await resolveVendorUserId(null, listing);
+      try {
+        await notifyVendorNewBooking({
+          vendorUserId,
+          clientUserId: req.user.id,
+          bookingRequest,
+          listing,
+          startDate: bookingStartDate,
+          endDate: bookingEndDate,
+        });
+      } catch (notifyErr) {
+        console.error(
+          "Failed to create vendor notification for cart booking:",
+          notifyErr,
+        );
+      }
+
       await bookingRequest.populate([
         {
           path: "vendorId",

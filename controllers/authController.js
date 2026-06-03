@@ -19,6 +19,7 @@ const stripe = require("../config/stripe");
 const resolveFcmTokenFromRequest = (body = {}) =>
   body.appFcm || body.webFcm || body.fcm || null;
 const { saveUserAppFcm } = require("../utils/fcmToken");
+const { resolveVendorFcmUserId } = require("../utils/resolveVendorUserId");
 
 // --- Model loading utility ---
 const getModelByUserType = (userType) => {
@@ -1663,7 +1664,8 @@ const vendorLogin = async (req, res) => {
         });
       }
       if (appFcm) {
-        await saveUserAppFcm(user._id, appFcm);
+        const fcmUserId = await resolveVendorFcmUserId(user, isEmployee);
+        if (fcmUserId) await saveUserAppFcm(fcmUserId, appFcm);
       }
 
       const token = signToken({
@@ -1735,7 +1737,8 @@ const vendorLogin = async (req, res) => {
     }
 
     if (appFcm) {
-      await saveUserAppFcm(user._id, appFcm);
+      const fcmUserId = await resolveVendorFcmUserId(user, isEmployee);
+      if (fcmUserId) await saveUserAppFcm(fcmUserId, appFcm);
     }
 
     // ===============================
@@ -2196,7 +2199,12 @@ const updateFcmToken = async (req, res) => {
       });
     }
 
-    const user = await User.findById(req.user.id);
+    const { resolveVendorOwnerUserId } = require("../utils/resolveVendorUserId");
+    const targetUserId =
+      (await resolveVendorOwnerUserId(req.user.vendorId || req.user.id)) ||
+      req.user.id;
+
+    const user = await User.findById(targetUserId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -2204,7 +2212,7 @@ const updateFcmToken = async (req, res) => {
       });
     }
 
-    await saveUserAppFcm(user._id, appFcm);
+    await saveUserAppFcm(targetUserId, appFcm);
 
     return res.json({
       success: true,

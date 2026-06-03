@@ -6,6 +6,7 @@ const Review = require("../../models/Review");
 const Settings = require("../../models/Settings");
 const { toMultilingualText } = require("../../utils/textUtils");
 const { createActivityLog } = require("../../utils/activityLogger");
+const { resolveVendorOwnerUserId } = require("../../utils/resolveVendorUserId");
 const mongoose = require("mongoose");
 
 
@@ -392,16 +393,18 @@ const createListing = async (req, res) => {
       }
     }
 
-    // -------- Set vendor from token --------
-    const vendorId = req?.user?.id;
-    if (!vendorId) {
+    // -------- Set vendor to business owner's User id (listing.vendor refs User) --------
+    const ownerUserId = await resolveVendorOwnerUserId(
+      req?.user?.vendorId || req?.user?.id,
+    );
+    if (!ownerUserId) {
       return res.status(400).json({
         success: false,
         message: "Vendor not found in request",
       });
     }
 
-    data.vendor = data.vendor || vendorId;
+    data.vendor = ownerUserId;
 
     console.log(data, "datadatadatadatadata");
 

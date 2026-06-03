@@ -8,6 +8,9 @@ const BookingRequest = require("../models/Booking");
 const Vendor = require("../models/Vendor");
 const Notification = require("../models/Notification");
 const { default: mongoose } = require("mongoose");
+const {
+  getVendorNotificationRecipientIds,
+} = require("../utils/resolveVendorUserId");
 
 router.get("/", requireAuth, async (req, res) => {
   try {
@@ -67,13 +70,7 @@ router.get("/admin-notifications", async (req, res) => {
 
 router.get("/vendor-notifications", requireAuth, async (req, res) => {
   try {
-    const vendorProfile = await Vendor.findOne({ userId: req.user.id }).select(
-      "_id",
-    );
-    const vendorIds = [req.user.id];
-    if (vendorProfile?._id) {
-      vendorIds.push(vendorProfile._id);
-    }
+    const vendorIds = await getVendorNotificationRecipientIds(req.user);
 
     const notifications = await Notification.find({
       notificationFor: "Vendor",

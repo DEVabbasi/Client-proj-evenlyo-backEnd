@@ -19,7 +19,8 @@ const { toMultilingualText } = require("../../utils/textUtils");
 const stripe = require("../../config/stripe");
 const Booking = require("../../models/Booking");
 const mongoose = require("mongoose");
-const { createActivityLog } = require("../../utils/activityLogger");
+const { resolveVendorUserId } = require("../../utils/resolveVendorUserId");
+const { notifyVendorNewBooking } = require("../../utils/notifyVendorNewBooking");
 const SupportTicket = require("../../models/SupportTicket");
 const { sendEvenlyoProtectBookingEmail } = require("../../utils/mailer");
 
@@ -316,12 +317,17 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       });
     }
 
-    // Verify vendor matches (guard for missing vendor)
-    if (
-      !listing.vendor ||
-      !listing.vendor._id ||
-      listing.vendor._id.toString() !== vendorId
-    ) {
+    // Always use listing owner (User id), not client-sent vendorId alone
+    const vendorUserId = await resolveVendorUserId(vendorId, listing);
+    if (!vendorUserId) {
+      return res.status(400).json({
+        success: false,
+        message: "Vendor not found for this listing",
+      });
+    }
+
+    const clientVendorId = await resolveVendorUserId(vendorId, null);
+    if (clientVendorId && clientVendorId.toString() !== vendorUserId.toString()) {
       return res.status(400).json({
         success: false,
         message: "Vendor mismatch",
@@ -446,7 +452,7 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       AmountLeft: req?.body?.details?.pricingBreakdown?.total,
       userId: req.user.id,
       pricingBreakdown,
-      vendorId,
+      vendorId: vendorUserId,
       listingId,
       listingDetails: {
         title: listing.title,
@@ -548,87 +554,57 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       console.error("Failed to remove item from cart:", cartError);
     }
 
-    const vendor = await User.findById(bookingRequest.vendorId).select(
-      "firstName lastName notifications",
-    );
+    try {
+      await notifyVendorNewBooking({
+        vendorUserId,
+        clientUserId: bookingRequest.userId,
+        bookingRequest,
+        listing,
+        startDate,
+        endDate,
+      });
+    } catch (e) {
+      console.error("Failed to create vendor notification for new booking:", e);
+    }
 
     try {
       const client = await User.findById(bookingRequest.userId).select(
         "firstName lastName",
       );
-      console.log(vendor, client, "VAAadasdAA");
+      const vendor = await User.findById(vendorUserId).select(
+        "firstName lastName email",
+      );
+      const clientName = client
+        ? `${client.firstName} ${client.lastName}`.trim()
+        : "A client";
+      const listingTitle = listing.title || { en: "your listing", nl: "uw aanbod" };
+      const bookingDates = `${startDate}${endDate !== startDate ? ` to ${endDate}` : ""}`;
+      const isEvenlyoProtectEnabled =
+        req.body?.details?.pricingBreakdown?.paymentPolicy
+          ?.isEvenlyoProtectEnabled === true;
 
-      if (vendor) {
-        const clientName = client
-          ? `${client.firstName} ${client.lastName}`
-          : "A client";
-        const listingTitle = listing.title || "your listing";
-        const bookingDates = `${startDate}${endDate !== startDate ? ` to ${endDate}` : ""
-          }`;
-        console.log(listingTitle, bookingDates, "bookingDates");
-
-        console.log(
-          req.body.details.pricingBreakdown.paymentPolicy
-            .isEvenlyoProtectEnabled,
-          "req.body.details.pricingBreakdown.paymentPolicy.isEvenlyoProtectEnabled",
-        );
-        console.log(
-          vendor.notifications,
-          "vendor.notificationsvendor.notificationsvendor.notifications",
-        );
-
-        await createActivityLog({
-          heading: {
-            en: "New Booking Request",
-            nl: "Nieuwe boekingsaanvraag",
-          },
-          type: "booking_created",
-          description: {
-            en: `New booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
-            nl: `Nieuwe boekingsaanvraag van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
-          },
-          vendorId: bookingRequest?.vendorId,
-          ActivityType: "booking",
-        });
-        await notificationController.createNotification({
-          title: {
-            en: "New booking request",
-            nl: "Nieuwe boekingsaanvraag",
-          },
-          notificationFor: "Vendor",
-          vendorId: vendor._id,
-          clientId: bookingRequest.userId,
-          bookingId: bookingRequest._id,
-          message: {
-            en: `New booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
-            nl: `Nieuwe boekingsaanvraag van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
-          },
-        });
-
+      if (isEvenlyoProtectEnabled) {
         const adminsToNotifyPush = await AdminEmployee.findOne({
           role: "Admin",
           status: "active",
-          "notificationSettings.push.evenlyoProtect": true
+          "notificationSettings.push.evenlyoProtect": true,
         }).select("_id name email");
 
         const adminsToNotifyEmail = await AdminEmployee.findOne({
           role: "Admin",
           status: "active",
-          "notificationSettings.email.evenlyoProtect": true
+          "notificationSettings.email.evenlyoProtect": true,
         }).select("_id name email");
 
-        if (
-          req.body.details.pricingBreakdown.paymentPolicy
-            .isEvenlyoProtectEnabled === true && adminsToNotifyPush
-        ) {
+        if (adminsToNotifyPush) {
           await notificationController.createNotification({
             title: {
               en: "Evenlyo protected booking",
               nl: "Door Evenlyo beschermde boeking",
             },
             notificationFor: "Admin",
-            vendorId: vendor._id, // vendor's user account receives notification
-            clientId: client._id, // vendor's user account receives notification
+            vendorId: vendorUserId,
+            clientId: client?._id,
             bookingId: bookingRequest._id,
             message: {
               en: `A evenlyo protected booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
@@ -636,13 +612,17 @@ const createBookingRequest = asyncHandler(async (req, res) => {
             },
           });
         }
-        if (req.body.details.pricingBreakdown.paymentPolicy
-          .isEvenlyoProtectEnabled === true && adminsToNotifyEmail) {
-          sendEvenlyoProtectBookingEmail(bookingRequest, clientName, vendor, 'NEW');
+        if (adminsToNotifyEmail && vendor) {
+          sendEvenlyoProtectBookingEmail(
+            bookingRequest,
+            clientName,
+            vendor,
+            "NEW",
+          );
         }
       }
     } catch (e) {
-      console.error("Failed to create vendor notification for new booking:", e);
+      console.error("Failed to create admin notification for protected booking:", e);
     }
     // Populate the response (listing details are now stored directly in listingDetails field)
     await bookingRequest.populate([
@@ -672,6 +652,8 @@ const createBookingRequest = asyncHandler(async (req, res) => {
     // });
     // await bookingRequest.save();
 
+    const vendorUser = await User.findById(vendorUserId).select("firstName");
+
     res.status(201).json({
       success: true,
       message: {
@@ -679,7 +661,7 @@ const createBookingRequest = asyncHandler(async (req, res) => {
         nl: "Boekingsaanvraag succesvol aangemaakt",
       },
       data: {
-        vendorName: `${vendor.firstName}`,
+        vendorName: vendorUser?.firstName || "",
         bookingRequest,
         paymentPolicy: {
           escrowEnabled: policy.escrowEnabled,
@@ -692,7 +674,16 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       },
     });
   } catch (error) {
-    console.log(error, "errorerrorerror");
+    console.error("createBookingRequest error:", error);
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: {
+          en: "Failed to create booking request",
+          nl: "Boekingsaanvraag aanmaken mislukt",
+        },
+      });
+    }
   }
 });
 
