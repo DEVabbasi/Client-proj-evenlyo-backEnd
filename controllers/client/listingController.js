@@ -1260,9 +1260,11 @@ const getHomeData = async (req, res) => {
         totalReviews: ratingInfo.count,
       };
 
-      // ✅ ADD BUSINESS LOGO
+      // ✅ ADD BUSINESS LOGO (vendor may be null if user was deleted or ref is missing)
       const vendorId = obj.vendor?._id?.toString();
-      obj.vendor.businessLogo = vendorLogoMap[vendorId] || "";
+      if (obj.vendor) {
+        obj.vendor.businessLogo = vendorLogoMap[vendorId] || "";
+      }
 
       return obj;
     });
