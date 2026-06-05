@@ -420,21 +420,21 @@ const submitCart = asyncHandler(async (req, res) => {
       await bookingRequest.save();
 
       const vendorUserId = await resolveVendorUserId(null, listing);
-      try {
-        await notifyVendorNewBooking({
-          vendorUserId,
-          clientUserId: req.user.id,
-          bookingRequest,
-          listing,
-          startDate: bookingStartDate,
-          endDate: bookingEndDate,
-        });
-      } catch (notifyErr) {
-        console.error(
-          "Failed to create vendor notification for cart booking:",
-          notifyErr,
-        );
-      }
+      // try {
+      //   await notifyVendorNewBooking({
+      //     vendorUserId,
+      //     clientUserId: req.user.id,
+      //     bookingRequest,
+      //     listing,
+      //     startDate: bookingStartDate,
+      //     endDate: bookingEndDate,
+      //   });
+      // } catch (notifyErr) {
+      //   console.error(
+      //     "Failed to create vendor notification for cart booking:",
+      //     notifyErr,
+      //   );
+      // }
 
       await bookingRequest.populate([
         {

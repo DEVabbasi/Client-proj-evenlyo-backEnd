@@ -81,80 +81,14 @@ const createNotification = async ({
   bookingId = null,
 }) => {
   try {
-    let resolvedVendorId = vendorId;
-    if (notificationFor === "Vendor" && vendorId) {
-      const ownerUserId = await resolveVendorOwnerUserId(vendorId);
-      if (ownerUserId) resolvedVendorId = ownerUserId;
-    }
-
-    // 1️⃣ Save in DB
     const notification = await Notification.create({
       title,
       message,
       notificationFor,
       clientId,
-      vendorId: resolvedVendorId,
+      vendorId,
       bookingId,
     });
-
-    console.log(notification,"notificationnotificationnotificationnotification");
-    
-    // 2️⃣ Find target user
-    const user = await resolveTargetUser({
-      notificationFor,
-      clientId,
-      vendorId: resolvedVendorId,
-      projection: "appFcm webFcm fcm notifications",
-    });
-
-    if (!user && notificationFor !== "Admin") {
-      console.warn("⚠️ createNotification: user not found for push", {
-        notificationFor,
-        clientId: normalizeObjectId(clientId),
-        vendorId: normalizeObjectId(resolvedVendorId),
-      });
-    }
-
-    const pushEnabled = user?.notifications?.push !== false;
-    const resolved = resolveUserFcmToken(user);
-    const fcmToken = resolved?.token;
-
-    // 3️⃣ Send FCM (respect user push preference)
-    if (fcmToken && pushEnabled) {
-      const pushResult = await sendNotification({
-        token: fcmToken,
-        title,
-        body: message,
-        data: {
-          notificationId: notification._id.toString(),
-          type: "notification",
-        },
-      });
-      if (!pushResult?.ok) {
-        console.warn("⚠️ createNotification push failed", {
-          notificationFor,
-          userId: user?._id?.toString(),
-          tokenSource: resolved?.source,
-          reason: pushResult?.reason,
-          code: pushResult?.code,
-          hint:
-            pushResult?.reason === "invalid_token"
-              ? "User must open the mobile app while logged in to refresh FCM token"
-              : undefined,
-        });
-      }
-    } else if (notificationFor !== "Admin") {
-      console.warn("⚠️ createNotification skipped push", {
-        notificationFor,
-        clientId: normalizeObjectId(clientId),
-        vendorId: normalizeObjectId(resolvedVendorId),
-        userId: user?._id?.toString(),
-        pushEnabled,
-        hasToken: Boolean(fcmToken),
-        tokenSource: resolved?.source,
-      });
-    }
-
     return notification;
   } catch (err) {
     console.error("❌ createNotification error:", err);
@@ -163,59 +97,40 @@ const createNotification = async ({
 };
 
 // Send push notification only (without storing in DB)
-const sendPushOnly = async ({
-  title,
-  message,
-  notificationFor, // "Client" | "Vendor"
-  clientId = null,
-  vendorId = null,
-  data = {},
-  ignorePushPreference = false,
-}) => {
+const sendPushOnly = async (data) => {
   try {
-    const user = await resolveTargetUser({
-      notificationFor,
-      clientId,
-      vendorId,
-      projection: "appFcm webFcm fcm notifications",
-    });
+    const tokens = [
+      data?.receiverDetails?.appFcm,
+      data?.receiverDetails?.webFcm,
+    ].filter(Boolean);
 
-    // Chat messages always deliver; booking/marketing respect settings
-    if (!ignorePushPreference && user?.notifications?.push === false) {
-      console.warn("⚠️ sendPushOnly skipped (push disabled in settings)", {
-        notificationFor,
-        clientId: normalizeObjectId(clientId),
-        vendorId: normalizeObjectId(vendorId),
-      });
+    const uniqueTokens = [...new Set(tokens)];
+
+    if (!uniqueTokens.length) {
+      console.warn("⚠️ No FCM tokens found");
       return false;
     }
 
-    const resolved = resolveUserFcmToken(user);
-    const token = resolved?.token;
-    if (!token) {
-      console.warn("⚠️ sendPushOnly skipped push (missing token)", {
-        notificationFor,
-        clientId: normalizeObjectId(clientId),
-        vendorId: normalizeObjectId(vendorId),
-        userId: user?._id?.toString(),
-      });
-      return false;
-    }
-
-    const pushResult = await sendNotification({
-      token,
-      title,
-      body: message,
-      data,
-    });
-    return Boolean(pushResult?.ok);
+    const results = await Promise.allSettled(
+      uniqueTokens.map((token) =>
+        sendNotification({
+          token,
+          title: data.title,
+          body: data.message,
+          data: data.data,
+        })
+      )
+    );
+    const success = results.some(
+      (r) => r.status === "fulfilled" && r.value?.ok
+    );
+    return success;
   } catch (err) {
     console.error("❌ sendPushOnly error:", err);
     return false;
   }
 };
 
-// Get notifications for a user
 const getNotifications = async (userId) => {
   return Notification.find({ user: userId }).sort({ createdAt: -1 });
 };

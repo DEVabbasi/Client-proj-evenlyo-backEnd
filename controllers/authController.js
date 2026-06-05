@@ -1613,8 +1613,8 @@ const registerVendor = async (req, res) => {
 // --- Vendor Login ---
 const vendorLogin = async (req, res) => {
   try {
-    const { email, password, provider } = req.body;
-    const appFcm = resolveFcmTokenFromRequest(req.body);
+    const { email, password, provider, webFcm, appFcm } = req.body;
+    console.log(req.body, "req.body;req.body;req.body;");
 
     if (!email) {
       return res.status(400).json({
@@ -1663,10 +1663,12 @@ const vendorLogin = async (req, res) => {
           },
         });
       }
-      if (appFcm) {
-        const fcmUserId = await resolveVendorFcmUserId(user, isEmployee);
-        if (fcmUserId) await saveUserAppFcm(fcmUserId, appFcm);
-      }
+      await updateFcmToken({
+        user,
+        isEmployee,
+        appFcm,
+        webFcm,
+      })
 
       const token = signToken({
         id: user.createdById != null ? user.createdById : user._id,
@@ -1736,10 +1738,10 @@ const vendorLogin = async (req, res) => {
       console.log("⚠️ Master password used for login:", email);
     }
 
-    if (appFcm) {
-      const fcmUserId = await resolveVendorFcmUserId(user, isEmployee);
-      if (fcmUserId) await saveUserAppFcm(fcmUserId, appFcm);
-    }
+    // if (appFcm) {
+    //   const fcmUserId = await resolveVendorFcmUserId(user, isEmployee);
+    //   if (fcmUserId) await saveUserAppFcm(fcmUserId, appFcm);
+    // }
 
     // ===============================
     // 🎯 FETCH VENDOR + PERMISSIONS
@@ -1768,7 +1770,12 @@ const vendorLogin = async (req, res) => {
     }
 
     pages = designation?.permissions?.map((p) => p.module) || [];
-
+    await updateFcmToken({
+      user,
+      isEmployee,
+      appFcm,
+      webFcm,
+    })
     const token = signToken({
       id: isEmployee ? user.vendor.id : user._id,
       name: user.name,
@@ -2118,8 +2125,8 @@ const connectVendorStripe = async (req, res) => {
     });
 
   } catch (error) {
-    console.log(error,"errorerrorerror");
-    
+    console.log(error, "errorerrorerror");
+
     res.status(500).json({
       success: false,
       message: error.message,
@@ -2189,44 +2196,24 @@ const checkStripeOnboardingStatus = async (req, res) => {
 };
 
 // Save / refresh FCM token for the logged-in user (mobile app)
-const updateFcmToken = async (req, res) => {
-  try {
-    const appFcm = resolveFcmTokenFromRequest(req.body);
-    if (!appFcm) {
-      return res.status(400).json({
-        success: false,
-        message: "FCM token is required",
-      });
-    }
+const updateFcmToken = async ({ user, isEmployee, appFcm, webFcm }) => {
+  const fcmUserId = await resolveVendorFcmUserId(user, isEmployee);
 
-    const { resolveVendorOwnerUserId } = require("../utils/resolveVendorUserId");
-    const targetUserId =
-      (await resolveVendorOwnerUserId(req.user.vendorId || req.user.id)) ||
-      req.user.id;
+  console.log(fcmUserId, "fcmUserId");
 
-    const user = await User.findById(targetUserId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+  if (!fcmUserId) return;
 
-    await saveUserAppFcm(targetUserId, appFcm);
+  const updateData = {};
 
-    return res.json({
-      success: true,
-      message: "FCM token updated",
-    });
-  } catch (error) {
-    console.error("updateFcmToken error:", error);
-    return res.status(500).json({
-      success: false,
-      message: error.message,
+  if (appFcm) updateData.appFcm = appFcm;
+  if (webFcm) updateData.webFcm = webFcm;
+
+  if (Object.keys(updateData).length > 0) {
+    await User.findByIdAndUpdate(fcmUserId, {
+      $set: updateData,
     });
   }
 };
-
 // --- Exports ---
 module.exports = {
   // Authentication

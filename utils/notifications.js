@@ -27,24 +27,15 @@ const clearUserFcmToken = async (token) => {
 };
 
 const sendNotification = async ({ token, title, body, data = {} }) => {
+  console.log("Sending FCM notification", { token, title, body, data });
   try {
-    if (!token) {
-      console.log("⚠️ No FCM token found, skipping push");
-      return { ok: false, reason: "no_token" };
-    }
-
-    const stringData = Object.entries(data || {}).reduce((acc, [key, value]) => {
-      acc[key] = value == null ? "" : String(value);
-      return acc;
-    }, {});
-
     const message = {
       token,
       notification: {
-        title: pickBestText(title),
-        body: pickBestText(body),
+        title,
+        body,
       },
-      data: stringData,
+      data,
       android: {
         priority: "high",
         notification: {
@@ -67,7 +58,6 @@ const sendNotification = async ({ token, title, body, data = {} }) => {
     };
 
     const response = await admin.messaging().send(message);
-
     console.log("✅ FCM sent successfully", {
       messageId: response,
       tokenPrefix: String(token).slice(0, 12),
@@ -79,9 +69,8 @@ const sendNotification = async ({ token, title, body, data = {} }) => {
       code: error.code,
       errorInfo: error.errorInfo,
     });
-
     if (INVALID_TOKEN_CODES.has(error.code)) {
-      await clearUserFcmToken(token);
+      // await clearUserFcmToken(token);
       return { ok: false, reason: "invalid_token", code: error.code };
     }
 

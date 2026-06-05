@@ -490,7 +490,6 @@ Evenlyo
 
 const sendEvenlyoProtectBookingEmail = async (booking, client, vendor, status) => {
   console.log(booking, "BOOKING", client, "CLIENT", vendor, "VENDOR", "bookingbookingbookingbookingbooking");
-
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,

@@ -320,6 +320,7 @@ const createBookingRequest = async (data, session) => {
 
   try {
     await notifyVendorNewBooking({
+      title: "Nieuwe boekingsaanvraag",
       vendorUserId,
       clientUserId: bookingRequest.userId,
       bookingRequest,
