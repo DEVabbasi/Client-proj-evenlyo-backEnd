@@ -8,23 +8,21 @@ const BookingRequest = require("../models/Booking");
 const Vendor = require("../models/Vendor");
 const Notification = require("../models/Notification");
 const { default: mongoose } = require("mongoose");
+const {
+  getVendorNotificationRecipientIds,
+} = require("../utils/resolveVendorUserId");
 
 router.get("/", requireAuth, async (req, res) => {
-  console.log(req.user.id, " req.user.id req.user.id");
+  try {
+    const notifications = await Notification.find({
+      notificationFor: "Client",
+      clientId: req.user.id,
+    }).sort({ createdAt: -1 });
 
-  const notifications = await Notification.find({ notificationFor: "Vendor", clientId: req.user.id }).sort({ createdAt: -1 });
-  // let userIdToQuery = req.user.id;
-  // console.log(userIdToQuery,"userIdToQueryuserIdToQuery");
-
-  // if (req.user.userType === 'vendor') {
-  //   // Find vendor profile for this user
-  //   const vendorProfile = await Vendor.findOne({ userId: req.user.id });
-  //   if (vendorProfile) {
-  //     userIdToQuery = vendorProfile._id;
-  //   }
-  // }
-  // const notifications = await getNotifications(userIdToQuery);
-  res.json({ success: true, data: notifications });
+    res.json({ success: true, data: notifications });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 
@@ -72,9 +70,11 @@ router.get("/admin-notifications", async (req, res) => {
 
 router.get("/vendor-notifications", requireAuth, async (req, res) => {
   try {
+    const vendorIds = await getVendorNotificationRecipientIds(req.user);
+
     const notifications = await Notification.find({
       notificationFor: "Vendor",
-      vendorId: req.user.id,
+      vendorId: { $in: vendorIds },
     }).sort({ createdAt: -1 });
 
     const finalNotifications = await Promise.all(

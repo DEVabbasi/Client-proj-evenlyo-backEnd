@@ -19,9 +19,11 @@ const { toMultilingualText } = require("../../utils/textUtils");
 const stripe = require("../../config/stripe");
 const Booking = require("../../models/Booking");
 const mongoose = require("mongoose");
-const { createActivityLog } = require("../../utils/activityLogger");
+const { resolveVendorUserId } = require("../../utils/resolveVendorUserId");
+const { notifyVendorNewBooking } = require("../../utils/notifyVendorNewBooking");
 const SupportTicket = require("../../models/SupportTicket");
 const { sendEvenlyoProtectBookingEmail } = require("../../utils/mailer");
+const { createActivityLog } = require("../../utils/activityLogger");
 
 const momentTime = require("moment-timezone");
 // @desc    Create Stripe PaymentIntent for a booking
@@ -76,12 +78,9 @@ const createBookingPaymentIntent = asyncHandler(async (req, res) => {
 const restockItem = asyncHandler(async (req, res) => {
   const { id } = req.params; // bookingId
   const userId = req.user.id;
-  console.log(id, "ididid");
 
   // 1. Validate booking exists and belongs to user
   const booking = await Booking.findOne({ trackingId: id });
-  console.log(booking, "bookingbookingbookingbooking");
-
   if (!booking) {
     return res.status(404).json({
       success: false,
@@ -108,7 +107,6 @@ const restockItem = asyncHandler(async (req, res) => {
   }
 
   const item = await Listing.findById({ _id: itemId });
-  console.log(item, "itemitemitemitem");
   if (!item) {
     return res.status(404).json({
       success: false,
@@ -119,10 +117,7 @@ const restockItem = asyncHandler(async (req, res) => {
   // 4. Restock the item
   item.quantity = (item.quantity || 0) + quantity;
   await item.save();
-
   // 5. Mark stock updated in booking.claimDetails
-  console.log("HAHAHAHA");
-
   await Booking.findOneAndUpdate(
     { trackingId: id },
     {
@@ -149,9 +144,6 @@ const restockItem = asyncHandler(async (req, res) => {
 const reviewBooking = asyncHandler(async (req, res) => {
   const { rating, review } = req.body;
   const { id } = req.params;
-  console.log(id, "ididid");
-
-  // Simple rating validation
   if (!rating || rating < 1 || rating > 5) {
     return res.status(400).json({
       success: false,
@@ -221,13 +213,13 @@ const createBookingRequest = asyncHandler(async (req, res) => {
     let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Include both start and end dates
     let isMultiDay = diffDays > 1;
 
-    // Validate required fields
     if (!listingId || !vendorId || !startDate || !endDate || !eventLocation) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields",
       });
     }
+
     if (!isMultiDay && (!startTime || !endTime)) {
       return res.status(400).json({
         success: false,
@@ -236,12 +228,10 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       });
     }
 
-
     const TIMEZONE = "Europe/Amsterdam";
     const now = momentTime().tz(TIMEZONE);
 
     let bookingStartDateTime;
-
     if (startTime) {
       bookingStartDateTime = momentTime
         .tz(`${startDate} ${startTime}`, "YYYY-MM-DD HH:mm", TIMEZONE);
@@ -249,7 +239,6 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       bookingStartDateTime = momentTime
         .tz(`${startDate} 00:00`, "YYYY-MM-DD HH:mm", TIMEZONE);
     }
-
     if (bookingStartDateTime.isBefore(now)) {
       return res.status(400).json({
         success: false,
@@ -259,10 +248,8 @@ const createBookingRequest = asyncHandler(async (req, res) => {
         },
       });
     }
-
     if (bookingStartDateTime.isSame(now, "day")) {
       const diffMinutes = bookingStartDateTime.diff(now, "minutes");
-      console.log(diffMinutes, "diffMinutesdiffMinutesdiffMinutesdiffMinutes");
 
       if (diffMinutes < 120) {
         return res.status(400).json({
@@ -272,7 +259,6 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       }
     }
 
-    // Check if listing exists and is active
     const listing = await Listing.findOne({
       _id: listingId,
       isActive: true,
@@ -300,7 +286,6 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       });
     }
 
-    // If listing charges per km, require distanceKm in request details
     if (
       typeof distanceKm === "undefined" ||
       isNaN(Number(distanceKm)) ||
@@ -316,35 +301,22 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       });
     }
 
-    // Verify vendor matches (guard for missing vendor)
-    if (
-      !listing.vendor ||
-      !listing.vendor._id ||
-      listing.vendor._id.toString() !== vendorId
-    ) {
+    // Always use listing owner (User id), not client-sent vendorId alone
+    const vendorUserId = await resolveVendorUserId(vendorId, listing);
+    if (!vendorUserId) {
+      return res.status(400).json({
+        success: false,
+        message: "Vendor not found for this listing",
+      });
+    }
+
+    const clientVendorId = await resolveVendorUserId(vendorId, null);
+    if (clientVendorId && clientVendorId.toString() !== vendorUserId.toString()) {
       return res.status(400).json({
         success: false,
         message: "Vendor mismatch",
       });
     }
-
-    // Check availability for all days in the range, including time slots for single-day bookings
-    // const isAvailable = await checkAvailability(
-    //   listingId,
-    //   new Date(startDate),
-    //   new Date(endDate),
-    //   null, // excludeBookingId
-    //   startTime, // pass startTime for time slot validation
-    //   endTime // pass endTime for time slot validation
-    // );
-    // if (!isAvailable) {
-    //   return res.status(409).json({
-    //     success: false,
-    //     message:
-    //       "Selected dates/times are not available. The time slot may be outside available hours or already booked.",
-    //   });
-    // }
-
     // Calculate hours per day and total hours depending on presence of times and multi-day
     let dailyHours = 0;
     let totalHours = 0;
@@ -423,15 +395,8 @@ const createBookingRequest = asyncHandler(async (req, res) => {
     }
     // Create booking request with multi-day support
 
-    console.log(listing, "listinglistinglistinglisting");
     const result = getDayCount(startDate, endDate);
-    // console.log(result, "RESSASDASDADASD");
-    console.log(
-      req?.body,
-      "req?.body?.pricingBreakdownreq?.body?.pricingBreakdown",
-    );
 
-    // return
     const bookingRequest = new BookingRequest({
       statusHistory: [
         {
@@ -446,7 +411,7 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       AmountLeft: req?.body?.details?.pricingBreakdown?.total,
       userId: req.user.id,
       pricingBreakdown,
-      vendorId,
+      vendorId: vendorUserId,
       listingId,
       listingDetails: {
         title: listing.title,
@@ -537,10 +502,8 @@ const createBookingRequest = asyncHandler(async (req, res) => {
     });
 
     await bookingRequest.save();
-
     try {
       const cart = await Cart.findOne({ userId: req.user.id });
-
       if (cart) {
         await cart.removeItem(listingId);
       }
@@ -548,89 +511,64 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       console.error("Failed to remove item from cart:", cartError);
     }
 
-    const vendor = await User.findById(bookingRequest.vendorId).populate(
-      "firstName lastName",
-    );
-
     try {
       const client = await User.findById(bookingRequest.userId).select(
         "firstName lastName",
       );
-      console.log(vendor, client, "VAAadasdAA");
+      const vendor = await User.findById(vendorId)
 
-      if (vendor) {
-        const clientName = client
-          ? `${client.firstName} ${client.lastName}`
-          : "A client";
-        const listingTitle = listing.title || "your listing";
-        const bookingDates = `${startDate}${endDate !== startDate ? ` to ${endDate}` : ""
-          }`;
-        console.log(listingTitle, bookingDates, "bookingDates");
+      console.log(vendor,"vendor_data=>>>");
+      
+      const bookingDates = `${startDate}${endDate !== startDate ? ` to ${endDate}` : ""}`;
 
-        console.log(
-          req.body.details.pricingBreakdown.paymentPolicy
-            .isEvenlyoProtectEnabled,
-          "req.body.details.pricingBreakdown.paymentPolicy.isEvenlyoProtectEnabled",
-        );
-        console.log(
-          vendor.notifications,
-          "vendor.notificationsvendor.notificationsvendor.notifications",
-        );
+      const clientName = client
+        ? `${client.firstName} ${client.lastName}`.trim()
+        : "A client";
+      const message = {
+        en: `New booking request from ${clientName} for "${listing.title.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
+        nl: `Nieuwe boekingsaanvraag van ${clientName} voor "${listing.title.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
+      };
 
-        await createActivityLog({
-          heading: {
-            en: "New Booking Request",
-            nl: "Nieuwe boekingsaanvraag",
-          },
-          type: "booking_created",
-          description: {
-            en: `New booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
-            nl: `Nieuwe boekingsaanvraag van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
-          },
-          vendorId: bookingRequest?.vendorId,
-          ActivityType: "booking",
+      const listingTitle = listing.title || { en: "your listing", nl: "uw aanbod" };
+      const isEvenlyoProtectEnabled =
+        req.body?.details?.pricingBreakdown?.paymentPolicy
+          ?.isEvenlyoProtectEnabled === true;
+
+      try {
+        await notifyVendorNewBooking({
+          message: `Nieuwe boekingsaanvraag voor uw aanbod "${listing.title.nl}`,
+          receiverDetails: vendor,
+          bookingRequest,
+          listing,
+          startDate,
+          endDate,
         });
-        if (vendor.notifications.push === true) {
-          await notificationController.createNotification({
-            title: {
-              en: "New booking request",
-              nl: "Nieuwe boekingsaanvraag",
-            },
-            notificationFor: "Vendor",
-            vendorId: vendor._id, // vendor's user account receives notification
-            clientId: null, // vendor's user account receives notification
-            bookingId: bookingRequest._id,
-            message: {
-              en: `New booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
-              nl: `Nieuwe boekingsaanvraag van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
-            },
-          });
-        }
+      } catch (e) {
+        console.error("Failed to create vendor notification for new booking:", e);
+      }
 
+      if (isEvenlyoProtectEnabled) {
         const adminsToNotifyPush = await AdminEmployee.findOne({
           role: "Admin",
           status: "active",
-          "notificationSettings.push.evenlyoProtect": true
+          "notificationSettings.push.evenlyoProtect": true,
         }).select("_id name email");
 
         const adminsToNotifyEmail = await AdminEmployee.findOne({
           role: "Admin",
           status: "active",
-          "notificationSettings.email.evenlyoProtect": true
+          "notificationSettings.email.evenlyoProtect": true,
         }).select("_id name email");
 
-        if (
-          req.body.details.pricingBreakdown.paymentPolicy
-            .isEvenlyoProtectEnabled === true && adminsToNotifyPush
-        ) {
+        if (adminsToNotifyPush) {
           await notificationController.createNotification({
             title: {
               en: "Evenlyo protected booking",
               nl: "Door Evenlyo beschermde boeking",
             },
             notificationFor: "Admin",
-            vendorId: vendor._id, // vendor's user account receives notification
-            clientId: client._id, // vendor's user account receives notification
+            vendorId: vendorUserId,
+            clientId: client?._id,
             bookingId: bookingRequest._id,
             message: {
               en: `A evenlyo protected booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
@@ -638,13 +576,34 @@ const createBookingRequest = asyncHandler(async (req, res) => {
             },
           });
         }
-        if (req.body.details.pricingBreakdown.paymentPolicy
-          .isEvenlyoProtectEnabled === true && adminsToNotifyEmail) {
-          sendEvenlyoProtectBookingEmail(bookingRequest, clientName, vendor, 'NEW');
+
+        if (adminsToNotifyEmail && vendor) {
+          sendEvenlyoProtectBookingEmail(
+            bookingRequest,
+            clientName,
+            vendor,
+            "NEW",
+          );
+        }
+        try {
+          await createActivityLog({
+            ActivityType: "booking",
+            heading: {
+              en: "New Booking Request",
+              nl: "Nieuwe boekingsaanvraag",
+            },
+            type: "booking_created",
+            description: message,
+            bookingId: bookingRequest._id,
+            userId: client?._id,
+            vendorId: vendorId,
+          });
+        } catch (activityErr) {
+          console.error("Activity log failed (booking notification continues):", activityErr);
         }
       }
     } catch (e) {
-      console.error("Failed to create vendor notification for new booking:", e);
+      console.error("Failed to create admin notification for protected booking:", e);
     }
     // Populate the response (listing details are now stored directly in listingDetails field)
     await bookingRequest.populate([
@@ -663,16 +622,8 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       0,
     );
 
-    // bookingRequest.statusHistory.push({
-    //   status: "cancelled",
-    //   updatedBy: {
-    //     userId: req.user.id,
-    //     userType: "client",
-    //     name: req.user.firstName + " " + req.user.lastName,
-    //   },
-    //   notes: notes,
-    // });
-    // await bookingRequest.save();
+    const vendorUser = await User.findById(vendorUserId).select("firstName");
+
 
     res.status(201).json({
       success: true,
@@ -681,7 +632,7 @@ const createBookingRequest = asyncHandler(async (req, res) => {
         nl: "Boekingsaanvraag succesvol aangemaakt",
       },
       data: {
-        vendorName: `${vendor.firstName}`,
+        vendorName: vendorUser?.firstName || "",
         bookingRequest,
         paymentPolicy: {
           escrowEnabled: policy.escrowEnabled,
@@ -694,7 +645,16 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       },
     });
   } catch (error) {
-    console.log(error, "errorerrorerror");
+    console.error("createBookingRequest error:", error);
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: {
+          en: "Failed to create booking request",
+          nl: "Boekingsaanvraag aanmaken mislukt",
+        },
+      });
+    }
   }
 });
 
@@ -855,15 +815,10 @@ const getBookingHistory = asyncHandler(async (req, res) => {
   // Format bookings with action buttons based on status
   const formattedBookings = await Promise.all(
     bookings.map(async (booking) => {
-      console.log(booking, "bookingbookingbookingbooking");
       const reviewExists = await Review.exists({
         bookingId: booking._id,
       });
-      console.log(booking.vendorId, "booking.vendorIdbooking.vendorIdbooking.vendorId");
-
       const vendorDetailsId = await Vendor.findOne({ userId: booking.vendorId.id }).select("businessName");
-      console.log(vendorDetailsId, "vendorDetailsIdvendorDetailsIdvendorDetailsIdvendorDetailsId");
-
       const bookingData = {
         ...booking.toObject(),
         _id: booking._id,
@@ -1129,7 +1084,6 @@ const markBookingReceived = asyncHandler(async (req, res) => {
   // Notify vendor that booking is received
   try {
     const vendor = await Vendor.findById(booking.vendorId);
-    console.log(vendor, "vendorvendorvendor");
     await notificationController.createNotification({
       title: {
         en: "Booking Received by Client",
@@ -1239,12 +1193,6 @@ const createClaim = asyncHandler(async (req, res) => {
     userId: req.user.id,
     status: { $in: ["received", "finished", "paid"] },
   });
-  console.log(req.user, booking, " req.user req.user req.user");
-  // return res.json({
-  //   success: true,
-  //   message: "TEST",
-  //   data: { booking },
-  // });
   if (!booking) {
     return res.status(404).json({
       success: false,
@@ -1411,9 +1359,6 @@ const cancelBooking = asyncHandler(async (req, res) => {
       );
     }
   }
-
-  console.log(updatedListing, "updatedListingupdatedListingupdatedListingupdatedListing");
-
   res.json({
     success: true,
     message: {
@@ -1431,22 +1376,17 @@ const getBookingDetails = asyncHandler(async (req, res) => {
     "userId",
     "firstName lastName email contactNumber",
   );
-  console.log(booking.vendorId, "booking.vendorIdbooking.vendorId");
   const vendorDetails = await User.findById(booking.vendorId).select(
     "firstName lastName email image fullName",
   );
-  console.log("vendor exists:", vendorDetails);
-  console.log(booking, "bookingbookingbookingbookingbooking");
   if (!booking) {
     return res.status(404).json({
       success: false,
       message: "Booking not found",
     });
   }
-  console.log(req.user.id, "req.user.idreq.user.idreq.user.id");
   // Check if user has access to this booking
   const vendor = await Vendor.findOne({ userId: booking.vendorId });
-  console.log(vendor, "vendorvendorvendorvendor");
   let vendorDetailsss = {
     ...vendorDetails.toObject(),
     businessLogo: vendor ? vendor.businessLogo : null,
@@ -1773,11 +1713,8 @@ const fetchBookingRequest = asyncHandler(async (req, res) => {
   if (vendorId) obj.vendorId = new mongoose.Types.ObjectId(vendorId);
   if (status) obj.status = status;
 
-  console.log(obj, "objobj");
 
   const findBookingRequest = await Booking.find(obj);
-  console.log(findBookingRequest, "findBookingRequestfindBookingRequest");
-
   if (!findBookingRequest || findBookingRequest.length === 0) {
     return res.status(400).json({
       success: false,
@@ -1793,17 +1730,9 @@ const fetchBookingRequest = asyncHandler(async (req, res) => {
 });
 
 const fetchBookingRequestByDate = asyncHandler(async (req, res) => {
-  console.log("=== START fetchBookingRequestByDate ===");
-  console.log("req.body:", req.body);
-
   const { date, vendorId, userId } = req.body;
 
-  console.log("Extracted date:", date);
-  console.log("Extracted vendorId:", vendorId);
-  console.log("Extracted userId:", userId);
-
   if (!date) {
-    console.log("Date validation failed - no date provided");
     return res.status(400).json({
       success: false,
       message: "Date is required",
@@ -1814,29 +1743,22 @@ const fetchBookingRequestByDate = asyncHandler(async (req, res) => {
   if (vendorId) obj.vendorId = vendorId;
   if (userId) obj.userId = userId;
 
-  console.log("Initial query object:", obj);
 
   try {
     const inputDateString = date.split("T")[0];
-    console.log("Input date string:", inputDateString);
 
-    console.log("Fetching all bookings for filters...");
     const allBookings = await Booking.find(obj);
-    console.log("Total bookings found:", allBookings.length);
 
     if (allBookings.length > 0) {
-      console.log("All booking start dates:");
       allBookings.forEach((booking, index) => {
         const startDateStr = booking.details?.startDate
           ? new Date(booking.details.startDate).toISOString().split("T")[0]
           : "N/A";
-        console.log(`Booking ${index + 1}: ${startDateStr}`, booking._id);
       });
     }
 
     const filteredBookings = allBookings.filter((booking) => {
       if (!booking.details || !booking.details.startDate) {
-        console.log("Booking missing details.startDate:", booking._id);
         return false;
       }
 
@@ -1844,16 +1766,10 @@ const fetchBookingRequestByDate = asyncHandler(async (req, res) => {
         .toISOString()
         .split("T")[0];
       const matches = bookingDateStr === inputDateString;
-      console.log(
-        `Booking ${booking._id}: ${bookingDateStr} === ${inputDateString}? ${matches}`,
-      );
       return matches;
     });
 
-    console.log("Filtered bookings count:", filteredBookings.length);
-
     if (filteredBookings.length === 0) {
-      console.log("No bookings found - returning 404");
       return res.status(404).json({
         success: false,
         message: "No booking requests found starting on the specified date",
@@ -1865,9 +1781,6 @@ const fetchBookingRequestByDate = asyncHandler(async (req, res) => {
       model: "User",
       select: "firstName lastName email",
     });
-
-    console.log("Populated bookings:", populatedBookings.length);
-
     populatedBookings.sort((a, b) => {
       const timeA = a.details?.startTime || "00:00";
       const timeB = b.details?.startTime || "00:00";
@@ -1876,7 +1789,6 @@ const fetchBookingRequestByDate = asyncHandler(async (req, res) => {
       return 0;
     });
 
-    console.log("Returning success response");
     return res.status(200).json({
       success: true,
       data: populatedBookings,
@@ -1884,9 +1796,6 @@ const fetchBookingRequestByDate = asyncHandler(async (req, res) => {
       message: "Booking requests fetched successfully",
     });
   } catch (error) {
-    console.log("ERROR CAUGHT:", error);
-    console.log("Error message:", error.message);
-    console.log("Error stack:", error.stack);
     return res.status(500).json({
       success: false,
       message: "Internal server error",

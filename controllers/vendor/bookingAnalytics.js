@@ -15,7 +15,8 @@ const { createActivityLog } = require("../../utils/activityLogger");
 const stripe = require("../../config/stripe");
 const { default: mongoose } = require("mongoose");
 const { sendOrderStatusEmail, sendEvenlyoProtectBookingEmail } = require("../../utils/mailer");
-const AdminEmployee = require("../../models/AdminEmployee")
+const AdminEmployee = require("../../models/AdminEmployee");
+const { notifyVendorNewBooking } = require("../../utils/notifyVendorNewBooking");
 // GET /api/vendor/bookings/analytics
 const getVendorBookingAnalytics = async (req, res) => {
   console.log("HAHAHAHHA");
@@ -146,7 +147,6 @@ const getVendorBookingById = async (req, res) => {
 // @access  Private (Vendor)
 const acceptBooking = asyncHandler(async (req, res) => {
   const { id } = req.params;
-
   const vendor = await Vendor.findOne({ userId: req.user.id });
   const vendorDetails = await User.findOne({ _id: req.user.id });
   console.log(vendorDetails, 'vendorvendorvendorvendor');
@@ -165,6 +165,14 @@ const acceptBooking = asyncHandler(async (req, res) => {
   });
 
   console.log(booking, "bookingbookingbookingbooking");
+
+
+  const listingDetails = await Listing.findOne({
+    _id: booking.listingId,
+  });
+
+
+
 
   // return res.send("ok")
 
@@ -288,14 +296,15 @@ const acceptBooking = asyncHandler(async (req, res) => {
         en: "Booking Status",
         nl: "Boekingstatus",
       },
-      notificationFor: "Vendor",
-      vendorId: booking.vendorId, // vendor's user account receives notification
-      clientId: booking.userId, //
-      bookingId: booking._id,
       message: {
         en: `Booking against ${booking.trackingId} has been accepted`,
         nl: `Boeking met betrekking tot ${booking.trackingId} is geaccepteerd.`,
       },
+      notificationFor: "Client",
+      clientId: booking.userId, //
+      vendorId: booking.vendorId, // vendor's user account receives notification
+      bookingId: booking._id,
+
     });
   } catch (e) {
     console.error(
@@ -327,6 +336,19 @@ const acceptBooking = asyncHandler(async (req, res) => {
     }
     catch (e) {
       console.error("Failed to send order acceptance email:", e);
+    }
+  }
+
+  if (user.notifications?.push === true) {
+    try {
+      await notifyVendorNewBooking({
+        title: "Boeking Geaccepteerd",
+        message: `Nieuwe boekingsaanvraag voor uw aanbod "${listingDetails.title.nl}" van ${moment(booking.details.startDate).format("DD MMM YYYY")} is geaccepteerd.`,
+        receiverDetails: user,
+        bookingRequest: booking,
+      });
+    } catch (e) {
+      console.error("Failed to create vendor notification for new booking:", e);
     }
   }
 
@@ -438,22 +460,20 @@ const rejectBooking = asyncHandler(async (req, res) => {
     // });
     console.log(vendor, "vendorvendorvendorvendor");
 
-    if (vendor?.notifications?.push === true) {
-      await notificationController.createNotification({
-        title: {
-          en: "Booking Status",
-          nl: "Boekingstatus",
-        },
-        notificationFor: "Vendor",
-        vendorId: booking.vendorId, // vendor's user account receives notification
-        clientId: booking.userId, //
-        bookingId: booking._id,
-        message: {
-          en: `Booking against ${booking.trackingId} has been rejected`,
-          nl: `Boeking met betrekking tot ${booking.trackingId} is Geweigerd.`,
-        },
-      });
-    }
+    await notificationController.createNotification({
+      title: {
+        en: "Booking Status",
+        nl: "Boekingstatus",
+      },
+      notificationFor: "Client",
+      vendorId: booking.vendorId,
+      clientId: booking.userId,
+      bookingId: booking._id,
+      message: {
+        en: `Booking against ${booking.trackingId} has been rejected`,
+        nl: `Boeking met betrekking tot ${booking.trackingId} is Geweigerd.`,
+      },
+    });
   } catch (e) {
     console.error(
       "Failed to create client notification for rejected booking:",
@@ -595,8 +615,8 @@ const createPaymentIntent = async (req, res) => {
       });
     }
 
-    console.log(Math.round(amount * 100),"Math.round(amount * 100)Math.round(amount * 100)Math.round(amount * 100)");
-    
+    console.log(Math.round(amount * 100), "Math.round(amount * 100)Math.round(amount * 100)Math.round(amount * 100)");
+
     // ✅ Create PaymentIntent if event not passed
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100),

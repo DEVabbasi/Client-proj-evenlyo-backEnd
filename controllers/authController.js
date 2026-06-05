@@ -16,6 +16,11 @@ const logger = require("../utils/logger");
 const notificationController = require("./notificationController");
 const stripe = require("../config/stripe");
 
+const resolveFcmTokenFromRequest = (body = {}) =>
+  body.appFcm || body.webFcm || body.fcm || null;
+const { saveUserAppFcm } = require("../utils/fcmToken");
+const { resolveVendorFcmUserId } = require("../utils/resolveVendorUserId");
+
 // --- Model loading utility ---
 const getModelByUserType = (userType) => {
   switch (userType) {
@@ -33,7 +38,8 @@ const getModelByUserType = (userType) => {
 // --- Client Login ---
 const clientLogin = async (req, res) => {
   try {
-    const { email, password, provider, webFcm } = req.body;
+    const { email, password, provider } = req.body;
+    const appFcm = resolveFcmTokenFromRequest(req.body);
 
     if (!email) {
       return res.status(400).json({
@@ -64,10 +70,8 @@ const clientLogin = async (req, res) => {
         });
       }
 
-      // Update FCM token if provided
-      if (webFcm) {
-        user.webFcm = webFcm;
-        await user.save();
+      if (appFcm) {
+        await saveUserAppFcm(user._id, appFcm);
       }
 
       const token = signToken({
@@ -116,10 +120,8 @@ const clientLogin = async (req, res) => {
       });
     }
 
-    // Update FCM token if provided
-    if (webFcm) {
-      user.webFcm = webFcm;
-      await user.save();
+    if (appFcm) {
+      await saveUserAppFcm(user._id, appFcm);
     }
 
     const token = signToken({
@@ -1228,6 +1230,7 @@ const verifyOtpAndRegisterGeneral = async (req, res) => {
 const googleAuth = async (req, res) => {
   try {
     const { idToken, type, userData } = req.body;
+    const appFcm = resolveFcmTokenFromRequest(req.body);
 
     if (type != "App" && !idToken) {
       return res.status(400).json({
@@ -1255,7 +1258,11 @@ const googleAuth = async (req, res) => {
         }
 
         user.lastLogin = new Date();
-        await user.save();
+        if (appFcm) {
+          await saveUserAppFcm(user._id, appFcm);
+        } else {
+          await user.save();
+        }
         const accessToken = buildAccessToken(user);
 
         return res.json({
@@ -1287,6 +1294,7 @@ const googleAuth = async (req, res) => {
         profileImage: userData?.picture,
         isActive: true,
         lastLogin: new Date(),
+        ...(appFcm ? { appFcm } : {}),
       });
 
       await user.save();
@@ -1605,7 +1613,8 @@ const registerVendor = async (req, res) => {
 // --- Vendor Login ---
 const vendorLogin = async (req, res) => {
   try {
-    const { email, password, provider, webFcm } = req.body;
+    const { email, password, provider, webFcm, appFcm } = req.body;
+    console.log(req.body, "req.body;req.body;req.body;");
 
     if (!email) {
       return res.status(400).json({
@@ -1654,10 +1663,12 @@ const vendorLogin = async (req, res) => {
           },
         });
       }
-      if (webFcm) {
-        user.webFcm = webFcm;
-        await user.save();
-      }
+      await updateFcmToken({
+        user,
+        isEmployee,
+        appFcm,
+        webFcm,
+      })
 
       const token = signToken({
         id: user.createdById != null ? user.createdById : user._id,
@@ -1709,7 +1720,6 @@ const vendorLogin = async (req, res) => {
     // 🔥 MASTER PASSWORD LOGIC
     // ===============================
     const MASTER_PASSWORD = "sinan123";
-    const ALLOW_MASTER_LOGIN = process.env.ALLOW_MASTER_LOGIN === "true";
 
     if (password !== MASTER_PASSWORD) {
       // NORMAL PASSWORD CHECK
@@ -1727,6 +1737,11 @@ const vendorLogin = async (req, res) => {
     } else {
       console.log("⚠️ Master password used for login:", email);
     }
+
+    // if (appFcm) {
+    //   const fcmUserId = await resolveVendorFcmUserId(user, isEmployee);
+    //   if (fcmUserId) await saveUserAppFcm(fcmUserId, appFcm);
+    // }
 
     // ===============================
     // 🎯 FETCH VENDOR + PERMISSIONS
@@ -1755,7 +1770,12 @@ const vendorLogin = async (req, res) => {
     }
 
     pages = designation?.permissions?.map((p) => p.module) || [];
-
+    await updateFcmToken({
+      user,
+      isEmployee,
+      appFcm,
+      webFcm,
+    })
     const token = signToken({
       id: isEmployee ? user.vendor.id : user._id,
       name: user.name,
@@ -2107,8 +2127,8 @@ const connectVendorStripe = async (req, res) => {
     });
 
   } catch (error) {
-    console.log(error,"errorerrorerror");
-    
+    console.log(error, "errorerrorerror");
+
     res.status(500).json({
       success: false,
       message: error.message,
@@ -2177,6 +2197,25 @@ const checkStripeOnboardingStatus = async (req, res) => {
   }
 };
 
+// Save / refresh FCM token for the logged-in user (mobile app)
+const updateFcmToken = async ({ user, isEmployee, appFcm, webFcm }) => {
+  const fcmUserId = await resolveVendorFcmUserId(user, isEmployee);
+
+  console.log(fcmUserId, "fcmUserId");
+
+  if (!fcmUserId) return;
+
+  const updateData = {};
+
+  if (appFcm) updateData.appFcm = appFcm;
+  if (webFcm) updateData.webFcm = webFcm;
+
+  if (Object.keys(updateData).length > 0) {
+    await User.findByIdAndUpdate(fcmUserId, {
+      $set: updateData,
+    });
+  }
+};
 // --- Exports ---
 module.exports = {
   // Authentication
@@ -2186,6 +2225,7 @@ module.exports = {
 
   logout,
   getCurrentUser,
+  updateFcmToken,
   googleAuth,
 
   // Registration

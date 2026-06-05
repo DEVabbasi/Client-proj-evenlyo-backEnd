@@ -2,7 +2,6 @@ const BookingRequest = require("../models/Booking");
 const Listing = require("../models/Listing");
 const Settings = require("../models/Settings");
 const User = require("../models/User");
-const Vendor = require("../models/Vendor");
 const {
   checkTimeSlotAvailability,
   getDayOfWeek,
@@ -10,7 +9,8 @@ const {
 } = require("../utils/bookingUtils");
 const SubCategory = require("../models/SubCategory");
 const notificationController = require("../controllers/notificationController");
-const { createActivityLog } = require("../utils/activityLogger");
+const { resolveVendorUserId } = require("./resolveVendorUserId");
+const { notifyVendorNewBooking } = require("./notifyVendorNewBooking");
 // Helper function to calculate day count
 function getDayCount(startDate, endDate) {
   const start = new Date(startDate);
@@ -90,15 +90,16 @@ const createBookingRequest = async (data, session) => {
     );
   }
 
-  // Verify vendor matches (guard for missing vendor)
+  const vendorUserId = await resolveVendorUserId(vendorId, listing);
+  const listingVendorUserId = listing.vendor?._id || listing.vendor;
+
   if (
-    !listing.vendor ||
-    !listing.vendor._id ||
-    listing.vendor._id.toString() !== vendorId
+    !vendorUserId ||
+    !listingVendorUserId ||
+    vendorUserId.toString() !== listingVendorUserId.toString()
   ) {
     throw new Error(
-      `Vendor mismatch for listing: ${listing?.title?.en || listing?.title?.nl
-      }.`
+      `Vendor mismatch for listing: ${listing?.title?.en || listing?.title?.nl}.`
     );
   }
 
@@ -218,7 +219,7 @@ const createBookingRequest = async (data, session) => {
     userId: data.userId,
     pricingBreakdown: data.pricingBreakdown,
     userId,
-    vendorId,
+    vendorId: vendorUserId,
     status: data.status.toLowerCase(),
     listingId,
     listingDetails: {
@@ -317,74 +318,48 @@ const createBookingRequest = async (data, session) => {
 
   console.log(resss, "bookingRequestbookingRequestbookingRequestbookingRequest");
 
-  // Notify vendor of new booking request
   try {
-    const vendor = await Vendor.findById(bookingRequest.vendorId);
-    const client = await User.findById(bookingRequest.userId).select(
-      "firstName lastName"
-    );
-
-    console.log(client, "clientclientclientclientclient");
-
-
-    if (vendor && vendor.userId) {
-      const clientName = client
-        ? `${client.firstName} ${client.lastName}`
-        : "A client";
-      const listingTitle = listing.title || "your listing";
-      const bookingDates = `${startDate}${endDate !== startDate ? ` to ${endDate}` : ""
-        }`;
-      await createActivityLog({
-        heading: {
-          en: "New Booking Request",
-          nl: "Nieuwe boekingsaanvraag"
-        },
-        type: 'booking_created',
-        description: {
-          en: `New booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
-          nl: `Nieuwe boekingsaanvraag van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
-        },
-        vendorId: bookingRequest?.vendorId,
-        ActivityType: "booking"
-      });
-      if (vendor.notifications.push === true) {
-        await notificationController.createNotification({
-          title: {
-            en: "New booking request",
-            nl: "Nieuwe boekingsaanvraag"
-          },
-          notificationFor: "Vendor",
-          vendorId: vendor?._id, // vendor's user account receives notification
-          clientId: null, // vendor's user account receives notification
-          bookingId: bookingRequest?._id,
-          message: {
-            en: `New booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
-            nl: `Nieuwe boekingsaanvraag van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
-          },
-        });
-      }
-      if (
-        data?.pricingBreakdown?.paymentPolicy
-          .isEvenlyoProtectEnabled === true
-      ) {
-        await notificationController.createNotification({
-          title: {
-            en: "Evenlyo protected booking",
-            nl: "Door Evenlyo beschermde boeking"
-          },
-          notificationFor: "Admin",
-          vendorId: vendor?._id, // vendor's user account receives notification
-          clientId: client?._id, // vendor's user account receives notification
-          bookingId: bookingRequest?._id,
-          message: {
-            en: `A evenlyo protected booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
-            nl: `Een beschermde boekingsaanvraag op Evenlyo van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
-          },
-        });
-      }
-    }
+    await notifyVendorNewBooking({
+      title: "Nieuwe boekingsaanvraag",
+      vendorUserId,
+      clientUserId: bookingRequest.userId,
+      bookingRequest,
+      listing,
+      startDate,
+      endDate,
+    });
   } catch (e) {
     console.error("Failed to create vendor notification for new booking:", e);
+  }
+
+  try {
+    if (data?.pricingBreakdown?.paymentPolicy?.isEvenlyoProtectEnabled === true) {
+      const client = await User.findById(bookingRequest.userId).select(
+        "firstName lastName",
+      );
+      const clientName = client
+        ? `${client.firstName} ${client.lastName}`.trim()
+        : "A client";
+      const listingTitle = listing.title || { en: "your listing", nl: "uw aanbod" };
+      const bookingDates = `${startDate}${endDate !== startDate ? ` to ${endDate}` : ""}`;
+
+      await notificationController.createNotification({
+        title: {
+          en: "Evenlyo protected booking",
+          nl: "Door Evenlyo beschermde boeking",
+        },
+        notificationFor: "Admin",
+        vendorId: vendorUserId,
+        clientId: client?._id,
+        bookingId: bookingRequest?._id,
+        message: {
+          en: `A evenlyo protected booking request from ${clientName} for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
+          nl: `Een beschermde boekingsaanvraag op Evenlyo van ${clientName} voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
+        },
+      });
+    }
+  } catch (e) {
+    console.error("Failed to create admin notification for protected booking:", e);
   }
   // Populate the response (listing details are now stored directly in listingDetails field)
   await bookingRequest.populate([

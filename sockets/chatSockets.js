@@ -2,6 +2,7 @@ const Message = require("../models/Message");
 const Conversation = require("../models/Conversation");
 const createBookingRequest = require("../utils/bookingRequest");
 const mongoose = require("mongoose");
+const notificationController = require("../controllers/notificationController");
 
 function chatSocket(io) {
   io.on("connection", (socket) => {
@@ -29,7 +30,7 @@ function chatSocket(io) {
 
     socket.on("send_message", async (params) => {
       console.log("EVENT_FIRED", params);
-      const {
+      let {
         conversationId,
         senderId,
         receiverId,
@@ -43,6 +44,19 @@ function chatSocket(io) {
         isOffer,
         offerObject,
       } = params;
+
+      // Normalize role payloads because some clients send swapped role/reference fields.
+      if (conversationType === "vender-to-user") {
+        senderRole = "vendor";
+        receiverRole = "user";
+        senderRefrence = "Vendor";
+        receiverRefrence = "User";
+      } else if (conversationType === "user-to-vendor") {
+        senderRole = "user";
+        receiverRole = "vendor";
+        senderRefrence = "User";
+        receiverRefrence = "Vendor";
+      }
 
       try {
         const newMessage = new Message({
@@ -71,19 +85,37 @@ function chatSocket(io) {
 
         console.log("NEW_MESSAGE_SAVED", newMessage);
 
+        let clientUserId = receiverId;
+        let vendorParticipantId = senderId;
+
         try {
           const conversation = await Conversation.findOne({ conversationId });
 
           if (conversation) {
+            const clientParticipant = conversation.participants.find(
+              (p) => p.role === "user"
+            );
+            const vendorParticipant = conversation.participants.find(
+              (p) => p.role === "vendor"
+            );
+            if (clientParticipant?.userId) {
+              clientUserId = String(clientParticipant.userId);
+            }
+            if (vendorParticipant?.userId) {
+              vendorParticipantId = String(vendorParticipant.userId);
+            }
+
+            const unreadKey =
+              receiverRole === "user" ? clientUserId : vendorParticipantId;
             conversation.lastMessage =
               message || attachment?.name || "Offer sent";
             conversation.lastUpdated = Date.now();
             conversation.messagesCount += 1;
 
             const currentUnreadCount =
-              conversation.unreadMessagesCount.get(receiverId) || 0;
+              conversation.unreadMessagesCount.get(unreadKey) || 0;
             conversation.unreadMessagesCount.set(
-              receiverId,
+              unreadKey,
               currentUnreadCount + 1
             );
 
@@ -99,16 +131,61 @@ function chatSocket(io) {
             };
 
             if (conversationType === "vender-to-user") {
-              io.to(`user_${receiverId}`).emit("new_conversation", conObj);
-              io.to(`vendor_${senderId}`).emit("new_conversation", conObj);
+              io.to(`user_${clientUserId}`).emit("new_conversation", conObj);
+              io.to(`vendor_${vendorParticipantId}`).emit(
+                "new_conversation",
+                conObj
+              );
             }
             if (conversationType === "user-to-vendor") {
-              io.to(`vendor_${receiverId}`).emit("new_conversation", conObj);
-              io.to(`user_${senderId}`).emit("new_conversation", conObj);
+              io.to(`vendor_${vendorParticipantId}`).emit(
+                "new_conversation",
+                conObj
+              );
+              io.to(`user_${clientUserId}`).emit("new_conversation", conObj);
             }
           }
         } catch (error) {
           console.error("Error updating conversation:", error.message);
+        }
+
+        // Send push notification for chat message without persisting notification in DB
+        try {
+          const safeMessage =
+            typeof message === "string" && message.trim().length > 0
+              ? message.trim().slice(0, 120)
+              : attachment?.name || "New message";
+          const senderLabel = senderRole === "vendor" ? "Vendor" : "Client";
+
+          const chatPushBase = {
+            ignorePushPreference: true,
+            title: { en: "New message", nl: "Nieuw bericht" },
+            message: {
+              en: `${senderLabel} sent: ${safeMessage}`,
+              nl: `${senderLabel} heeft gestuurd: ${safeMessage}`,
+            },
+            data: {
+              type: "chat",
+              conversationId: conversationId || "",
+              senderId: String(senderId || ""),
+            },
+          };
+
+          if (receiverRole === "vendor") {
+            await notificationController.sendPushOnly({
+              notificationFor: "Vendor",
+              vendorId: vendorParticipantId,
+              ...chatPushBase,
+            });
+          } else {
+            await notificationController.sendPushOnly({
+              notificationFor: "Client",
+              clientId: clientUserId,
+              ...chatPushBase,
+            });
+          }
+        } catch (pushError) {
+          console.error("Chat push notification failed:", pushError.message);
         }
 
         console.log("New message saved:", newMessage);

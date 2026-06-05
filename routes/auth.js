@@ -82,6 +82,9 @@ router.post('/google',
 // Get current user (requires authentication)
 router.get('/me', requireAuth, authController.getCurrentUser);
 
+// Refresh mobile FCM token while app is running
+router.patch('/fcm-token', requireAuth, authController.updateFcmToken);
+
 
 
 // --- Health Check Route ---

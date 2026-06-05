@@ -1,8 +1,38 @@
 const Notification = require("../models/Notification");
 const { toMultilingualText } = require("../utils/textUtils");
 const User = require("../models/User");
+const Vendor = require("../models/Vendor");
 const Admin = require("../models/Admin");
 const { sendNotification } = require("../utils/notifications");
+const { resolveUserFcmToken } = require("../utils/fcmToken");
+const { resolveVendorOwnerUserId } = require("../utils/resolveVendorUserId");
+
+const normalizeObjectId = (value) => {
+  if (!value) return null;
+  if (typeof value === "string") return value;
+  if (typeof value === "object") return value._id ? String(value._id) : String(value);
+  return String(value);
+};
+
+const resolveTargetUser = async ({ notificationFor, clientId, vendorId, projection = "" }) => {
+  if (notificationFor === "Client" && clientId) {
+    const id = normalizeObjectId(clientId);
+    return User.findById(id).select(projection);
+  }
+
+  if (notificationFor === "Vendor" && vendorId) {
+    const id = normalizeObjectId(vendorId);
+    let user = await User.findById(id).select(projection);
+    if (user) return user;
+
+    // Fallback: in some flows vendorId is vendor profile id, not User id.
+    const vendorProfile = await Vendor.findById(id).select("userId");
+    if (!vendorProfile?.userId) return null;
+    return User.findById(vendorProfile.userId).select(projection);
+  }
+
+  return null;
+};
 
 // Get all active admin users
 const getActiveAdmins = async () => {
@@ -51,7 +81,6 @@ const createNotification = async ({
   bookingId = null,
 }) => {
   try {
-    // 1️⃣ Save in DB
     const notification = await Notification.create({
       title,
       message,
@@ -60,32 +89,6 @@ const createNotification = async ({
       vendorId,
       bookingId,
     });
-
-    console.log(notification,"notificationnotificationnotificationnotification");
-    
-    // 2️⃣ Find target user
-    let user = null;
-
-    if (notificationFor === "Client" && clientId) {
-      user = await User.findById(clientId);
-    }
-
-    if (notificationFor === "Vendor" && vendorId) {
-      user = await User.findById(vendorId);
-    }
-
-    // 3️⃣ Send FCM
-    if (user?.fcm) {
-      await sendNotification({
-        token: user.fcm,
-        title,
-        body: message,
-        data: {
-          notificationId: notification._id.toString(),
-        },
-      });
-    }
-
     return notification;
   } catch (err) {
     console.error("❌ createNotification error:", err);
@@ -93,7 +96,41 @@ const createNotification = async ({
   }
 };
 
-// Get notifications for a user
+// Send push notification only (without storing in DB)
+const sendPushOnly = async (data) => {
+  try {
+    const tokens = [
+      data?.receiverDetails?.appFcm,
+      data?.receiverDetails?.webFcm,
+    ].filter(Boolean);
+
+    const uniqueTokens = [...new Set(tokens)];
+
+    if (!uniqueTokens.length) {
+      console.warn("⚠️ No FCM tokens found");
+      return false;
+    }
+
+    const results = await Promise.allSettled(
+      uniqueTokens.map((token) =>
+        sendNotification({
+          token,
+          title: data.title,
+          body: data.message,
+          data: data.data,
+        })
+      )
+    );
+    const success = results.some(
+      (r) => r.status === "fulfilled" && r.value?.ok
+    );
+    return success;
+  } catch (err) {
+    console.error("❌ sendPushOnly error:", err);
+    return false;
+  }
+};
+
 const getNotifications = async (userId) => {
   return Notification.find({ user: userId }).sort({ createdAt: -1 });
 };
@@ -119,4 +156,5 @@ module.exports = {
   markAllAsRead,
   getActiveAdmins,
   createAdminNotification,
+  sendPushOnly,
 };
