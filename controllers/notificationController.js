@@ -96,13 +96,42 @@ const createNotification = async ({
   }
 };
 
+const pickBestText = (value) => {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  return value.en || value.nl || "";
+};
+
+const stringifyFcmData = (data = {}) =>
+  Object.fromEntries(
+    Object.entries(data).map(([key, value]) => [
+      key,
+      value == null ? "" : String(value),
+    ]),
+  );
+
 // Send push notification only (without storing in DB)
 const sendPushOnly = async (data) => {
   try {
-    const tokens = [
-      data?.receiverDetails?.appFcm,
-      data?.receiverDetails?.webFcm,
-    ].filter(Boolean);
+    let receiverDetails = data?.receiverDetails;
+
+    if (!receiverDetails) {
+      receiverDetails = await resolveTargetUser({
+        notificationFor: data.notificationFor,
+        clientId: data.clientId,
+        vendorId: data.vendorId,
+        projection: "appFcm webFcm",
+      });
+    }
+
+    if (!receiverDetails) {
+      console.warn("⚠️ Receiver not found for push notification");
+      return false;
+    }
+
+    const tokens = [receiverDetails.appFcm, receiverDetails.webFcm].filter(
+      Boolean,
+    );
 
     const uniqueTokens = [...new Set(tokens)];
 
@@ -111,13 +140,17 @@ const sendPushOnly = async (data) => {
       return false;
     }
 
+    const title = pickBestText(data.title);
+    const body = pickBestText(data.message);
+    const fcmData = stringifyFcmData(data.data);
+
     const results = await Promise.allSettled(
       uniqueTokens.map((token) =>
         sendNotification({
           token,
-          title: data.title,
-          body: data.message,
-          data: data.data,
+          title,
+          body,
+          data: fcmData,
         })
       )
     );

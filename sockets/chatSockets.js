@@ -85,8 +85,9 @@ function chatSocket(io) {
 
         console.log("NEW_MESSAGE_SAVED", newMessage);
 
-        let clientUserId = receiverId;
-        let vendorParticipantId = senderId;
+        let clientUserId = senderRole === "user" ? senderId : receiverId;
+        let vendorParticipantId =
+          senderRole === "vendor" ? senderId : receiverId;
 
         try {
           const conversation = await Conversation.findOne({ conversationId });
