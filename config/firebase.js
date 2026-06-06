@@ -7,7 +7,7 @@ let serviceAccount;
 // Try to use JSON file first, then fall back to environment variables
 try {
   serviceAccount = require('../serviceAccountKey.json');
-  console.log('Using Firebase service account from serviceAccountKey.json');
+  console.log('Using Firebase service account from serviceAccountKey.json',process.env);
 } catch (error) {
   // Fall back to environment variables
   if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
