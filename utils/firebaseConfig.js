@@ -7,6 +7,7 @@ if (!process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
 const serviceAccount = JSON.parse(
   Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, "base64").toString("utf-8")
 );
+console.log(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, serviceAccount, "serviceAccountserviceAccountserviceAccount");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
