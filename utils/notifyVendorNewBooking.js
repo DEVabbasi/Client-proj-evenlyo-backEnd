@@ -3,7 +3,7 @@ const notificationController = require("../controllers/notificationController");
 const { resolveVendorOwnerUserId } = require("./resolveVendorUserId");
 
 const notifyVendorNewBooking = async (data) => {
-  console.log(data, "datadatadatadatadatadata=>>>>>>>");
+  console.log(data, "i am notification=>>>>>>>");
   await notificationController.sendPushOnly({
     receiverDetails: data.receiverDetails,
     title: data.title,
