@@ -2192,8 +2192,13 @@ const checkStripeOnboardingStatus = async (req, res) => {
       !account.charges_enabled &&
       !account.payouts_enabled
     ) {
-      message =
-        "Your onboarding form has been submitted successfully. Stripe is currently reviewing your account. Payments and payouts are not yet enabled.";
+      if (account.requirements?.disabled_reason) {
+        message =
+          "Your Stripe account is currently restricted. Additional information or verification may be required before payments and payouts can be enabled.";
+      } else {
+        message =
+          "Your onboarding form has been submitted. Stripe is currently reviewing your account.";
+      }
     } else if (
       account.details_submitted &&
       account.charges_enabled &&
