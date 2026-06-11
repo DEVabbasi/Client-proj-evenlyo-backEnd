@@ -2185,43 +2185,62 @@ const checkStripeOnboardingStatus = async (req, res) => {
     vendor.stripeOnboardingComplete = onboarded;
     await vendor.save();
 
-    let message = "";
+    let message = {
+      en: "",
+      nl: ""
+    };
 
-    if (
+    if (!account.details_submitted) {
+      message = {
+        en: "Stripe onboarding has not been completed yet. Please complete the onboarding process.",
+        nl: "De Stripe-onboarding is nog niet voltooid. Voltooi eerst het onboardingproces."
+      };
+    }
+    else if (
       account.details_submitted &&
       !account.charges_enabled &&
       !account.payouts_enabled
     ) {
-      if (account.requirements?.disabled_reason) {
-        message =
-          "Your Stripe account is currently restricted. Additional information or verification may be required before payments and payouts can be enabled.";
-      } else {
-        message =
-          "Your onboarding form has been submitted. Stripe is currently reviewing your account.";
-      }
-    } else if (
+      message = {
+        en: "Your Stripe account is under review or requires additional verification before payments and payouts can be enabled.",
+        nl: "Uw Stripe-account wordt momenteel gecontroleerd of vereist aanvullende verificatie voordat betalingen en uitbetalingen kunnen worden ingeschakeld."
+      };
+    }
+    else if (
       account.details_submitted &&
       account.charges_enabled &&
       !account.payouts_enabled
     ) {
-      message =
-        "Payments are enabled, but payouts are still pending Stripe verification.";
-    } else if (
+      message = {
+        en: "Payments are enabled, but payouts are still pending Stripe verification.",
+        nl: "Betalingen zijn ingeschakeld, maar uitbetalingen wachten nog op verificatie door Stripe."
+      };
+    }
+    else if (
       account.details_submitted &&
       !account.charges_enabled &&
       account.payouts_enabled
     ) {
-      message =
-        "Payouts are enabled, but payment processing is still pending Stripe verification.";
-    } else if (onboarded) {
-      message =
-        "Stripe onboarding completed successfully. Your account is fully verified and ready to receive payouts.";
-    } else if (!account.details_submitted) {
-      message =
-        "Stripe onboarding has not been completed yet. Please finish the onboarding process.";
-    } else {
-      message =
-        "Your Stripe account is currently under review. Please check again later.";
+      message = {
+        en: "Payouts are enabled, but payment processing is still pending Stripe verification.",
+        nl: "Uitbetalingen zijn ingeschakeld, maar betalingsverwerking wacht nog op verificatie door Stripe."
+      };
+    }
+    else if (
+      account.details_submitted &&
+      account.charges_enabled &&
+      account.payouts_enabled
+    ) {
+      message = {
+        en: "Your Stripe account has been successfully verified and is ready to receive payments and payouts.",
+        nl: "Uw Stripe-account is succesvol geverifieerd en klaar om betalingen en uitbetalingen te ontvangen."
+      };
+    }
+    else {
+      message = {
+        en: "Unable to determine Stripe account status.",
+        nl: "Kan de status van het Stripe-account niet bepalen."
+      };
     }
 
     return res.json({
