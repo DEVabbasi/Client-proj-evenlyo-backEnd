@@ -32,7 +32,7 @@ const createChatUserWithVendor = async (req, res) => {
         { userId: userId, role: "user", refPath: "User" },
       ],
       conversationId: `${vendorId}_${userId}`,
-      lastMessage: "Welcome to our service!",
+      lastMessage: "how can we help you!",
       lastUpdated: Date.now(),
       unreadMessagesCount: new Map([
         [vendorId.toString(), 1],
@@ -53,7 +53,7 @@ const createChatUserWithVendor = async (req, res) => {
       receiverRole: "user",
       senderRefrence: "Vendor",
       receiverRefrence: "User",
-      message: "Welcome to our service!",
+      message: "how can we help you!",
     });
     await newMessage.save();
 
