@@ -187,6 +187,7 @@ function getDayCount(startDate, endDate) {
 // @desc    Create a booking request
 // @route   POST /api/booking/request
 // @access  Private (User)
+
 const createBookingRequest = asyncHandler(async (req, res) => {
   const {
     listingId,
@@ -510,17 +511,13 @@ const createBookingRequest = asyncHandler(async (req, res) => {
     } catch (cartError) {
       console.error("Failed to remove item from cart:", cartError);
     }
-
     try {
       const client = await User.findById(bookingRequest.userId).select(
         "firstName lastName",
       );
       const vendor = await User.findById(vendorId)
-
-      console.log(vendor,"vendor_data=>>>");
-      
+      console.log(vendor, "vendor_data=>>>");
       const bookingDates = `${startDate}${endDate !== startDate ? ` to ${endDate}` : ""}`;
-
       const clientName = client
         ? `${client.firstName} ${client.lastName}`.trim()
         : "A client";
@@ -534,9 +531,11 @@ const createBookingRequest = asyncHandler(async (req, res) => {
         req.body?.details?.pricingBreakdown?.paymentPolicy
           ?.isEvenlyoProtectEnabled === true;
 
+      console.log(vendor, "VENDORR=>>>>>>");
+
       try {
         await notifyVendorNewBooking({
-          message: `Nieuwe boekingsaanvraag voor uw aanbod "${listing.title.nl}`,
+          message: `Nieuwe boekingsaanvraag voor uw aanbod "${listing.title.nl}"`,
           receiverDetails: vendor,
           bookingRequest,
           listing,
