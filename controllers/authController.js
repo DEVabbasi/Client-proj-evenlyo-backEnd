@@ -2174,7 +2174,6 @@ const checkStripeOnboardingStatus = async (req, res) => {
     const account = await stripe.accounts.retrieve(
       vendor.stripeAccountId
     );
-    console.log(account, "accountaccountaccountaccountaccount");
 
     const onboarded =
       account.details_submitted &&
@@ -2184,15 +2183,53 @@ const checkStripeOnboardingStatus = async (req, res) => {
     vendor.stripeOnboardingComplete = onboarded;
     await vendor.save();
 
-    res.json({
+    let message = "";
+
+    if (
+      account.details_submitted &&
+      !account.charges_enabled &&
+      !account.payouts_enabled
+    ) {
+      message =
+        "Your onboarding form has been submitted successfully. Stripe is currently reviewing your account. Payments and payouts are not yet enabled.";
+    } else if (
+      account.details_submitted &&
+      account.charges_enabled &&
+      !account.payouts_enabled
+    ) {
+      message =
+        "Payments are enabled, but payouts are still pending Stripe verification.";
+    } else if (
+      account.details_submitted &&
+      !account.charges_enabled &&
+      account.payouts_enabled
+    ) {
+      message =
+        "Payouts are enabled, but payment processing is still pending Stripe verification.";
+    } else if (onboarded) {
+      message =
+        "Stripe onboarding completed successfully. Your account is fully verified and ready to receive payouts.";
+    } else if (!account.details_submitted) {
+      message =
+        "Stripe onboarding has not been completed yet. Please finish the onboarding process.";
+    } else {
+      message =
+        "Your Stripe account is currently under review. Please check again later.";
+    }
+
+    return res.json({
       success: true,
-      accountDetails: account.details_submitted,
+      message,
       onboarded,
+      accountDetails: {
+        details_submitted: account.details_submitted,
+        charges_enabled: account.charges_enabled,
+        payouts_enabled: account.payouts_enabled,
+      },
       account,
     });
-
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
