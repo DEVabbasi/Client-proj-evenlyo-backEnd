@@ -2181,6 +2181,7 @@ const checkStripeOnboardingStatus = async (req, res) => {
     const account = await stripe.accounts.retrieve(
       vendor.stripeAccountId
     );
+    console.log(account, "accountaccountaccountaccountaccount");
 
     const onboarded =
       account.details_submitted &&
@@ -2192,6 +2193,7 @@ const checkStripeOnboardingStatus = async (req, res) => {
 
     res.json({
       success: true,
+      accountDetails: account.details_submitted,
       onboarded,
       account,
     });
