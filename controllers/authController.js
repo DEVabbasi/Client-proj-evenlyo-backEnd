@@ -2175,6 +2175,8 @@ const checkStripeOnboardingStatus = async (req, res) => {
       vendor.stripeAccountId
     );
 
+    console.log(account.requirements, "accountaccountaccountaccount");
+
     const onboarded =
       account.details_submitted &&
       account.charges_enabled &&
