@@ -2186,6 +2186,7 @@ const checkStripeOnboardingStatus = async (req, res) => {
 
     res.json({
       success: true,
+      accountDetails: account.details_submitted,
       onboarded,
       account,
     });
