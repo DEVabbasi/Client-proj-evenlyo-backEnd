@@ -2174,6 +2174,7 @@ const checkStripeOnboardingStatus = async (req, res) => {
     const account = await stripe.accounts.retrieve(
       vendor.stripeAccountId
     );
+    console.log(account, "accountaccountaccountaccountaccount");
 
     const onboarded =
       account.details_submitted &&
