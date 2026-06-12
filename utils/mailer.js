@@ -488,7 +488,7 @@ Evenlyo
   }
 };
 
-const sendEvenlyoProtectBookingEmail = async (booking, client, vendor, status) => {
+const sendEvenlyoProtectBookingEmail = async (booking, client, vendor, status, adminEmail) => {
   console.log(booking, "BOOKING", client, "CLIENT", vendor, "VENDOR", "bookingbookingbookingbookingbooking");
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
@@ -531,7 +531,7 @@ const sendEvenlyoProtectBookingEmail = async (booking, client, vendor, status) =
 
   const mailOptions = {
     from: `"Evenlyo" <${process.env.EMAIL_USER}>`,
-    to: process.env.EMAIL_USER,
+    to: adminEmail || process.env.EMAIL_USER,
     subject,
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9;">

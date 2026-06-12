@@ -1299,7 +1299,9 @@ const getHomeData = async (req, res) => {
 
 const fetchAllListings = async (req, res) => {
   try {
-    const listings = await Listing.find({ isActive: true });
+    const listings = await Listing.find({ isActive: true }).sort({
+      createdAt: -1,
+    });
     res.status(200).json({
       success: true,
       data: listings,

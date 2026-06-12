@@ -75,10 +75,12 @@ const getDashboardAnalytics = async (req, res) => {
     const totalClients =
       totalClientsAgg.length > 0 ? totalClientsAgg[0].total : 0;
 
-    // Use Vendor model stats if available
-    const vendorDoc = await Vendor.findById(vendorId);
-    const completedBookingsCount = vendorDoc?.completedBookings ?? 0;
-    const totalBookings = vendorDoc?.totalBookings ?? 0;
+    const totalBookingsCount = await Booking.countDocuments({ vendorId });
+    const completedBookingsCount = await Booking.countDocuments({
+      vendorId,
+      status: "completed",
+    });
+    const totalBookings = totalBookingsCount;
 
     // 2. Monthly Revenue (current month and all months for average)
     const now = new Date();
@@ -277,9 +279,6 @@ const getDashboardAnalytics = async (req, res) => {
       .select(
         "trackingId itemName user userName quantity totalPrice status purchasedAt"
       );
-
-    const totalBookingsCount = await Booking.countDocuments({ vendorId });
-    console.log(totalBookingsCount, "totalBookingstotalBookingstotalBookings");
 
     // const monthlyBookingAgg = await Booking.aggregate([
     //   {

@@ -126,7 +126,8 @@ const getVendorListingsOverview = async (req, res) => {
     // ===============================
     const listings = await Listing.find({ vendor: vendorId })
       .populate("category", "name")
-      .populate("subCategory", "name");
+      .populate("subCategory", "name")
+      .sort({ createdAt: -1 });
 
     const listingIds = listings.map((l) => l._id);
 
@@ -575,7 +576,7 @@ const updateListing = async (req, res) => {
         amount: amount !== undefined ? amount : existingPricing.amount,
         extratimeCost:
           extratimeCost !== undefined
-            ? extratimeCost
+            ? extratimeCost === "" ? 0 : extratimeCost
             : existingPricing.extratimeCost,
         securityFee:
           securityFee !== undefined ? securityFee : existingPricing.securityFee,

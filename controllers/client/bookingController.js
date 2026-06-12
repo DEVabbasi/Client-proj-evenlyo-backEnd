@@ -533,9 +533,20 @@ const createBookingRequest = asyncHandler(async (req, res) => {
 
       console.log(vendor, "VENDORR=>>>>>>");
 
+      const vendorName = vendor
+        ? `${vendor.firstName || ""} ${vendor.lastName || ""}`.trim() || "N/A"
+        : "N/A";
+
       try {
         await notifyVendorNewBooking({
-          message: `Nieuwe boekingsaanvraag voor uw aanbod "${listing.title.nl}"`,
+          title: {
+            en: "New Booking Request",
+            nl: "Nieuwe boekingsaanvraag",
+          },
+          message: {
+            en: `New booking request for "${listing.title.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
+            nl: `Nieuwe boekingsaanvraag voor "${listing.title.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
+          },
           receiverDetails: vendor,
           bookingRequest,
           listing,
@@ -580,8 +591,9 @@ const createBookingRequest = asyncHandler(async (req, res) => {
           sendEvenlyoProtectBookingEmail(
             bookingRequest,
             clientName,
-            vendor,
+            vendorName,
             "NEW",
+            adminsToNotifyEmail.email,
           );
         }
         try {
