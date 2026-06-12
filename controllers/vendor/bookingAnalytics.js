@@ -347,7 +347,6 @@ const acceptBooking = asyncHandler(async (req, res) => {
   }
 
   const bookingDates = `${moment(booking.details.startDate).format("DD-MMM-YYYY")}${booking.details.endDate !== booking.details.startDate ? ` to ${moment(booking.details.endDate).format("Do MMM YYYY")}` : ""}`;
-
   try {
     const isEvenlyoProtectEnabled =
       booking.pricingBreakdown?.paymentPolicy?.isEvenlyoProtectEnabled === true;
@@ -419,8 +418,6 @@ const rejectBooking = asyncHandler(async (req, res) => {
       message: "Vendor profile not found",
     });
   }
-  console.log(vendor, vendorDetails, "vendorvendorvendorvendorvendorvendor");
-
   const booking = await BookingRequest.findOne({
     _id: id,
     vendorId: vendor._id,
@@ -509,6 +506,19 @@ const rejectBooking = asyncHandler(async (req, res) => {
     }
     catch (e) {
       console.error("Failed to send order acceptance email:", e);
+    }
+  }
+
+  if (user.notifications?.push === true) {
+    try {
+      await notifyVendorNewBooking({
+        title: "Boeking Geweigerd",
+        message: `Nieuwe boekingsaanvraag voor uw aanbod "${listingDetails.title.nl}" van ${moment(booking.details.startDate).format("DD MMM YYYY")} is geweigerd.`,
+        receiverDetails: user,
+        bookingRequest: booking,
+      });
+    } catch (e) {
+      console.error("Failed to create vendor notification for new booking:", e);
     }
   }
 
