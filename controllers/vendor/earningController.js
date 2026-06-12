@@ -445,6 +445,163 @@ const getVendorEarningsAnalytics = async (req, res) => {
           : 0
       };
     });
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    const monthlyEarningsDailyAgg = await Booking.aggregate([
+      {
+        $match: {
+          vendorId: vendorId,
+          createdAt: { $gte: startOfMonth, $lt: endOfMonth },
+          status: { $in: ["completed", "cancelled"] },
+        },
+      },
+      {
+        $project: {
+          day: { $dayOfMonth: "$createdAt" },
+          completedRevenue: {
+            $cond: [
+              { $eq: ["$status", "completed"] },
+              { $toDouble: { $ifNull: ["$pricingBreakdown.subtotal", 0] } },
+              0,
+            ],
+          },
+          refundRevenue: {
+            $cond: [
+              {
+                $and: [
+                  { $eq: ["$status", "cancelled"] },
+                  { $eq: ["$paymentStatus", "upfront_paid"] },
+                ],
+              },
+              {
+                $multiply: [
+                  { $ifNull: ["$pricingBreakdown.upfrontFee", 0] },
+                  0.88,
+                ],
+              },
+              0,
+            ],
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$day",
+          totalEarnings: {
+            $sum: { $add: ["$completedRevenue", "$refundRevenue"] },
+          },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    const daysInCurrentMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+    ).getDate();
+    const currentMonthNumber = now.getMonth() + 1;
+    const monthlyEarningsDaily = Array.from(
+      { length: daysInCurrentMonth },
+      (_, index) => {
+        const day = index + 1;
+        const found = monthlyEarningsDailyAgg.find((item) => item._id === day);
+        const date = `${now.getFullYear()}-${String(currentMonthNumber).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        return {
+          date,
+          day,
+          totalEarnings: found
+            ? Number(found.totalEarnings.toFixed(2))
+            : 0,
+        };
+      },
+    );
+
+    const earningsByCategoryMonthlyAgg = await Booking.aggregate([
+      {
+        $match: {
+          vendorId: vendorId,
+          status: { $in: ["completed", "cancelled"] },
+          createdAt: { $gte: startOfMonth, $lt: endOfMonth },
+        },
+      },
+      {
+        $lookup: {
+          from: "listings",
+          localField: "listingId",
+          foreignField: "_id",
+          as: "listing",
+        },
+      },
+      { $unwind: "$listing" },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "listing.category",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      {
+        $unwind: {
+          path: "$category",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          categoryId: "$listing.category",
+          categoryName: { $ifNull: ["$category.name.en", "Others"] },
+          bookingEarning: {
+            $add: [
+              {
+                $cond: [
+                  { $eq: ["$status", "completed"] },
+                  { $toDouble: { $ifNull: ["$pricingBreakdown.subtotal", 0] } },
+                  0,
+                ],
+              },
+              {
+                $cond: [
+                  {
+                    $and: [
+                      { $eq: ["$status", "cancelled"] },
+                      { $eq: ["$paymentStatus", "upfront_paid"] },
+                    ],
+                  },
+                  {
+                    $multiply: [
+                      { $ifNull: ["$pricingBreakdown.upfrontFee", 0] },
+                      0.88,
+                    ],
+                  },
+                  0,
+                ],
+              },
+            ],
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$categoryId",
+          categoryName: { $first: "$categoryName" },
+          totalEarnings: { $sum: "$bookingEarning" },
+          totalBookings: { $sum: 1 },
+        },
+      },
+      { $sort: { totalEarnings: -1 } },
+    ]);
+
+    const earningsByCategoryMonthly = earningsByCategoryMonthlyAgg.map((cat) => ({
+      categoryId: cat._id || "unknown",
+      categoryName: cat.categoryName || "Others",
+      totalEarnings: cat?.totalEarnings?.toFixed(2),
+      totalBookings: cat.totalBookings,
+    }));
+
     console.log(vendorId, "vendorIdvendorIdvendorId");
 
     const allBookings = await Booking.find({ vendorId })
@@ -578,7 +735,9 @@ const getVendorEarningsAnalytics = async (req, res) => {
         totalEarnings: totalEarningsValue
       },
       monthlyEarnings: monthlyEarningsss,
+      monthlyEarningsDaily,
       earningsByCategory,
+      earningsByCategoryMonthly,
       bookingTable: allBookings,
     });
   } catch (err) {
