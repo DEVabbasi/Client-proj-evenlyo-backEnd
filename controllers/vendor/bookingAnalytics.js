@@ -171,12 +171,6 @@ const acceptBooking = asyncHandler(async (req, res) => {
     _id: booking.listingId,
   });
 
-
-
-
-  // return res.send("ok")
-
-
   if (!booking) {
     return res.status(404).json({
       success: false,
