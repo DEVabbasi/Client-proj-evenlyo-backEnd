@@ -455,13 +455,6 @@ const rejectBooking = asyncHandler(async (req, res) => {
   }
 
   try {
-    // await notificationController.createNotification({
-    //   user: booking.userId,
-    //   bookingId: booking._id,
-    //   message: `Your booking has been rejected.`,
-    // });
-    console.log(vendor, "vendorvendorvendorvendor");
-
     await notificationController.createNotification({
       title: {
         en: "Booking Status",
@@ -490,6 +483,9 @@ const rejectBooking = asyncHandler(async (req, res) => {
 
   console.log(booking, "bookingbookingbookingbookingbookingbookingbooking");
 
+  const listingDetails = await Listing.findOne({
+    _id: booking.listingId,
+  });
   const user = await User.findById({ _id: booking.userId._id });
   console.log(user, "useruseruseruser");
 
@@ -523,7 +519,6 @@ const rejectBooking = asyncHandler(async (req, res) => {
   }
 
   const bookingDates = `${moment(booking.details.startDate).format("DD-MMM-YYYY")}${booking.details.endDate !== booking.details.startDate ? ` to ${moment(booking.details.endDate).format("Do MMM YYYY")}` : ""}`;
-
   try {
     const isEvenlyoProtectEnabled =
       booking.pricingBreakdown?.paymentPolicy?.isEvenlyoProtectEnabled === true;
@@ -672,6 +667,21 @@ const paymentConfirmation = async (req, res) => {
     }
 
     const booking = await Booking.findById(bookingId);
+    const vendorDetails = await User.findOne({ _id: booking.vendorId });
+    console.log(vendorDetails, "vendorDetailsvendorDetailsvendorDetailsvendorDetails");
+
+    if (vendorDetails.notifications?.push === true) {
+      try {
+        await notifyVendorNewBooking({
+          title: "Betaling Ontvangen",
+          message: `Een betaling van €${amount} is ontvangen voor boeking ${booking.trackingId}.`,
+          receiverDetails: vendorDetails,
+          bookingRequest: booking,
+        });
+      } catch (e) {
+        console.error("Failed to create vendor notification for new booking:", e);
+      }
+    }
 
     if (!booking) {
       return res.status(404).json({
