@@ -1,0 +1,4317 @@
+{
+  "info": {
+    "_postman_id": "d79b3d32-b74c-4c4a-82bc-14be78d52dc2",
+    "name": "Evenlyo By Sinan",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "32948224",
+    "_collection_link": "https://go.postman.co/collection/29180269-d79b3d32-b74c-4c4a-82bc-14be78d52dc2?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Client",
+      "item": [
+        {
+          "name": "bookings",
+          "item": [
+            {
+              "name": "create-booking",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZTVjYWM1MWI5ZTRkZmQ4M2JkMDUyMyIsImlhdCI6MTc4MDQ4MzExNX0.jvHERIRjntZ65CPGgxcY0Bk-6xZ2GmK0EdndF9Gm1RU",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"listingId\": \"69e5de501b9e4dfd83bd065c\",\r\n    \"vendorId\": \"69e5d2141b9e4dfd83bd0560\",\r\n    \"details\": {\r\n        \"startDate\": \"2026-06-17\",\r\n        \"endDate\": \"2026-06-17\",\r\n        \"startTime\": \"08:00\",\r\n        \"endTime\": \"22:00\",\r\n        \"eventLocation\": \"XX5V+5C4, Sector 14-E Sector 14 E Shamsi Colony, Karachi, Pakistan\",\r\n        \"eventLatitude\": 24.9578404,\r\n        \"eventLongitude\": 66.993879,\r\n        \"specialRequests\": \"Abc\",\r\n        \"contactPreference\": \"email\",\r\n        \"distanceKm\": 7699.96,\r\n        \"evenyloProtect\": true,\r\n        \"willPayUpfront\": true,\r\n        \"pricingBreakdown\": {\r\n            \"baseAmount\": \"280.00\",\r\n            \"extraTimeCost\": \"0.00\",\r\n            \"distanceCost\": 38499.8,\r\n            \"securityFee\": \"500.00\",\r\n            \"subtotal\": \"38779.80\",\r\n            \"vatFeePercent\": 19,\r\n            \"vatFee\": \"7368.16\",\r\n            \"platformFee\": \"1938.99\",\r\n            \"evenyloProtectFee\": \"775.60\",\r\n            \"upfrontFee\": \"24681.27\",\r\n            \"total\": \"49362.55\",\r\n            \"calculationDetails\": \"Standard pricing: 14 hours × €20/hour\",\r\n            \"breakdown\": [\r\n                {\r\n                    \"label\": \"Standard Service (14 hours)\",\r\n                    \"amount\": 280,\r\n                    \"explanation\": \"14 hours × €20/hour\"\r\n                },\r\n                {\r\n                    \"label\": \"Extra Time Fee\",\r\n                    \"amount\": 0,\r\n                    \"explanation\": \"\"\r\n                },\r\n                {\r\n                    \"label\": \"Travel Cost (7699.96km)\",\r\n                    \"amount\": 38499.8,\r\n                    \"explanation\": \"\"\r\n                },\r\n                {\r\n                    \"label\": \"VAT (19%)\",\r\n                    \"amount\": 7368.162,\r\n                    \"explanation\": \"\"\r\n                },\r\n                {\r\n                    \"label\": \"Security Deposit(Refundable)\",\r\n                    \"amount\": 500,\r\n                    \"explanation\": \"\"\r\n                },\r\n                {\r\n                    \"label\": \"Platform Service Fee (5%)\",\r\n                    \"amount\": 1938.99,\r\n                    \"explanation\": \"\"\r\n                }\r\n            ],\r\n            \"validationErrors\": [],\r\n            \"requiresFullPayment\": false,\r\n            \"paymentPolicy\": {\r\n                \"name\": {\r\n                    \"en\": \"Event Decorations\",\r\n                    \"nl\": \"Evenementdecoratie\"\r\n                },\r\n                \"description\": {\r\n                    \"en\": \"Event decoration refers to the design and styling of a venue or space to create a specific atmosphere, theme, or visual experience for an event.\",\r\n                    \"nl\": \"Evenementdecoratie verwijst naar het ontwerpen en stylen van een locatie of ruimte om een specifieke sfeer, thema of visuele beleving voor een evenement te creëren.\"\r\n                },\r\n                \"_id\": \"692457736f7216eb2150f682\",\r\n                \"icon\": \"https://res.cloudinary.com/dv0imczul/image/upload/v1763987180/pdj7acafzazcxmbzmptt.svg\",\r\n                \"isUpfrontEnabled\": true,\r\n                \"upfrontFeePercent\": 87,\r\n                \"escrowHours\": 2,\r\n                \"isEvenlyoProtectEnabled\": true,\r\n                \"evenlyoProtectFeePercent\": 2\r\n            },\r\n            \"pricingType\": \"per hour\",\r\n            \"numDays\": 1,\r\n            \"isSingleDate\": true\r\n        }\r\n    }\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}booking/request",
+                  "host": [
+                    "{{baseUrl}}booking"
+                  ],
+                  "path": [
+                    "request"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Request-booking-by-status",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"status\": \"pending\",\r\n    \"vendorId\": \"68f5d12e0d6fc53887068633\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "https://0g01d8wd-5000.inc1.devtunnels.ms/api/booking/request-by-status",
+                  "protocol": "https",
+                  "host": [
+                    "0g01d8wd-5000",
+                    "inc1",
+                    "devtunnels",
+                    "ms"
+                  ],
+                  "path": [
+                    "api",
+                    "booking",
+                    "request-by-status"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "fetch-accepted-booking",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5NDI4ZDMwNGMzN2EzMmMzYzAwNThiNSIsImlhdCI6MTc3NTYyOTMyNX0.0_aiXscYklNlEQUDrr3SczfT73Rf0nqsN6QlcdKNFMc",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}booking/accepted",
+                  "host": [
+                    "{{baseUrl}}booking"
+                  ],
+                  "path": [
+                    "accepted"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "history",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5NDI4ZDMwNGMzN2EzMmMzYzAwNThiNSIsImlhdCI6MTc3NTQ3MjIzMH0.3QN4_o3OqgfknJjYP-kZ2mJjiJN_Kv1nAloVXEsSXu4",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}booking/history",
+                  "host": [
+                    "{{baseUrl}}booking"
+                  ],
+                  "path": [
+                    "history"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "mark-as-received",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTMxYzQ5YWM0NzIxMDY1OTM1YWZjYSIsImlhdCI6MTc2NTM0NzU3NX0.T9w4rDthqeEq4yI9BBoGD1UxlRaCSHaZbVjWBekt2V8",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/booking/69383a96c6adbce6b56838aa/mark-received",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "booking",
+                    "69383a96c6adbce6b56838aa",
+                    "mark-received"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "history-Api",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTMxYzQ5YWM0NzIxMDY1OTM1YWZjYSIsImlhdCI6MTc2NTU0MDI3M30.50j2HD4I_EIOr95bfmRxTr7K_33KS3pq4U80oUk7UbI",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/booking/history",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "booking",
+                    "history"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "claim-created-by-client",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTMxYzQ5YWM0NzIxMDY1OTM1YWZjYSIsImlhdCI6MTc2Nzg3MDU3NH0._L49cb9-mTN5gC4DEaxCxB-2PsPwuU7vlM6nhYgBwBs",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"claimType\": \"Refund\",\r\n    \"reason\":\"everything is broken\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/booking/695fa574fbee062c62462170/claim",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "booking",
+                    "695fa574fbee062c62462170",
+                    "claim"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "booking-details",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5NWUwMzQ4ODk4OTQxYWNiMzk4MDljNSIsImlhdCI6MTc2ODIwNzg2OH0.zKCSFZwUp7Dv-LBLITvO_A058z2Sje9T_YVwA_uFcyw",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/booking/6964e862c1f30b67cb90b268",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "booking",
+                    "6964e862c1f30b67cb90b268"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "customer-support",
+          "item": [
+            {
+              "name": "create-customer-support",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTMxYzQ5YWM0NzIxMDY1OTM1YWZjYSIsImlhdCI6MTc2MzEwNTAxMH0.3Q85mEp7xqI1gu3K06YsxZ2o2HT-SiUSbqhJMZlohoQ",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"issueRelatedto\":\"Accounts\",\r\n    \"details\":\"I want my salary right now please give me\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/support/ticket",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "support",
+                    "ticket"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "sale-item-purchase",
+          "item": [
+            {
+              "name": "create-sale-item",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTMxYzQ5YWM0NzIxMDY1OTM1YWZjYSIsImlhdCI6MTc2MzY0NDc4Mn0.a5BPIwRRYJJDbSw4PJl6-yE03GMYnr2_jgUIet_zHUQ",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"items\": [\r\n        {\r\n            \"itemId\": \"694387324c37a32c3c007531\",\r\n            \"title\": {\r\n                \"en\": \"New Sale Item en\",\r\n                \"nl\": \"New Sale Item nl\"\r\n            },\r\n            \"image\": \"https://res.cloudinary.com/dv0imczul/image/upload/v1763639760/ck1xbmwmpkcfzmpi9vff.png\",\r\n            \"quantity\": 10,\r\n            \"price\": 200,\r\n            \"extraDeliveryCharges\": 50,\r\n            \"index\": 0\r\n        }\r\n    ],\r\n    \"itemLocation\": {\r\n        \"coordinates\": {\r\n            \"lat\": 29.546687,\r\n            \"lng\": 71.6276388\r\n        },\r\n        \"fullAddress\": \"Lodhrān, Pakistan\",\r\n        \"_id\": \"691f01d4768ae5167a796e11\"\r\n    },\r\n    \"totalAmount\": 4390,\r\n    \"deliveryAmount\": 4190,\r\n    \"deliveryLocation\": {\r\n        \"coordinates\": {\r\n            \"lat\": 31.3707665,\r\n            \"lng\": 74.25815829999999\r\n        },\r\n        \"fullAddress\": \"Lahore City, Pakistan\"\r\n    },\r\n    \"totalKms\": 414,\r\n    \"vendorId\": \"6911b7d4e8478c7b209eb558\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}sale-item-purchase",
+                  "host": [
+                    "{{baseUrl}}sale-item-purchase"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "get-sale-item",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTMxYzQ5YWM0NzIxMDY1OTM1YWZjYSIsImlhdCI6MTc2MzY0NDc4Mn0.a5BPIwRRYJJDbSw4PJl6-yE03GMYnr2_jgUIet_zHUQ",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/sale-item-history",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "sale-item-history"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Home",
+          "item": [
+            {
+              "name": "fetch-listings",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "https://0g01d8wd-5000.inc1.devtunnels.ms/api/listings?categoryId=68943d2ca1a765a1f78a635b&subCategoryId=692457736f7216eb2150f682",
+                  "protocol": "https",
+                  "host": [
+                    "0g01d8wd-5000",
+                    "inc1",
+                    "devtunnels",
+                    "ms"
+                  ],
+                  "path": [
+                    "api",
+                    "listings"
+                  ],
+                  "query": [
+                    {
+                      "key": "categoryId",
+                      "value": "68943d2ca1a765a1f78a635b"
+                    },
+                    {
+                      "key": "subCategoryId",
+                      "value": "692457736f7216eb2150f682"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "vendor-by-category",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OWY3MmFkMmE2MWQ4ZjdhMWY5ZDRmNDQiLCJyb2xlIjoicGFyZW50IiwiaWF0IjoxNzc5MzAyMTY4LCJleHAiOjE3NzkzODg1Njh9.2ORIL9CFkySeq1FjB-afMWx80wkbo3cEFgOu_Wi8OY4",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"userId\": \"69de3008c78e77b683119ca5\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}vendor/bycategory/68943d2ca1a765a1f78a635b",
+                  "host": [
+                    "{{baseUrl}}vendor"
+                  ],
+                  "path": [
+                    "bycategory",
+                    "68943d2ca1a765a1f78a635b"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "listings-home",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}listings/home?categoryId=68943d2ca1a765a1f78a635b&subcategoryId=692457736f7216eb2150f682",
+                  "host": [
+                    "{{baseUrl}}listings"
+                  ],
+                  "path": [
+                    "home"
+                  ],
+                  "query": [
+                    {
+                      "key": "categoryId",
+                      "value": "68943d2ca1a765a1f78a635b"
+                    },
+                    {
+                      "key": "subcategoryId",
+                      "value": "692457736f7216eb2150f682"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "search-with-category-name",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}listings/search/subcategories?q=ap",
+                  "host": [
+                    "{{baseUrl}}listings"
+                  ],
+                  "path": [
+                    "search",
+                    "subcategories"
+                  ],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "ap"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "homeData-filter",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"categoryId\": \"68943d2ca1a765a1f78a635b\",\r\n    \"subCategoryId\": \"692457736f7216eb2150f682\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}listings/homeData",
+                  "host": [
+                    "{{baseUrl}}listings"
+                  ],
+                  "path": [
+                    "homeData"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "listings",
+          "item": [
+            {
+              "name": "fetch-listing-by-id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}listings/69de1ff522259f9463de7e67",
+                  "host": [
+                    "{{baseUrl}}listings"
+                  ],
+                  "path": [
+                    "69de1ff522259f9463de7e67"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "filter-listing-by-cat",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/listings/listings/filter?category=68943d2ca1a765a1f78a635b&subCategory=692457736f7216eb2150f682",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "listings",
+                    "listings",
+                    "filter"
+                  ],
+                  "query": [
+                    {
+                      "key": "category",
+                      "value": "68943d2ca1a765a1f78a635b"
+                    },
+                    {
+                      "key": "subCategory",
+                      "value": "692457736f7216eb2150f682"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "getDetailsById",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}listings/699d50f40276ef48df0cf8af",
+                  "host": [
+                    "{{baseUrl}}listings"
+                  ],
+                  "path": [
+                    "699d50f40276ef48df0cf8af"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "by-category-vendor",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}vendor/bycategory/68943d2ca1a765a1f78a635b",
+                  "host": [
+                    "{{baseUrl}}vendor"
+                  ],
+                  "path": [
+                    "bycategory",
+                    "68943d2ca1a765a1f78a635b"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "auth",
+          "item": [
+            {
+              "name": "login-client",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"bblife2010@gmail.com\",\r\n    \"password\": \"Qwerty@123\",\r\n    \"webFcm\": \"elj1N8wLaD-PEoTC2bP2bU:APA91bFuDZ8F72mrs-fKVWkviFai7p-Qaom7IU4MPy4X7An_dEUP63dXfG7ezpq0y24Fz2AFCaPj_-Kiw2N4Pbx_DJ5Mf0vpwMX47zMlVeZRBjmY0YNdyxw\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}auth/client/login",
+                  "host": [
+                    "{{baseUrl}}auth"
+                  ],
+                  "path": [
+                    "client",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "send-otp-to-client",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\":\"sinan.lakhani09@gmail.com\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}auth/send-otp",
+                  "host": [
+                    "{{baseUrl}}auth"
+                  ],
+                  "path": [
+                    "send-otp"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "register-user",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"firstName\": \"Sinan\",\r\n    \"lastName\": \"Lakhani\",\r\n    \"email\": \"sinan.lakhani09@gmail.com\",\r\n    \"contactNumber\": \"+923342989198\",\r\n    \"address\": \"address\",\r\n    \"password\": \"123456\",\r\n    \"confirmPassword\": \"123456\",\r\n    \"otp\": \"683380\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}auth/client/register",
+                  "host": [
+                    "{{baseUrl}}auth"
+                  ],
+                  "path": [
+                    "client",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "forgot-password",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\":\"sinan.lakhani09@gmail.com\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}auth/send-forgot-otp",
+                  "host": [
+                    "{{baseUrl}}auth"
+                  ],
+                  "path": [
+                    "send-forgot-otp"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "vendor-connect",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc3NTcxODg3Nn0.1Mvulf6JROn0Snba2cq12i68Sh99-zqrisrVlrPT8SQ",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}auth/vendor/stripe/connect",
+                  "host": [
+                    "{{baseUrl}}auth"
+                  ],
+                  "path": [
+                    "vendor",
+                    "stripe",
+                    "connect"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "cart",
+          "item": [
+            {
+              "name": "cart",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2NDE2MjI5N30.9BmuFEsbeUCBwS4jf2rj3V_A19iSM74n2yoATXc-DRY",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cart",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cart"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "profile",
+          "item": [
+            {
+              "name": "update-profile",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTMxYzQ5YWM0NzIxMDY1OTM1YWZjYSIsImlhdCI6MTc2NzY5NjgwMX0.4alIcxZfswhRxlZl2mhSvJEfkaHmk7HMR4g-KIpsDBs",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"firstName\":\"OK\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/settings/personal-info",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "settings",
+                    "personal-info"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "listing",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/listings/69245969a3d1b1531ddcdbd9",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "listings",
+                "69245969a3d1b1531ddcdbd9"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Vendor",
+      "item": [
+        {
+          "name": "Categories",
+          "item": [
+            {
+              "name": "fetch-vendor-categories",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{liveBase}}api/vendor/profile/get-main-category/68ff3eb687af6fe8f7592381",
+                  "host": [
+                    "{{liveBase}}api"
+                  ],
+                  "path": [
+                    "vendor",
+                    "profile",
+                    "get-main-category",
+                    "68ff3eb687af6fe8f7592381"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "fetch-subcategory-by-category-ids",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"categoryIds\": [\"68943d2ca1a765a1f78a635b\"]\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}api/vendor/profile/get-sub-category-by-categoryIds",
+                  "host": [
+                    "{{baseUrl}}api"
+                  ],
+                  "path": [
+                    "vendor",
+                    "profile",
+                    "get-sub-category-by-categoryIds"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "New Request",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": ""
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "SalesItem",
+          "item": [
+            {
+              "name": "fetch-sale-item",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFhNDg3MzZlMjYwNjgwZmQxN2IwZiIsImlhdCI6MTc2Mjc2NDkzMH0.WDJrvrEKdbuN243YfTlOJEMTmqRvMYykXazrPa_UJZw",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZmYzZWI2ODdhZjZmZThmNzU5MjM4MSIsImlhdCI6MTc2MjQxNTU3MH0.uZBDULL5QbMB6hFcwbD-M0hs75U0DEZYIkn2hedgIf8",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/items/overview",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "items",
+                    "overview"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "create-sale-item",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2MzYyNjM1MH0.LvLpPCJCxf7OF4NC7LpR3BFg3qfDSTC0YG9cQqMiOf8",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZmYzZWI2ODdhZjZmZThmNzU5MjM4MSIsImlhdCI6MTc2MTU2ODk0NX0.XM-NSBfhQGvIaB1y2RaAtgz_HioZDSX4DaUlDqTtDDs",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": {\r\n        \"en\": \"new sale item hahah\",\r\n        \"nl\": \"new sale item nnlnllnln\"\r\n    },\r\n    \"location\": {\r\n        \"userAddress\": \"Lodhrān, Pakistan\",\r\n        \"coordinates\": {\r\n            \"lat\": 29.546687,\r\n            \"lng\": 71.6276388\r\n        }\r\n    },\r\n    \"purchasePrice\": 10,\r\n    \"extraDeliveryCharges\": 100,\r\n    \"sellingPrice\": 10,\r\n    \"stockQuantity\": 10,\r\n    \"mainCategory\": \"68943d2ca1a765a1f78a635b\",\r\n    \"subCategory\": \"68e739eed1990df59bdc73ca\",\r\n    \"linkedListing\": \"\",\r\n    \"image\": \"https://res.cloudinary.com/dv0imczul/image/upload/v1761568998/eqedendhbsqebnjxkvwb.png\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/items/create",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "items",
+                    "create"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "updateSaleItem",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2Nzc4MDI5N30.e67JxPMm7eF3_tchUxTAOZpxJptKOP9chdBCPs8H51Q",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": {\r\n        \"en\": \"Speakerss\",\r\n        \"nl\": \"Luidsprekers\"\r\n    },\r\n    \"purchasePrice\": 244,\r\n    \"sellingPrice\": 444,\r\n    \"stockQuantity\": 11,\r\n    \"highValueDelivery\": false,\r\n    \"extraDeliveryCharges\": 0,\r\n    \"location\": {\r\n        \"fullAddress\": \"Islamabad Motorways Toll Plaza, Islamabad Link Rd, Islamabad, Pakistan\",\r\n        \"coordinates\": {\r\n            \"lat\": 33.6097268,\r\n            \"lng\": 72.9012181\r\n        }\r\n    },\r\n    \"image\": \"https://res.cloudinary.com/dv0imczul/image/upload/v1767164589/rbm7hkx5nt8cxkaypddu.jpg\",\r\n    \"mainCategory\": \"\",\r\n    \"subCategory\": \"\",\r\n    \"linkedListing\": null\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/items/update/6954cab12a8dba57d4342613",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "items",
+                    "update",
+                    "6954cab12a8dba57d4342613"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Sale-item-details-by-id",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZmYzZWI2ODdhZjZmZThmNzU5MjM4MSIsImlhdCI6MTc2MjIzNTY4M30.qoVrOk94ZoCnRL1KDzH0tdKncZGmBVTXKYJYyciAPo0",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\":\"HAHAHHA\"\r\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/items/item-detail/69045d8ddb035a22f2caf855",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "items",
+                    "item-detail",
+                    "69045d8ddb035a22f2caf855"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "delete-sale-item",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFhNDg3MzZlMjYwNjgwZmQxN2IwZiIsImlhdCI6MTc2Mjc2NDkzMH0.WDJrvrEKdbuN243YfTlOJEMTmqRvMYykXazrPa_UJZw",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/items/delete/6911ac3afa520fb7892ccf6c",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "items",
+                    "delete",
+                    "6911ac3afa520fb7892ccf6c"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "overview",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2NTUzNTcwNn0.oGDjlhE6lJa-29KebD2gK6puLU6CFajT-OYNAqX3VSk",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/items/overview",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "items",
+                    "overview"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "restock-from-claim-item",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2NTUzNTcwNn0.oGDjlhE6lJa-29KebD2gK6puLU6CFajT-OYNAqX3VSk",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/booking/TRK176529269450813BPLYNDE/restock-again",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "booking",
+                    "TRK176529269450813BPLYNDE",
+                    "restock-again"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "authentication",
+          "item": [
+            {
+              "name": "send-OTP",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\":\"Test@gmail.com\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}api/auth/send-otp",
+                  "host": [
+                    "{{baseUrl}}api"
+                  ],
+                  "path": [
+                    "auth",
+                    "send-otp"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "loginVendor",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"info@softflux.co\",\r\n    \"password\": \"123123123\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}auth/vendor/login",
+                  "host": [
+                    "{{baseUrl}}auth"
+                  ],
+                  "path": [
+                    "vendor",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "listing",
+          "item": [
+            {
+              "name": "getLisitingBycatandsubCat",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/listings/listings/filter?subCategory=68943d2ca1a765a1f78a635f&category=68943d2ca1a765a1f78a635b",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "listings",
+                    "listings",
+                    "filter"
+                  ],
+                  "query": [
+                    {
+                      "key": "subCategory",
+                      "value": "68943d2ca1a765a1f78a635f"
+                    },
+                    {
+                      "key": "category",
+                      "value": "68943d2ca1a765a1f78a635b"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "getListingAgainstVendorId",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/listings/vendor/68ff3eb687af6fe8f7592381",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "listings",
+                    "vendor",
+                    "68ff3eb687af6fe8f7592381"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "listiing-create",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2MzcxMDQwMH0.xS6OrrfZl653oBGYyV0J4n38wh2jZPxhqdhq6R8pY-M",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": {\r\n        \"en\": \"New Secure listing en\",\r\n        \"nl\": \"New Secure listing nl\"\r\n    },\r\n    \"subtitle\": {\r\n        \"en\": \"New Secure listing en\",\r\n        \"nl\": \"New Secure listing nl\"\r\n    },\r\n    \"description\": {\r\n        \"en\": \"New Secure listing en\",\r\n        \"nl\": \"New Secure listing nl\"\r\n    },\r\n    \"category\": \"68943d2ca1a765a1f78a635b\",\r\n    \"subCategory\": \"692457736f7216eb2150f682\",\r\n    \"pricing\": {\r\n        \"type\": \"PerHour\",\r\n        \"amount\": 600,\r\n        \"extratimeCost\": 500,\r\n        \"pricePerKm\": 500,\r\n        \"securityFee\": 500\r\n    },\r\n    \"location\": {\r\n        \"userAddress\": \"Abbottabad, Pakistan\",\r\n        \"coordinates\": {\r\n            \"lat\": 34.1687502,\r\n            \"lng\": 73.2214982\r\n        }\r\n    },\r\n    \"availability\": {\r\n        \"isAvailable\": true,\r\n        \"availableDays\": [\r\n            \"mon\",\r\n            \"tue\",\r\n            \"thu\",\r\n            \"fri\"\r\n        ],\r\n        \"availableTimeSlots\": [\r\n            {\r\n                \"startTime\": \"07:00\",\r\n                \"endTime\": \"17:00\"\r\n            }\r\n        ]\r\n    },\r\n    \"status\": \"active\",\r\n    \"isActive\": true,\r\n    \"images\": [\r\n        \"https://res.cloudinary.com/dv0imczul/image/upload/v1764159791/pxlhpesriobg3jfjd7pf.png\"\r\n    ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/listings/create",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "listings",
+                    "create"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "listing-details",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": ""
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "fetch-all-listings",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZTVkMjE0MWI5ZTRkZmQ4M2JkMDU2MCIsImlhdCI6MTc3OTE4ODgxNH0.Dvpx9Pm7xcLZAzCBEGXitomDvyK2BM-mqkQqsm98b3Y",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}vendor/listings/overview",
+                  "host": [
+                    "{{baseUrl}}vendor"
+                  ],
+                  "path": [
+                    "listings",
+                    "overview"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "delete-listing",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFhNDg3MzZlMjYwNjgwZmQxN2IwZiIsImlhdCI6MTc2Mjc2NDkzMH0.WDJrvrEKdbuN243YfTlOJEMTmqRvMYykXazrPa_UJZw",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/listings/delete/6911a960bd6133f50f778250",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "listings",
+                    "delete",
+                    "6911a960bd6133f50f778250"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "update-listing",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFhNDg3MzZlMjYwNjgwZmQxN2IwZiIsImlhdCI6MTc2Mjc2NDkzMH0.WDJrvrEKdbuN243YfTlOJEMTmqRvMYykXazrPa_UJZw",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": {\r\n        \"en\": \"new listing updated\",\r\n        \"nl\": \"new listing updated nl\"\r\n    },\r\n    \"subtitle\": {\r\n        \"en\": \"hahahahahha\",\r\n        \"nl\": \"hahahahahha nl\"\r\n    },\r\n    \"description\": {\r\n        \"en\": \"dasdasdas\",\r\n        \"nl\": \"dasdasdas nl\"\r\n    },\r\n    \"category\": \"68943d2ca1a765a1f78a635b\",\r\n    \"subCategory\": \"68943d2ca1a765a1f78a635d\",\r\n    \"pricing\": {\r\n        \"type\": \"perhour\",\r\n        \"amount\": 120,\r\n        \"extratimeCost\": 10,\r\n        \"pricePerKm\": 15,\r\n        \"securityFee\": 50\r\n    },\r\n    \"location\": {\r\n        \"userAddress\": \"Haha wah cannttt, Pakistan\",\r\n        \"coordinates\": {\r\n            \"lat\": 33.7715411,\r\n            \"lng\": 72.7510921\r\n        }\r\n    },\r\n    \"availability\": {\r\n        \"isAvailable\": true,\r\n        \"availableDays\": [\r\n            \"sun\",\r\n            \"mon\",\r\n            \"tue\",\r\n            \"wed\",\r\n            \"thu\",\r\n            \"fri\"\r\n        ],\r\n        \"availableTimeSlots\": [\r\n            {\r\n                \"startTime\": \"07:00\",\r\n                \"endTime\": \"22:00\"\r\n            }\r\n        ]\r\n    },\r\n    \"status\": \"active\",\r\n    \"isActive\": true,\r\n    \"images\": [\r\n        \"https://res.cloudinary.com/dv0imczul/image/upload/v1762239676/ngwlmi8r4ah1giyzmxzs.png\"\r\n    ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/listings/update/6911a960bd6133f50f778250",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "listings",
+                    "update",
+                    "6911a960bd6133f50f778250"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "listing-overview",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZGUxYmQ0YmM2MzRhYzhkYWJlYmUwYiIsImlhdCI6MTc3Nzg3NzA0OH0.S0jqNti3n-88cRbHiEUDBd0_ixMozOFAvuaz_On0sRI",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}vendor/listings/overview",
+                  "host": [
+                    "{{baseUrl}}vendor"
+                  ],
+                  "path": [
+                    "listings",
+                    "overview"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "designations",
+          "item": [
+            {
+              "name": "create-designation",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZmY0ZTAyMDRkMmM0ZmNhZjBjYzlmMiIsIm5hbWUiOiJhZG1pbiIsImlhdCI6MTc2MTg5MTE0NH0.VlcAB5u4GPpQphmyrvXtS6uxhCrYxi8NX8jSdXxFHNQ",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"vendorId\":\"68ff3eb687af6fe8f7592381\",\r\n    \"name\": \"tester\",\r\n    \"permissions\": [\r\n        {\r\n            \"module\": \"tracking\",\r\n            \"canView\": true,\r\n            \"canEdit\": true\r\n        },\r\n        {\r\n            \"module\": \"analytics_reports\",\r\n            \"canView\": true,\r\n            \"canEdit\": true\r\n        }\r\n    ],\r\n    \"isActive\": true\r\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/create-designation",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "create-designation"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "fetch-designation",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/fetch-designations/68ff3eb687af6fe8f7592381",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "fetch-designations",
+                    "68ff3eb687af6fe8f7592381"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "delete-designation",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/delete-designation/690d9359e122c71070151677",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "delete-designation",
+                    "690d9359e122c71070151677"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "update-designation",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"name\": \"HAHA DRIVER\",\r\n    \"permissions\": [\r\n        {\r\n            \"module\": \"tracking\",\r\n            \"canView\": true,\r\n            \"canEdit\": true\r\n        }\r\n    ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/update-designation/6905067d3a0e45b21b412bd4",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "update-designation",
+                    "6905067d3a0e45b21b412bd4"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Employee",
+          "item": [
+            {
+              "name": "create-vendor-employee",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"name\":\"Chotu\",\r\n    \"email\":\"email@gmail.com\",\r\n    \"password\":\"12345678\",\r\n    \"vendorId\":\"68ff3eb687af6fe8f7592381\",\r\n    \"contactNumber\":\"123123\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/roles/register-vendor-from-role",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "roles",
+                    "register-vendor-from-role"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "auth",
+          "item": [
+            {
+              "name": "loginVendor",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"info@softflux.co\",\r\n    \"password\": \"123123123\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}auth/vendor/login",
+                  "host": [
+                    "{{baseUrl}}auth"
+                  ],
+                  "path": [
+                    "vendor",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "register-vendor",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"accountType\": \"business\",\r\n  \"businessName\": \"Business ABc\",\r\n  \"businessType\": \"Team\",\r\n  \"businessNumber\": \"1245789063\",\r\n  \"businessWebsite\": \"Https//\",\r\n  \"teamSize\": \"1-5\",\r\n  \"businessEmail\": \"businessvendor@gmail.com\",\r\n  \"businessLogo\": \"https://res.cloudinary.com/dv0imczul/image/upload/v1763042376/b0pybzjyupe8cwviv3bq.jpg\",\r\n  \"businessImage\": \"https://res.cloudinary.com/dv0imczul/image/upload/v1763042390/kumkstpn1afp7mmm2znx.jpg\",\r\n  \"mainCategories\": [\r\n    \"68943d2ca1a765a1f78a635b\",\r\n    \"68943d2ca1a765a1f78a6353\",\r\n    \"68943d2ba1a765a1f78a6338\"\r\n  ],\r\n  \"subCategories\": [\r\n    \"68943d2ba1a765a1f78a633b\",\r\n    \"68943d2ca1a765a1f78a6346\",\r\n    \"68e5016f6fadbd956eef2178\",\r\n    \"68e8d1883daa0766ec098b53\",\r\n    \"68943d2ca1a765a1f78a6355\",\r\n    \"68943d2ca1a765a1f78a6359\",\r\n    \"68943d2ca1a765a1f78a635f\",\r\n    \"68e739eed1990df59bdc73ca\",\r\n    \"68e8d1c53daa0766ec098b56\"\r\n  ],\r\n  \"city\": \"Business address test\",\r\n  \"fullAddress\": \"Business address test\",\r\n  \"businessDescription\": {\r\n    \"en\": \"Test description en\",\r\n    \"nl\": \"\"\r\n  },\r\n  \"tagline\": {\r\n    \"en\": \"Test tag line en\",\r\n    \"nl\": \"\"\r\n  },\r\n  \"kvkNumber\": \"1425789063\",\r\n  \"passportDetails\": \"125789063\",\r\n  \"postalCode\": \"0000\",\r\n  \"password\": \"12345678\",\r\n  \"confirmPassword\": \"12345678\",\r\n  \"otp\": \"541592\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}auth/vendor/register",
+                  "host": [
+                    "{{baseUrl}}auth"
+                  ],
+                  "path": [
+                    "vendor",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "send-otp",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\":\"sinanlakhani09@gmail.com\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}auth/send-otp",
+                  "host": [
+                    "{{baseUrl}}auth"
+                  ],
+                  "path": [
+                    "send-otp"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "getVendorDetails",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": ""
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "reset-password-for-employee",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\":\"role@gmail.com\",\r\n    \"newPassword\":\"haha1234\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}auth/vendor/reset-password-for-employee",
+                  "host": [
+                    "{{baseUrl}}auth"
+                  ],
+                  "path": [
+                    "vendor",
+                    "reset-password-for-employee"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "profile",
+          "item": [
+            {
+              "name": "get-profile",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2MzYyNjM1MH0.LvLpPCJCxf7OF4NC7LpR3BFg3qfDSTC0YG9cQqMiOf8",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/profile",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "profile"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "update-profile",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc3MDk2NTI5N30.QcphPV2Eh61FteqV1SdlZbGBoePtf16peJlUZY__X6k",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"accountType\": \"business\",\r\n    \"tagline\": {\r\n        \"en\": \"this is my tagline\",\r\n        \"nl\": \"\"\r\n    },\r\n    \"description\": {\r\n        \"en\": \"this is my description\",\r\n        \"nl\": \"\"\r\n    },\r\n    \"mainCategories\": [],\r\n    \"subCategories\": [],\r\n    \"profileImage\": \"\",\r\n    \"bannerImage\": \"\",\r\n    \"businessName\": \"Hammad Abbasiiasdasdasdasdd\",\r\n    \"businessEmail\": \"hammad.abbasi211@gmail.com\",\r\n    \"businessPhone\": \"123123123123123\",\r\n    \"businessWebsite\": \"http//:abc.commmmm\",\r\n    \"businessAddress\": \"\",\r\n    \"businessLocation\": \"Miami asdasdasdasdasdsad\",\r\n    \"teamSize\": \"200\",\r\n    \"teamType\": \"team\",\r\n    \"kvkNumber\": \"9765432123123121\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}vendor/profile/update",
+                  "host": [
+                    "{{baseUrl}}vendor"
+                  ],
+                  "path": [
+                    "profile",
+                    "update"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "update-delivery-charges",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2MzYyNjM1MH0.LvLpPCJCxf7OF4NC7LpR3BFg3qfDSTC0YG9cQqMiOf8",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"deliveryCharges\":10\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/profile/update-devliery-charges",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "profile",
+                    "update-devliery-charges"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "send-kvk-rquest",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n        \"vendorName\": \"Hammad Abbasi\",\r\n        \"vendorEmail\": \"hammad.abbasi211@gmail.com\",\r\n        \"description\": \"I want to change frmo kvk number from abc to xyz\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}vendor/profile/request-kvk-change",
+                  "host": [
+                    "{{baseUrl}}vendor"
+                  ],
+                  "path": [
+                    "profile",
+                    "request-kvk-change"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "admin-profile-update",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"kvkNumber\":10\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}vendor/profile/admin/update/6911b7d4e8478c7b209eb55a",
+                  "host": [
+                    "{{baseUrl}}vendor"
+                  ],
+                  "path": [
+                    "profile",
+                    "admin",
+                    "update",
+                    "6911b7d4e8478c7b209eb55a"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "sale-item-purchase",
+          "item": [
+            {
+              "name": "fetch-sale-items-by-vendor",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2MzcxMDQwMH0.xS6OrrfZl653oBGYyV0J4n38wh2jZPxhqdhq6R8pY-M",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/vendor-order-history",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor-order-history"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "update-order-status",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2MzcxMDQwMH0.xS6OrrfZl653oBGYyV0J4n38wh2jZPxhqdhq6R8pY-M",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"status\":\"On the way\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/update-order-status/692019182f45bec9d0be04cd",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "update-order-status",
+                    "692019182f45bec9d0be04cd"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "booking",
+          "item": [
+            {
+              "name": "reject-booking",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2NDE2MjI5N30.9BmuFEsbeUCBwS4jf2rj3V_A19iSM74n2yoATXc-DRY",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"rejectionReason\": \"i'm not avalable\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/bookings/6a2bed6b7bb8e19b8963a0ff/reject",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "bookings",
+                    "6a2bed6b7bb8e19b8963a0ff",
+                    "reject"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "create-client-secret",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"amount\":39003.99,\r\n    \"bookingId\":\"69a144eb731cf22d7d7f1c9f\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}vendor/bookings/create-payment-intent",
+                  "host": [
+                    "{{baseUrl}}vendor"
+                  ],
+                  "path": [
+                    "bookings",
+                    "create-payment-intent"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "on-payment-success",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTMxYzQ5YWM0NzIxMDY1OTM1YWZjYSIsImlhdCI6MTc2NDE1OTA1NH0.XyMUhpuf9ZJo-3KSGkvqR5EAAh-8aCHROPA3o-s-oXg",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"bookingId\": \"692838b03273d94a10cdc9f7\",\r\n    \"paymentIntent\": \"pi_3SY3QMJpLBz7gvja1B64PnX4\",\r\n    \"amount\": 5052.54\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/bookings/on-payment-success",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "bookings",
+                    "on-payment-success"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "amount-to-pay",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"amount\":1000\r\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/bookings/amount-to-pay/69299d7f0784f139112253a1",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "bookings",
+                    "amount-to-pay",
+                    "69299d7f0784f139112253a1"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "mark-pickep-up",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2NTM0Nzk5Nn0.2hfKMhp68zGmbXT8ncyUD1xpQlJTJaUIrAo8rTM2RLw",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"condition\": \"claim\",\r\n    \"claimAmount\": 100\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/tracking/69383a96c6adbce6b56838aa/mark-picked-up",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "tracking",
+                    "69383a96c6adbce6b56838aa",
+                    "mark-picked-up"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "accept-booking",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZTVkMjE0MWI5ZTRkZmQ4M2JkMDU2MCIsImlhdCI6MTc4MDU4ODg3MX0.ZZ8YUydQFzUrN69UGjHK5WrRo9zc_12Llfk2l9Y_d50",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}vendor/bookings/6a219e629781bdbf345ce62d/accept",
+                  "host": [
+                    "{{baseUrl}}vendor"
+                  ],
+                  "path": [
+                    "bookings",
+                    "6a219e629781bdbf345ce62d",
+                    "accept"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "reject-booking",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5OWJjYzlmYWIwYTBhNTM3NzE2NTljMCIsImlhdCI6MTc3MjI4NDU0OX0.UmpNgERxo7ylF9rU7GP1kA-QSq_6qKWQQC_M6vPPvFo",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"rejectionReason\":\"I dont want it now \"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}vendor/bookings/69a177b8cec051e9f1e59733/reject",
+                  "host": [
+                    "{{baseUrl}}vendor"
+                  ],
+                  "path": [
+                    "bookings",
+                    "69a177b8cec051e9f1e59733",
+                    "reject"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "New Request",
+              "request": {
+                "method": "GET",
+                "header": []
+              },
+              "response": []
+            },
+            {
+              "name": "mark-finished/completed",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2OTUwMzcwNX0.q4usdRkDTKtP-K_qofgCupduzbFML1xVrM2C4bm3Qzo",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}vendor/tracking/6996ee74b674165cd9336fb0/mark-completed",
+                  "host": [
+                    "{{baseUrl}}vendor"
+                  ],
+                  "path": [
+                    "tracking",
+                    "6996ee74b674165cd9336fb0",
+                    "mark-completed"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "cancel-booking",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}bookings/6995990b53f4701fccaade66/cancel",
+                  "host": [
+                    "{{baseUrl}}bookings"
+                  ],
+                  "path": [
+                    "6995990b53f4701fccaade66",
+                    "cancel"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "notifications",
+          "item": [
+            {
+              "name": "fetch-notifications",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2NTI2NjcyMH0.1y7n1NmYgR9WJV8LL4vV-dFWU4veTaXrW6VnYtmVv9w",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/vendor-notifications",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "vendor-notifications"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "analytics",
+          "item": [
+            {
+              "name": "fetch-analytics",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5OWJjYzlmYWIwYTBhNTM3NzE2NTljMCIsImlhdCI6MTc3MTkyMjU2MX0.6Ho-v9fgDaMWndTJ_MoK1i8jy2c2ht5ZeYN-n53nL9Q",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "url": {
+                  "raw": "{{baseUrl}}vendor/dashboard/analytics",
+                  "host": [
+                    "{{baseUrl}}vendor"
+                  ],
+                  "path": [
+                    "dashboard",
+                    "analytics"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "earnings-analytics",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5OWJjYzlmYWIwYTBhNTM3NzE2NTljMCIsImlhdCI6MTc3MTkyMjU2MX0.6Ho-v9fgDaMWndTJ_MoK1i8jy2c2ht5ZeYN-n53nL9Q",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}vendor/earnings/analytics",
+                  "host": [
+                    "{{baseUrl}}vendor"
+                  ],
+                  "path": [
+                    "earnings",
+                    "analytics"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "service-analytics",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2NzMzNTQ4NX0.F28LnrsK42rgopatB0qy_zjoFpfoGSrWGaR9T9wP1pI",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/earnings/service/analytics",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "earnings",
+                    "service",
+                    "analytics"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Settings",
+          "item": [
+            {
+              "name": "update-delivery-charges",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2NDE2MjI5N30.9BmuFEsbeUCBwS4jf2rj3V_A19iSM74n2yoATXc-DRY",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"deliveryCharges\": 15\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "https://0g01d8wd-5000.inc1.devtunnels.ms/api/vendor/profile/update-delivery-charges",
+                  "protocol": "https",
+                  "host": [
+                    "0g01d8wd-5000",
+                    "inc1",
+                    "devtunnels",
+                    "ms"
+                  ],
+                  "path": [
+                    "api",
+                    "vendor",
+                    "profile",
+                    "update-delivery-charges"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "VendorDetails",
+          "item": [
+            {
+              "name": "details",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"userId\":\"69de3008c78e77b683119ca5\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}vendor/details/69e5d2141b9e4dfd83bd0560",
+                  "host": [
+                    "{{baseUrl}}vendor"
+                  ],
+                  "path": [
+                    "details",
+                    "69e5d2141b9e4dfd83bd0560"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "HomePage",
+          "item": [
+            {
+              "name": "fetch",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"subCategoryId\":\"692457736f7216eb2150f682\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}listings/homeData",
+                  "host": [
+                    "{{baseUrl}}listings"
+                  ],
+                  "path": [
+                    "homeData"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "roles",
+          "item": [
+            {
+              "name": "delete-role",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5NDI5MjJlNGMzN2EzMmMzYzAwNWFkYyIsImlhdCI6MTc2NzEwMjM2MH0.Y57-BopFM8dZqA7U4dRVDl4_-zhtizbEuDd6L-_Qado",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/vendor/roles/role-users/6956598def97222b1fab998f",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "vendor",
+                    "roles",
+                    "role-users",
+                    "6956598def97222b1fab998f"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "stocks",
+          "item": [
+            {
+              "name": "booking",
+              "item": [
+                {
+                  "name": "stock-in",
+                  "protocolProfileBehavior": {
+                    "disableBodyPruning": true
+                  },
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2Nzk2Mzc2Nn0.2tl35LSYSAHSL8MHXFwEzm0X0Rbx-miXFHd3AX_Izps",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/vendor/stock/table/stockin",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "vendor",
+                        "stock",
+                        "table",
+                        "stockin"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "sale",
+              "item": [
+                {
+                  "name": "fetch-check-in",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5NDI5MjJlNGMzN2EzMmMzYzAwNWFkYyIsImlhdCI6MTc2Nzk2MTYwMH0.B9oUx7UR6ExignlDU9J9NBZL6iuOi8b1VixZoWYRphg",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/vendor/itemstock/table/stockin",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "vendor",
+                        "itemstock",
+                        "table",
+                        "stockin"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "stock-out",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2OTQzODk0NH0.2rjE9obZJIdftWelNks9Q_-YbGowhoPCCpLHpLaE0yM",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n    \"listingId\": \"69664217775216a8aa3acc13\",\r\n    \"type\": \"stockout\",\r\n    \"quantity\": 2,\r\n    \"note\": \"Stock out via modal\"\r\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}vendor/stock/event",
+                      "host": [
+                        "{{baseUrl}}vendor"
+                      ],
+                      "path": [
+                        "stock",
+                        "event"
+                      ]
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "New Request",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2OTQzODk0NH0.2rjE9obZJIdftWelNks9Q_-YbGowhoPCCpLHpLaE0yM",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}vendor/stock/table/stockout",
+                      "host": [
+                        "{{baseUrl}}vendor"
+                      ],
+                      "path": [
+                        "stock",
+                        "table",
+                        "stockout"
+                      ]
+                    }
+                  },
+                  "response": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "language",
+          "item": [
+            {
+              "name": "language",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"title\": \"Evenement planning\",\r\n  \"subtitle\": \"Professionele service\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}vendor/language/translate",
+                  "host": [
+                    "{{baseUrl}}vendor"
+                  ],
+                  "path": [
+                    "language",
+                    "translate"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "tracking",
+          "item": [
+            {
+              "name": "track-vendor",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{vendorToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}vendor/tracking?vendorId=6911b7d4e8478c7b209eb558",
+                  "host": [
+                    "{{baseUrl}}vendor"
+                  ],
+                  "path": [
+                    "tracking"
+                  ],
+                  "query": [
+                    {
+                      "key": "vendorId",
+                      "value": "6911b7d4e8478c7b209eb558"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "dashboard",
+          "item": [
+            {
+              "name": "dahsboard",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "payment",
+          "item": [
+            {
+              "name": "connect-vendor",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc3NTcxODg3Nn0.1Mvulf6JROn0Snba2cq12i68Sh99-zqrisrVlrPT8SQ",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}auth/vendor/stripe/connect",
+                  "host": [
+                    "{{baseUrl}}auth"
+                  ],
+                  "path": [
+                    "vendor",
+                    "stripe",
+                    "connect"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "onboard-user",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc3NTcxODg3Nn0.1Mvulf6JROn0Snba2cq12i68Sh99-zqrisrVlrPT8SQ",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}auth/vendor/stripe/onboarding-link",
+                  "host": [
+                    "{{baseUrl}}auth"
+                  ],
+                  "path": [
+                    "vendor",
+                    "stripe",
+                    "onboarding-link"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "on-boarding-status",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc3NTcxODg3Nn0.1Mvulf6JROn0Snba2cq12i68Sh99-zqrisrVlrPT8SQ",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}auth/vendor/stripe/onboarding-status",
+                  "host": [
+                    "{{baseUrl}}auth"
+                  ],
+                  "path": [
+                    "vendor",
+                    "stripe",
+                    "onboarding-status"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "fetchStockOrders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "vendor-register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"accountType\": \"personal\",\r\n    \"firstName\": \"Test\",\r\n    \"lastName\": \"Test\",\r\n    \"email\": \"Test@gmail.com\",\r\n    \"contactNumber\": \"+11245780963\",\r\n    \"city\": \"Karachi\",\r\n    \"postalCode\": \"124578096\",\r\n    \"fullAddress\": \"Test 123\",\r\n    \"passportDetails\": \"124567\",\r\n    \"mainCategories\": [\r\n        \"68943d2ca1a765a1f78a635b\",\r\n        \"68943d2ba1a765a1f78a6338\",\r\n        \"68943d2ca1a765a1f78a6353\"\r\n    ],\r\n    \"subCategories\": [\r\n        \"68943d2ba1a765a1f78a633b\",\r\n        \"68943d2ca1a765a1f78a6346\",\r\n        \"68943d2ca1a765a1f78a6342\",\r\n        \"68e8d1883daa0766ec098b53\",\r\n        \"68943d2ca1a765a1f78a6355\",\r\n        \"68e739eed1990df59bdc73ca\"\r\n    ],\r\n    \"businessLogo\": \"Test\",\r\n    \"bannerImage\": [\"test\"],\r\n    \"password\": \"12345678\",\r\n    \"confirmPassword\": \"12345678\",\r\n    \"otp\": \"165062\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}api/auth/vendor/register",
+              "host": [
+                "{{baseUrl}}api"
+              ],
+              "path": [
+                "auth",
+                "vendor",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "designation",
+          "item": [
+            {
+              "name": "createDesignation",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"name\": \"Blog and FAQs\",\r\n    \"permissions\": [\r\n   \r\n        {\r\n            \"module\": \"blog_management\",\r\n            \"canView\": true,\r\n            \"canEdit\": false\r\n        },\r\n        {\r\n            \"module\": \"faqs\",\r\n            \"canView\": true,\r\n            \"canEdit\": false\r\n        }\r\n    ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}api/admin/create-designation",
+                  "host": [
+                    "{{baseUrl}}api"
+                  ],
+                  "path": [
+                    "admin",
+                    "create-designation"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "fetch-designation",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}admin/fetch-designations",
+                  "host": [
+                    "{{baseUrl}}admin"
+                  ],
+                  "path": [
+                    "fetch-designations"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "delete-designtaion",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/delete-designation/68ff6b995ac1fa0f5607ebba",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "delete-designation",
+                    "68ff6b995ac1fa0f5607ebba"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "employees",
+          "item": [
+            {
+              "name": "fetch-employee",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}api/admin/fetch-employees",
+                  "host": [
+                    "{{baseUrl}}api"
+                  ],
+                  "path": [
+                    "admin",
+                    "fetch-employees"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "create_employee",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"name\":\"Evenlyo\",\r\n    \"email\": \"infoinfo@evenlyo.nl\",\r\n    \"password\": \"info@123123\",\r\n    \"role\":\"Admin\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{liveUrl}}admin/create-employee",
+                  "host": [
+                    "{{liveUrl}}admin"
+                  ],
+                  "path": [
+                    "create-employee"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "loginEmployee",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\":\"sinan.lakhani09@gmail.com\",\r\n    \"password\":\"12345678\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}admin/login-employee",
+                  "host": [
+                    "{{baseUrl}}admin"
+                  ],
+                  "path": [
+                    "login-employee"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "update-employee",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"name\":\"Sinan Lakhani\",\r\n    \"password\":\"123123123\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/update-employee/68ff4eefcfd220e210b0fa34",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "update-employee",
+                    "68ff4eefcfd220e210b0fa34"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "delete-employee",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/delete-employee/68ff4eefcfd220e210b0fa34",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "delete-employee",
+                    "68ff4eefcfd220e210b0fa34"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "forgot-password",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\":\"sinan.lakhani09@gmail.com\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/forgot-password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "forgot-password"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "verify-admin-otp",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\":\"sinan.lakhani09@gmail.com\",\r\n    \"otp\":\"281768\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/verify-otp",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "verify-otp"
+                  ],
+                  "query": [
+                    {
+                      "key": "",
+                      "value": "sinan.lakhani09@gmail.com",
+                      "type": "text",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "reset-password",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"password\":\"123123123\",\r\n     \"resetToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNpbmFuLmxha2hhbmkwOUBnbWFpbC5jb20iLCJpYXQiOjE3Njc5NDIyMjUsImV4cCI6MTc2Nzk0MjgyNX0.bQQmDwkyu6w9-HvZSgCLSTlfKX2x6MI0ttgZHJsbC2g\"\r\n\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/reset-password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "reset-password"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "stats",
+          "item": [
+            {
+              "name": "fetch-dashboard-stats",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZmY0ZTAyMDRkMmM0ZmNhZjBjYzlmMiIsIm5hbWUiOiJhZG1pbiIsImlhdCI6MTc2MzU0Mjg2M30.QG95kOrdreYFvOMGJl4Ex_nm6sVG7i7sv-qphZEfNss",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "url": {
+                  "raw": "{{baseUrl}}admin/dashboard/stats",
+                  "host": [
+                    "{{baseUrl}}admin"
+                  ],
+                  "path": [
+                    "dashboard",
+                    "stats"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Blogs",
+          "item": [
+            {
+              "name": "createBlog",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZmY0ZTAyMDRkMmM0ZmNhZjBjYzlmMiIsIm5hbWUiOiJhZG1pbiIsImlhdCI6MTc2MTg5MTE0NH0.VlcAB5u4GPpQphmyrvXtS6uxhCrYxi8NX8jSdXxFHNQ",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"happy weekeneds happy weekeneds happy weekeneds happy weekeneds happy weekeneds \",\r\n    \"description\": \"happy weekeneds \",\r\n    \"content\": \"happy weekeneds&nbsp;<h2>happy weekeneds&nbsp;</h2><h3><i>happy weekeneds&nbsp;</i></h3><p><i>happy weekeneds&nbsp;</i></p>\",\r\n    \"author\": \"Admin\",\r\n    \"category\": \"General\",\r\n    \"readTime\": 5,\r\n    \"image\": \"https://res.cloudinary.com/dv0imczul/image/upload/v1761896758/yotcviasbljaepofhlea.png\",\r\n    \"isMain\": true,\r\n    \"tags\": []\r\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/blogs/create",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "blogs",
+                    "create"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Settings",
+          "item": [
+            {
+              "name": "fetchSettings",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZmY0ZTAyMDRkMmM0ZmNhZjBjYzlmMiIsIm5hbWUiOiJhZG1pbiIsImlhdCI6MTc2MjAwOTIyOH0.4Tpz7xsHpThehfV1rmuY9JeIs-lNiiuT_gX5sAwt9N4",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/settings/platform-fees",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "settings",
+                    "platform-fees"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "update-password",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZmY0ZTAyMDRkMmM0ZmNhZjBjYzlmMiIsIm5hbWUiOiJhZG1pbiIsImlhdCI6MTc2MzEwMzQ1MX0.4x9hpIh8lz1jpgRiRrDD5YoPd_29SgPt399exbh1zE4",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"oldPassword\": \"12345678\",\r\n    \"newPassword\": \"123123123\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/settings/reset-password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "settings",
+                    "reset-password"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "listing_management",
+          "item": [
+            {
+              "name": "stats",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/listing/stats",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "listing",
+                    "stats"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "tracking",
+          "item": [
+            {
+              "name": "tracking",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZmY0ZTAyMDRkMmM0ZmNhZjBjYzlmMiIsIm5hbWUiOiJhZG1pbiIsImlhdCI6MTc2MzAyMzM4Nn0.v8uXGd67-SUrZtsm9tJ2BLWppapgPyJk3G26AgjnSfM",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/tracking",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "tracking"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "tracking-details",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZmY0ZTAyMDRkMmM0ZmNhZjBjYzlmMiIsIm5hbWUiOiJhZG1pbiIsImlhdCI6MTc2MzAyMzM4Nn0.v8uXGd67-SUrZtsm9tJ2BLWppapgPyJk3G26AgjnSfM",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/tracking/TRK1763040408474A6WU8WGXL/status-history",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "tracking",
+                    "TRK1763040408474A6WU8WGXL",
+                    "status-history"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "track-sale",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZmY0ZTAyMDRkMmM0ZmNhZjBjYzlmMiIsIm5hbWUiOiJhZG1pbiIsImlhdCI6MTc2MzAyMzM4Nn0.v8uXGd67-SUrZtsm9tJ2BLWppapgPyJk3G26AgjnSfM",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/tracking/sale",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "tracking",
+                    "sale"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "user_management",
+          "item": [
+            {
+              "name": "fetch-vendors",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZmY0ZTAyMDRkMmM0ZmNhZjBjYzlmMiIsIm5hbWUiOiJhZG1pbiIsImlhdCI6MTc2NzcwNDYyNn0.0HOBfp1Pa9FeFL_3DLgJGrMmeqdA7S_ubuhWJO7S0vQ",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/users/vendors",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "users",
+                    "vendors"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "fetch-clients",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YTE0MjI2N2U4ZWZmNTMyYTYyNzY5YSIsIm5hbWUiOiJzaW5hbiIsImlhdCI6MTc3MzM3NzU4Nn0.X3SeaEHDQSGp-9zYIifSpR4duheTBEZWTtT4L-wNtG8",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}admin/users/clients ",
+                  "host": [
+                    "{{baseUrl}}admin"
+                  ],
+                  "path": [
+                    "users",
+                    "clients "
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "send-emails",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"clientIds\": [\r\n        \"69a14ee0ade36cfa9ebf3d8b\"\r\n    ],\r\n    \"subject\": \"Han bhai\",\r\n    \"message\": \"han bhai kaisa ha\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}admin/users/clients/send-email",
+                  "host": [
+                    "{{baseUrl}}admin"
+                  ],
+                  "path": [
+                    "users",
+                    "clients",
+                    "send-email"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "customer_support",
+          "item": [
+            {
+              "name": "change-ticket-status",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"status\":\"close\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/support/ticket-status/TICKET-09D4F0A6",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "support",
+                    "ticket-status",
+                    "TICKET-09D4F0A6"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "send-email-to-customer",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"subject\": \"abbasbabsb\",\r\n    \"message\": \"sadasdasdasdasdasdasdasdasdasda\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/support/send-email/TICKET-1C6608BC",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "support",
+                    "send-email",
+                    "TICKET-1C6608BC"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "user-management-email",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZmY0ZTAyMDRkMmM0ZmNhZjBjYzlmMiIsIm5hbWUiOiJhZG1pbiIsImlhdCI6MTc2NTg2NTc4Nn0.eqzutpY4sCAiTK-mTrfbluMirS_YDgMh6--LG3wolXc",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"clientIds\": [\r\n        \"692387f737d0aefd1899933e\"\r\n    ],\r\n    \"subject\": \"asdasdasdasdasdasd\",\r\n    \"message\": \"asdasdasdsadsadasdsadsadsadsadadasdasdasdad\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/users/clients/send-email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "users",
+                    "clients",
+                    "send-email"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "notifications",
+          "item": [
+            {
+              "name": "admin-notifications",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}notifications/admin-notifications",
+                  "host": [
+                    "{{baseUrl}}notifications"
+                  ],
+                  "path": [
+                    "admin-notifications"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "get-notification-settings",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YTE0MjI2N2U4ZWZmNTMyYTYyNzY5YSIsIm5hbWUiOiJzaW5hbiIsImlhdCI6MTc3MjE3NTk5MX0.XYKTWVcyNYovNBEaFwF_eEaBnzrVjnzNIv7Iy5QLgFQ",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "url": {
+                  "raw": "{{baseUrl}}admin/settings/notification",
+                  "host": [
+                    "{{baseUrl}}admin"
+                  ],
+                  "path": [
+                    "settings",
+                    "notification"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "update-notification",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YTE0MjI2N2U4ZWZmNTMyYTYyNzY5YSIsIm5hbWUiOiJzaW5hbiIsImlhdCI6MTc3MjE3NTk5MX0.XYKTWVcyNYovNBEaFwF_eEaBnzrVjnzNIv7Iy5QLgFQ",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"type\": \"push\",\r\n    \"key\": \"evenlyoProtect\",\r\n    \"value\": false\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{stagingUrl}}admin/settings/notification/update",
+                  "host": [
+                    "{{stagingUrl}}admin"
+                  ],
+                  "path": [
+                    "settings",
+                    "notification",
+                    "update"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "dashboard",
+          "item": [
+            {
+              "name": "dashboard-stats",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZmY0ZTAyMDRkMmM0ZmNhZjBjYzlmMiIsIm5hbWUiOiJhZG1pbiIsImlhdCI6MTc2NTQ3NzQ4Nn0.Nmq-dO7iULbARt3YfOkF6R8Pkl3v665TZT37ZKGPcoQ",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}admin/dashboard/stats",
+                  "host": [
+                    "{{baseUrl}}admin"
+                  ],
+                  "path": [
+                    "dashboard",
+                    "stats"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "sub-category",
+          "item": [
+            {
+              "name": "create-subcategory",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"name\": {\r\n        \"en\": \"Apple Pie en\",\r\n        \"nl\": \"Apple Pie nl\"\r\n    },\r\n    \"icon\": \"https://res.cloudinary.com/dv0imczul/image/upload/v1763987180/pdj7acafzazcxmbzmptt.svg\",\r\n    \"mainCategoryId\": \"68943d2ca1a765a1f78a635b\",\r\n    \"description\": {\r\n        \"en\": \"Apple Pie en\",\r\n        \"nl\": \"Apple Pie nl\"\r\n    },\r\n    \"isUpfrontEnabled\": true,\r\n    \"upfrontFeePercent\": 2,\r\n    \"escrowHours\": 2,\r\n    \"isEvenlyoProtectEnabled\": true,\r\n    \"evenlyoProtectFeePercent\": 2,\r\n    \"status\": \"active\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/listing/create/subcategories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "listing",
+                    "create",
+                    "subcategories"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "fetch-category",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/listing/subcategories/68943d2ca1a765a1f78a635b",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "listing",
+                    "subcategories",
+                    "68943d2ca1a765a1f78a635b"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "reporting",
+          "item": [
+            {
+              "name": "get-stats",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "https://0g01d8wd-5000.inc1.devtunnels.ms/api/admin/report/stats-card",
+                  "protocol": "https",
+                  "host": [
+                    "0g01d8wd-5000",
+                    "inc1",
+                    "devtunnels",
+                    "ms"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "report",
+                    "stats-card"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "booking",
+          "item": [
+            {
+              "name": "analytics",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZmY0ZTAyMDRkMmM0ZmNhZjBjYzlmMiIsIm5hbWUiOiJhZG1pbiIsImlhdCI6MTc2NTQ1NTY3M30.5nHxCSPYetxWEUIAK9kRPWWJJ9UQE0RVeliYoQIpK-I",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/bookings/analytics",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "bookings",
+                    "analytics"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "listings",
+          "item": [
+            {
+              "name": "listing-stats",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/listing/stats",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "listing",
+                    "stats"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "auth",
+          "item": [
+            {
+              "name": "loginAdmin",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"admin@gmail.com\",\r\n    \"password\": \"Help@6355\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/login-admin",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "login-admin"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "createAdmin",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"name\":\"admin\",\r\n    \"email\": \"sinan.lakhani@gmail.com\",\r\n    \"password\": \"12345678\",\r\n    \"designationID\":\"68ff479ed7f54878ac56d697\"\r\n\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}api/create-admin",
+                  "host": [
+                    "{{baseUrl}}api"
+                  ],
+                  "path": [
+                    "create-admin"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "support-ticket",
+          "item": [
+            {
+              "name": "fetch-tickets",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}admin/support/support-tickets",
+                  "host": [
+                    "{{baseUrl}}admin"
+                  ],
+                  "path": [
+                    "support",
+                    "support-tickets"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "payment",
+          "item": [
+            {
+              "name": "fetchAllVendors",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}admin/payments",
+                  "host": [
+                    "{{baseUrl}}admin"
+                  ],
+                  "path": [
+                    "payments"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "fetch-by-vendor",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}admin/payments/69de1bd4bc634ac8dabebe0b/payout-orders",
+                  "host": [
+                    "{{baseUrl}}admin"
+                  ],
+                  "path": [
+                    "payments",
+                    "69de1bd4bc634ac8dabebe0b",
+                    "payout-orders"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "payout-orders",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"trackingIds\":[\"TRK17719180634421TOLMDOIU\"],\r\n    \"amount\":5\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}admin/payments/6911b7d4e8478c7b209eb558/disburse-payments",
+                  "host": [
+                    "{{baseUrl}}admin"
+                  ],
+                  "path": [
+                    "payments",
+                    "6911b7d4e8478c7b209eb558",
+                    "disburse-payments"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "getRefundCases",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}admin/payments/refund-cases?page=1&limit=100",
+                  "host": [
+                    "{{baseUrl}}admin"
+                  ],
+                  "path": [
+                    "payments",
+                    "refund-cases"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "100"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "pay-to-vendor",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n \"bookingId\":\"69dcc869c2cd6524e34804c4\",\r\n \"amount\":1000   \r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}admin/payments/vendor-claims",
+                  "host": [
+                    "{{baseUrl}}admin"
+                  ],
+                  "path": [
+                    "payments",
+                    "vendor-claims"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "client-refund",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"bookingId\":\"69d609ab1be941beb13fad36\",\r\n    \"amount\":\"399.99\",\r\n    \"type\":\"client_claim\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}admin/payments/refund",
+                  "host": [
+                    "{{baseUrl}}admin"
+                  ],
+                  "path": [
+                    "payments",
+                    "refund"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "roles",
+      "item": [
+        {
+          "name": "get-roles",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2NTUzNTcwNn0.oGDjlhE6lJa-29KebD2gK6puLU6CFajT-OYNAqX3VSk",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vendor/roles/role-users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vendor",
+                "roles",
+                "role-users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update-role",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MTFiN2Q0ZTg0NzhjN2IyMDllYjU1OCIsImlhdCI6MTc2NTUzNTcwNn0.oGDjlhE6lJa-29KebD2gK6puLU6CFajT-OYNAqX3VSk",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"firstName\": \"Driverrrr\",\r\n    \"lastName\": \"Bhi Saabbbbbb\",\r\n    \"email\": \"driver@gmail.com\",\r\n    \"contactNumber\": \"12312312\",\r\n    // \"password\": \"****\",\r\n    \"designationId\": \"69415b01195d42b0cff36761\",\r\n    \"status\": \"active\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vendor/roles/role-users/69415b32195d42b0cff3676b",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vendor",
+                "roles",
+                "role-users",
+                "69415b32195d42b0cff3676b"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "tracking",
+      "item": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": ""
+    },
+    {
+      "key": "stagingUrl",
+      "value": ""
+    },
+    {
+      "key": "liveUrl",
+      "value": ""
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "vendorToken",
+      "value": ""
+    }
+  ]
+}
