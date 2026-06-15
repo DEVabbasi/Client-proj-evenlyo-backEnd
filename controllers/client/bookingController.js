@@ -24,6 +24,7 @@ const { notifyVendorNewBooking } = require("../../utils/notifyVendorNewBooking")
 const SupportTicket = require("../../models/SupportTicket");
 const { sendEvenlyoProtectBookingEmail } = require("../../utils/mailer");
 const { createActivityLog } = require("../../utils/activityLogger");
+const { getVendorDisplayName } = require("../../utils/vendorDisplayName");
 
 const momentTime = require("moment-timezone");
 // @desc    Create Stripe PaymentIntent for a booking
@@ -515,8 +516,13 @@ const createBookingRequest = asyncHandler(async (req, res) => {
       const client = await User.findById(bookingRequest.userId).select(
         "firstName lastName",
       );
-      const vendor = await User.findById(vendorId)
-      console.log(vendor, "vendor_data=>>>");
+      const vendorUser = await User.findById(vendorUserId).select(
+        "firstName lastName email accountType",
+      );
+      const vendorProfile = await Vendor.findOne({ userId: vendorUserId }).select(
+        "businessName",
+      );
+      const vendorDisplayName = getVendorDisplayName(vendorUser, vendorProfile);
       const bookingDates = `${startDate}${endDate !== startDate ? ` to ${endDate}` : ""}`;
       const clientName = client
         ? `${client.firstName} ${client.lastName}`.trim()
@@ -531,12 +537,6 @@ const createBookingRequest = asyncHandler(async (req, res) => {
         req.body?.details?.pricingBreakdown?.paymentPolicy
           ?.isEvenlyoProtectEnabled === true;
 
-      console.log(vendor, "VENDORR=>>>>>>");
-
-      const vendorName = vendor
-        ? `${vendor.firstName || ""} ${vendor.lastName || ""}`.trim() || "N/A"
-        : "N/A";
-
       try {
         await notifyVendorNewBooking({
           title: {
@@ -547,7 +547,7 @@ const createBookingRequest = asyncHandler(async (req, res) => {
             en: `New booking request for "${listing.title.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
             nl: `Nieuwe boekingsaanvraag voor "${listing.title.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
           },
-          receiverDetails: vendor,
+          receiverDetails: vendorUser,
           bookingRequest,
           listing,
           startDate,
@@ -587,11 +587,11 @@ const createBookingRequest = asyncHandler(async (req, res) => {
           });
         }
 
-        if (adminsToNotifyEmail && vendor) {
+        if (adminsToNotifyEmail && vendorDisplayName !== "N/A") {
           sendEvenlyoProtectBookingEmail(
             bookingRequest,
             clientName,
-            vendorName,
+            vendorDisplayName,
             "NEW",
             adminsToNotifyEmail.email,
           );

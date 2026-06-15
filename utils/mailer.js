@@ -1,5 +1,6 @@
 const nodemailer = require("nodemailer");
 const moment = require("moment")
+const { formatPartyName } = require("./vendorDisplayName");
 
 const Admin = require("../models/AdminEmployee");
 
@@ -489,7 +490,9 @@ Evenlyo
 };
 
 const sendEvenlyoProtectBookingEmail = async (booking, client, vendor, status, adminEmail) => {
-  console.log(booking, "BOOKING", client, "CLIENT", vendor, "VENDOR", "bookingbookingbookingbookingbooking");
+  const clientName = formatPartyName(client);
+  const vendorName = formatPartyName(vendor);
+
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
@@ -546,8 +549,8 @@ const sendEvenlyoProtectBookingEmail = async (booking, client, vendor, status, a
           <hr />
 
           <p><strong>Boekings-ID:</strong> ${booking.trackingId}</p>
-          <p><strong>Klantnaam:</strong> ${client || "N/A"}</p>
-          <p><strong>Leveranciersnaam:</strong> ${vendor || "N/A"}</p>
+          <p><strong>Klantnaam:</strong> ${clientName}</p>
+          <p><strong>Leveranciersnaam:</strong> ${vendorName}</p>
           <p><strong>Dienst:</strong> ${booking.listingDetails?.title?.en} -- ${booking.listingDetails?.title?.nl}</p>
           <p><strong>Totaalbedrag:</strong> €${booking.pricingBreakdown?.total || 0}</p>
           <p><strong>Boekingsdatum:</strong> ${booking.details?.startDate || "N/A"}</p>

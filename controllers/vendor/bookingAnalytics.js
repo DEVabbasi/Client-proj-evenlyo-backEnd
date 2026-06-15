@@ -17,6 +17,10 @@ const { default: mongoose } = require("mongoose");
 const { sendOrderStatusEmail, sendEvenlyoProtectBookingEmail } = require("../../utils/mailer");
 const AdminEmployee = require("../../models/AdminEmployee");
 const { notifyVendorNewBooking } = require("../../utils/notifyVendorNewBooking");
+const {
+  getVendorDisplayName,
+  getClientDisplayName,
+} = require("../../utils/vendorDisplayName");
 // GET /api/vendor/bookings/analytics
 const getVendorBookingAnalytics = async (req, res) => {
   console.log("HAHAHAHHA");
@@ -381,10 +385,12 @@ const acceptBooking = asyncHandler(async (req, res) => {
         });
       }
       if (adminsToNotifyEmail) {
+        const clientDisplayName = getClientDisplayName(user);
+        const vendorDisplayName = getVendorDisplayName(vendorDetails, vendor);
         sendEvenlyoProtectBookingEmail(
           booking,
-          user.fullName,
-          vendorDetails.fullName,
+          clientDisplayName,
+          vendorDisplayName,
           'ACCEPTED',
           adminsToNotifyEmail.email,
         );
@@ -553,10 +559,15 @@ const rejectBooking = asyncHandler(async (req, res) => {
         });
       }
       if (adminsToNotifyEmail) {
+        const vendorProfile = await Vendor.findOne({ userId: req.user.id }).select(
+          "businessName",
+        );
+        const clientDisplayName = getClientDisplayName(user);
+        const vendorDisplayName = getVendorDisplayName(vendorDetails, vendorProfile);
         sendEvenlyoProtectBookingEmail(
           booking,
-          user.fullName,
-          vendorDetails.fullName,
+          clientDisplayName,
+          vendorDisplayName,
           'REJECTED',
           adminsToNotifyEmail.email,
         );
