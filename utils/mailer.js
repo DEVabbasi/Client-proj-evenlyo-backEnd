@@ -122,26 +122,26 @@ async function sendPromotionalEmail(to, userName) {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to,
-    subject: "Welkom bij Evenlyo - Ontdek Geweldige Evenementen!",
+    subject: "Welkom bij Evenlyo - Ontdek geweldige evenementen!",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
         <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
           <div style="text-align: center; margin-bottom: 30px;">
             <h1 style="color: #333; margin-bottom: 10px;">Welkom bij Evenlyo!</h1>
-            <h2 style="color: #666; font-weight: normal;">Jouw Evenementenplanning Begint Hier</h2>
+            <h2 style="color: #666; font-weight: normal;">Jouw reis in evenementenplanning begint hier</h2>
           </div>
           
-          <p style="color: #333; font-size: 16px; line-height: 1.5;">Hallo ${userName},</p>
+          <p style="color: #333; font-size: 16px; line-height: 1.5;">Hoi ${userName},</p>
           
-          <p style="color: #333; font-size: 16px; line-height: 1.5;">Bedankt voor je betrokkenheid bij onze blog! We stellen je graag voor aan Evenlyo - jouw alles-in-één bestemming voor al je evenementenplanningsbehoeften.</p>
+          <p style="color: #333; font-size: 16px; line-height: 1.5;">Bedankt voor je betrokkenheid bij onze blog! We stellen je graag voor aan Evenlyo - jouw centrale plek voor al je behoeften op het gebied van evenementenplanning.</p>
           
           <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 10px; margin: 25px 0; text-align: center;">
-            <h3 style="margin: 0 0 15px 0; font-size: 24px;">🎉 Wat Wij Bieden 🎉</h3>
+            <h3 style="margin: 0 0 15px 0; font-size: 24px;">🎉 Wat wij bieden 🎉</h3>
             <ul style="list-style: none; padding: 0; margin: 0;">
-              <li style="margin: 10px 0; font-size: 16px;">✨ Professionele Evenementenplanningsdiensten</li>
-              <li style="margin: 10px 0; font-size: 16px;">🎪 Bruiloft & Zakelijk Evenementenbeheer</li>
-              <li style="margin: 10px 0; font-size: 16px;">🎂 Verjaardagsfeesten & Speciale Gelegenheden</li>
-              <li style="margin: 10px 0; font-size: 16px;">📱 Eenvoudig Online Boekingsplatform</li>
+              <li style="margin: 10px 0; font-size: 16px;">✨ Professionele diensten voor evenementenplanning</li>
+              <li style="margin: 10px 0; font-size: 16px;">🎪 Beheer van bruiloften en zakelijke evenementen</li>
+              <li style="margin: 10px 0; font-size: 16px;">🎂 Verjaardagsfeesten en speciale gelegenheden</li>
+              <li style="margin: 10px 0; font-size: 16px;">📱 Eenvoudig online boekingsplatform</li>
             </ul>
           </div>
           
@@ -150,27 +150,27 @@ async function sendPromotionalEmail(to, userName) {
           <div style="text-align: center; margin: 30px 0;">
             <a href="${process.env.FRONTEND_URL || "http://localhost:3000"}/register" 
                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; font-size: 16px; display: inline-block;">
-              Word Vandaag Lid van Evenlyo!
+              Word vandaag lid van Evenlyo!
             </a>
           </div>
           
           <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
-            <h4 style="color: #333; margin: 0 0 15px 0;">🎁 Speciale Aanbieding voor Nieuwe Leden:</h4>
-            <p style="color: #666; margin: 0; font-size: 14px;">Krijg 20% korting op je eerste evenementenboeking wanneer je je binnen de komende 7 dagen registreert!</p>
+            <h4 style="color: #333; margin: 0 0 15px 0;">🎁 Speciale aanbieding voor nieuwe leden:</h4>
+            <p style="color: #666; margin: 0; font-size: 14px;">Ontvang 20% korting op je eerste evenementboeking als je je binnen de komende 7 dagen registreert!</p>
           </div>
           
-          <p style="color: #666; font-size: 14px; line-height: 1.5;">Heb je vragen? Ons vriendelijke team staat klaar om je te helpen het perfecte evenement te plannen.</p>
+          <p style="color: #666; font-size: 14px; line-height: 1.5;">Heb je vragen? Ons vriendelijke team helpt je graag bij het plannen van het perfecte evenement.</p>
           
           <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
           
           <p style="color: #999; font-size: 12px; text-align: center;">
-            Deze e-mail is verzonden omdat je een reactie hebt achtergelaten op onze blog. Als je geen promotionele e-mails wilt ontvangen, 
-            <a href="${process.env.FRONTEND_URL || "http://localhost:3000"}/unsubscribe" style="color: #999;">klik hier om uit te schrijven</a>.
+            Deze e-mail is verzonden omdat je een reactie hebt geplaatst op onze blog. Als je geen promotionele e-mails wilt ontvangen, 
+            <a href="${process.env.FRONTEND_URL || "http://localhost:3000"}/unsubscribe" style="color: #999;">klik hier om je af te melden</a>.
           </p>
         </div>
       </div>
     `,
-    text: `Hallo ${userName}, Welkom bij Evenlyo! Bedankt voor je betrokkenheid bij onze blog. Wij zijn jouw alles-in-één bestemming voor evenementenplanning. Word vandaag lid en krijg 20% korting op je eerste boeking! Bezoek ${process.env.FRONTEND_URL || "http://localhost:3000"}/register om te beginnen.`,
+    text: `Hoi ${userName}, Welkom bij Evenlyo! Bedankt voor je betrokkenheid bij onze blog. Wij zijn jouw centrale plek voor evenementenplanning. Word vandaag lid en ontvang 20% korting op je eerste boeking! Ga naar ${process.env.FRONTEND_URL || "http://localhost:3000"}/register om te beginnen.`,
   };
 
   try {
@@ -187,18 +187,18 @@ async function sendContactEmail(fromEmail, fromName, message) {
     from: process.env.EMAIL_USER,
     to,
     replyTo: fromEmail,
-    subject: `Contact form message from ${fromName} <${fromEmail}>`,
+    subject: `Bericht via contactformulier van ${fromName} <${fromEmail}>`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
         <div style="background-color: white; padding: 25px; border-radius: 8px;">
-          <h2>New contact request</h2>
-          <p><strong>From:</strong> ${fromName} &lt;${fromEmail}&gt;</p>
+          <h2>Nieuw contactverzoek</h2>
+          <p><strong>Van:</strong> ${fromName} &lt;${fromEmail}&gt;</p>
           <hr />
           <div style="white-space: pre-wrap;">${message}</div>
         </div>
       </div>
     `,
-    text: `From: ${fromName} <${fromEmail}>\n\n${message}`,
+    text: `Van: ${fromName} <${fromEmail}>\n\n${message}`,
   };
 
   try {
@@ -213,23 +213,23 @@ async function sendReportEmail(to, reportedBy, reportedPerson, reportReason) {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to,
-    subject: `New User Report - Conversation Reported`,
+    subject: `Nieuwe gebruikersmelding - Gesprek gerapporteerd`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
         <div style="background-color: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-          <h2 style="color: #d32f2f; margin-bottom: 20px;">⚠️ New User Report</h2>
-          <p style="color: #333; font-size: 16px; margin: 10px 0;"><strong>Reported By:</strong> ${reportedBy}</p>
-          <p style="color: #333; font-size: 16px; margin: 10px 0;"><strong>Reported Person:</strong> ${reportedPerson}</p>
+          <h2 style="color: #d32f2f; margin-bottom: 20px;">⚠️ Nieuwe gebruikersmelding</h2>
+          <p style="color: #333; font-size: 16px; margin: 10px 0;"><strong>Gerapporteerd door:</strong> ${reportedBy}</p>
+          <p style="color: #333; font-size: 16px; margin: 10px 0;"><strong>Gerapporteerde persoon:</strong> ${reportedPerson}</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <p style="color: #333; font-size: 16px; margin: 10px 0;"><strong>Report Reason:</strong></p>
+          <p style="color: #333; font-size: 16px; margin: 10px 0;"><strong>Reden van melding:</strong></p>
           <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 15px 0; border-radius: 4px;">
             <p style="color: #333; margin: 0;">${reportReason}</p>
           </div>
-          <p style="color: #666; font-size: 14px; margin-top: 20px;">Please review this report and take appropriate action.</p>
+          <p style="color: #666; font-size: 14px; margin-top: 20px;">Bekijk deze melding en onderneem passende actie.</p>
         </div>
       </div>
     `,
-    text: `New User Report\n\nReported By: ${reportedBy}\nReported Person: ${reportedPerson}\n\nReport Reason: ${reportReason}`,
+    text: `Nieuwe gebruikersmelding\n\nGerapporteerd door: ${reportedBy}\nGerapporteerde persoon: ${reportedPerson}\n\nReden van melding: ${reportReason}`,
   };
   try {
     return await transporter.sendMail(mailOptions);
@@ -245,31 +245,31 @@ async function sendKvkUpdateEmail(body) {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: process.env.EMAIL_USER,
-    subject: "Request to Update KVK Number",
+    subject: "Verzoek om KVK-nummer bij te werken",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; background-color: #f4f6f8;">
         <div style="background-color: #ffffff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
           
           <h2 style="color: #1976d2; margin-bottom: 20px;">
-            📄 KVK Number Update Request
+            📄 Verzoek om KVK-nummer bij te werken
           </h2>
 
           <p style="color: #333; font-size: 16px;">
-            A vendor has requested an update to their KVK number. Please review the details below.
+            Een leverancier heeft verzocht om zijn KVK-nummer bij te werken. Bekijk de onderstaande gegevens.
           </p>
 
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
 
           <p style="color: #333; font-size: 16px; margin: 8px 0;">
-            <strong>Vendor Name:</strong> ${body.vendorName}
+            <strong>Naam leverancier:</strong> ${body.vendorName}
           </p>
 
           <p style="color: #333; font-size: 16px; margin: 8px 0;">
-            <strong>Vendor Email:</strong> ${body.vendorEmail}
+            <strong>E-mail leverancier:</strong> ${body.vendorEmail}
           </p>
 
           <p style="color: #333; font-size: 16px; margin: 15px 0;">
-            <strong>Request Description:</strong>
+            <strong>Beschrijving van verzoek:</strong>
           </p>
 
           <div style="background-color: #f1f8ff; border-left: 4px solid #1976d2; padding: 15px; border-radius: 4px;">
@@ -279,22 +279,22 @@ async function sendKvkUpdateEmail(body) {
           </div>
 
           <p style="color: #666; font-size: 14px; margin-top: 25px;">
-            Kindly verify the request and update the KVK details if everything is in order.
+            Controleer het verzoek en werk de KVK-gegevens bij als alles in orde is.
           </p>
 
         </div>
       </div>
     `,
     text: `
-KVK Number Update Request
+Verzoek om KVK-nummer bij te werken
 
-Vendor Name: ${body.vendorName}
-Vendor Email: ${body.vendorEmail}
+Naam leverancier: ${body.vendorName}
+E-mail leverancier: ${body.vendorEmail}
 
-Description:
+Beschrijving:
 ${body.description}
 
-Please review and process this request accordingly.
+Controleer het verzoek en werk de KVK-gegevens bij als alles in orde is.
     `,
   };
 
@@ -340,15 +340,15 @@ async function sendOrderStatusEmail({
   let emoji = "";
 
   if (status === "ACCEPTED") {
-    subject = `Booking Accepted – Booking ID: ${bookingId}`;
-    heading = "Your Booking is Accepted";
-    message = "Great news! Your booking has been ACCEPTED by the vendor.";
+    subject = `Boeking geaccepteerd – Boekings-ID: ${bookingId}`;
+    heading = "Je boeking is geaccepteerd";
+    message = "Goed nieuws! Je boeking is GEACCEPTEERD door de leverancier.";
     color = "#2e7d32";
     emoji = "✅";
   } else if (status === "REJECTED") {
-    subject = `Booking Rejected – Booking ID: ${bookingId}`;
-    heading = "Your Booking was Rejected";
-    message = "Unfortunately, your booking has been REJECTED by the vendor.";
+    subject = `Boeking afgewezen – Boekings-ID: ${bookingId}`;
+    heading = "Je boeking is afgewezen";
+    message = "Helaas is je boeking AFGEWEZEN door de leverancier.";
     color = "#c62828";
     emoji = "❌";
   }
@@ -363,42 +363,42 @@ async function sendOrderStatusEmail({
           
           <h2 style="color: ${color};">${emoji} ${heading}</h2>
 
-          <p>Hello <strong>${customerName}</strong>,</p>
+          <p>Hallo <strong>${customerName}</strong>,</p>
           <p>${message}</p>
           
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
 
-          <p><strong>Booking ID:</strong> ${bookingId}</p>
-          <p><strong>Date:</strong> ${bookingDate}</p>
-          <p><strong>Time:</strong> ${bookingTime}</p>
+          <p><strong>Boekings-ID:</strong> ${bookingId}</p>
+          <p><strong>Datum:</strong> ${bookingDate}</p>
+          <p><strong>Tijd:</strong> ${bookingTime}</p>
 
           ${status === "REJECTED"
         ? `<p style="margin-top:15px; color:#c62828;">
-                   You may book another available slot anytime.
+                   Je kunt op elk moment een ander beschikbaar tijdslot boeken.
                  </p>`
         : ""
       }
 
           <p style="margin-top: 20px;">
-            If you have any questions, feel free to reply to this email.
+            Als je vragen hebt, kun je gerust op deze e-mail reageren.
           </p>
 
           <p style="color: #666; font-size: 14px;">
-            Best regards,<br/>Evenlyo Team
+            Met vriendelijke groet,<br/>Evenlyo Team
           </p>
         </div>
       </div>
     `,
     text: `
-Hello ${customerName},
+Hallo ${customerName},
 
 ${message}
 
-Booking ID: ${bookingId}
-Date: ${bookingDate}
-Time: ${bookingTime}
+Boekings-ID: ${bookingId}
+Datum: ${bookingDate}
+Tijd: ${bookingTime}
 
-Best regards,
+Met vriendelijke groet,
 Evenlyo
     `,
   };
@@ -438,40 +438,40 @@ const sendBookingCompletionEmail = async ({
   const mailOptions = {
     from: `<${process.env.EMAIL_USER}>`,
     to: customerEmail,
-    subject: `Booking Completed – Booking ID: ${bookingId}`,
+    subject: `Boeking voltooid – Boekings-ID: ${bookingId}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f6f8;">
         <div style="background-color: #ffffff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-          <h2 style="color: #388e3c;">✅ Your Booking is Completed</h2>
-          <p>Hello <strong>${customerName}</strong>,</p>
-          <p>We are pleased to inform you that your booking for <strong>${listingTitle}</strong> has been successfully completed.</p>
+          <h2 style="color: #388e3c;">✅ Je boeking is voltooid</h2>
+          <p>Hallo <strong>${customerName}</strong>,</p>
+          <p>We zijn verheugd je te kunnen meedelen dat je boeking voor <strong>${listingTitle}</strong> succesvol is voltooid.</p>
           
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
 
-          <p><strong>Booking ID:</strong> ${bookingId}</p>
-          <p><strong>Date:</strong> ${bookingDate}</p>
-          <p><strong>Time:</strong> ${bookingTime}</p>
-          <p><strong>Total Amount:</strong> $${totalAmount}</p>
+          <p><strong>Boekings-ID:</strong> ${bookingId}</p>
+          <p><strong>Datum:</strong> ${bookingDate}</p>
+          <p><strong>Tijd:</strong> ${bookingTime}</p>
+          <p><strong>Totaalbedrag:</strong> $${totalAmount}</p>
 
-          <p style="margin-top: 20px;">Thank you for using our services. We hope you had a great experience!</p>
+          <p style="margin-top: 20px;">Bedankt dat je gebruik hebt gemaakt van onze diensten. We hopen dat je een geweldige ervaring hebt gehad!</p>
 
-          <p style="color: #666; font-size: 14px;">Best regards,<br/>Evenlyo Team</p>
+          <p style="color: #666; font-size: 14px;">Met vriendelijke groet,<br/>Evenlyo Team</p>
         </div>
       </div>
     `,
     text: `
-Hello ${customerName},
+Hallo ${customerName},
 
-We are pleased to inform you that your booking for ${listingTitle} has been successfully completed.
+We zijn verheugd je te kunnen meedelen dat je boeking voor ${listingTitle} succesvol is voltooid.
 
-Booking ID: ${bookingId}
-Date: ${bookingDate}
-Time: ${bookingTime}
-Total Amount: $${totalAmount}
+Boekings-ID: ${bookingId}
+Datum: ${bookingDate}
+Tijd: ${bookingTime}
+Totaalbedrag: $${totalAmount}
 
-Thank you for using our services. We hope you had a great experience!
+Bedankt dat je gebruik hebt gemaakt van onze diensten. We hopen dat je een geweldige ervaring hebt gehad!
 
-Best regards,
+Met vriendelijke groet,
 Evenlyo
     `,
   };
@@ -586,10 +586,10 @@ const sendReminderEmail = async (booking, daysLeft) => {
     daysLeft === 1
       ? `
   < div style = "margin-top:20px;padding:15px;background:#fff3cd;border:1px solid #ffeeba;border-radius:6px;" >
-          <strong style="color:#856404;">⚠ Important Notice:</strong>
+          <strong style="color:#856404;">⚠ Belangrijke mededeling:</strong>
           <p style="margin:8px 0 0 0;color:#856404;">
-            If the remaining payment is not completed before the event date and time,
-            your booking will be automatically cancelled.
+            Als de resterende betaling niet vóór de datum en tijd van het evenement is voltooid,
+            wordt je boeking automatisch geannuleerd.
           </p>
         </div >
   `
@@ -597,24 +597,24 @@ const sendReminderEmail = async (booking, daysLeft) => {
 
   const emailHtml = `
   < div style = "font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;" >
-      <h2 style="color:#333;">Payment Reminder</h2>
+      <h2 style="color:#333;">Betalingsherinnering</h2>
 
-      <p>Dear ${booking.userId.firstName},</p>
+      <p>Beste ${booking.userId.firstName},</p>
 
       <p>
-        This is a friendly reminder that your event is in 
-        <strong>${daysLeft} day${daysLeft > 1 ? "s" : ""}</strong>.
+        Dit is een vriendelijke herinnering dat je evenement over 
+        <strong>${daysLeft} dag${daysLeft > 1 ? "en" : ""}</strong> plaatsvindt.
       </p>
 
       <p>
-        Please complete the remaining payment of 
-        <strong>€${remainingAmount}</strong> to ensure your booking remains confirmed.
+        Voltooi de resterende betaling van 
+        <strong>€${remainingAmount}</strong> om ervoor te zorgen dat je boeking bevestigd blijft.
       </p>
 
-      <h3>Booking Details:</h3>
-      <p><strong>Booking ID:</strong> ${booking._id}</p>
-      <p><strong>Event Date:</strong> ${eventDateFormatted}</p>
-      <p><strong>Service:</strong> ${booking.listingId?.title || "Package"}</p>
+      <h3>Boekingsdetails:</h3>
+      <p><strong>Boekings-ID:</strong> ${booking._id}</p>
+      <p><strong>Evenementdatum:</strong> ${eventDateFormatted}</p>
+      <p><strong>Dienst:</strong> ${booking.listingId?.title || "Pakket"}</p>
 
       ${cancellationWarning}
 
@@ -622,20 +622,20 @@ const sendReminderEmail = async (booking, daysLeft) => {
 
       <a href="${process.env.NODE_ENV === 'development' ? process.env.STAGING_CLIENT_URL : process.env.LIVE_CLIENT_URL}/pay/${booking._id}" 
          style="display:inline-block;margin-top:20px;background:#007bff;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">
-         Pay Now
+         Nu betalen
       </a>
 
       <p style="margin-top:30px;">
-        If you need assistance, please contact our support team.
+        Als je hulp nodig hebt, neem dan contact op met ons ondersteuningsteam.
       </p>
 
-      <p>Warm regards,<br/>Evenlyo Team</p>
+      <p>Met vriendelijke groet,<br/>Evenlyo Team</p>
     </div >
   `;
 
   await sendEmail(
     booking.userId.email,
-    `Your Event is in ${daysLeft} Day${daysLeft > 1 ? "s" : ""} – Payment Reminder`,
+    `Je evenement is over ${daysLeft} dag${daysLeft > 1 ? "en" : ""} – Betalingsherinnering`,
     emailHtml
   );
 };
@@ -684,9 +684,9 @@ async function sendChatbotTicketReply({ toEmail, toName, subject, userMessage, a
             <p style="color: #888; font-size: 13px; margin-top: 4px;">Ticket #${ticketId}</p>
           </div>
 
-          <p style="color: #333; font-size: 15px;">Hi <strong>${toName}</strong>,</p>
+          <p style="color: #333; font-size: 15px;">Hoi <strong>${toName}</strong>,</p>
           <p style="color: #333; font-size: 15px; line-height: 1.6;">
-            Thank you for reaching out to Evenlyo Support. Here is our response to your query:
+            Bedankt dat je contact hebt opgenomen met Evenlyo Support. Hier is ons antwoord op je vraag:
           </p>
 
           <div style="background: #f3f4f6; border-left: 4px solid #e91e8c; padding: 16px 20px; border-radius: 6px; margin: 20px 0;">
@@ -695,22 +695,22 @@ async function sendChatbotTicketReply({ toEmail, toName, subject, userMessage, a
 
           <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
 
-          <p style="color: #999; font-size: 12px; margin-bottom: 4px;"><strong>Your original message:</strong></p>
+          <p style="color: #999; font-size: 12px; margin-bottom: 4px;"><strong>Je oorspronkelijke bericht:</strong></p>
           <p style="color: #aaa; font-size: 12px; font-style: italic; line-height: 1.6;">${userMessage}</p>
 
           <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
 
           <p style="color: #666; font-size: 13px; text-align: center;">
-            If you have further questions, feel free to contact us again through the Evenlyo chatbot or support page.
+            Als je nog vragen hebt, neem dan gerust opnieuw contact met ons op via de Evenlyo-chatbot of de ondersteuningspagina.
           </p>
 
           <p style="color: #999; font-size: 11px; text-align: center; margin-top: 20px;">
-            This is an automated response from Evenlyo. Please do not reply directly to this email.
+            Dit is een automatisch antwoord van Evenlyo. Reageer niet rechtstreeks op deze e-mail.
           </p>
         </div>
       </div>
     `,
-    text: `Hi ${toName},\n\nThank you for contacting Evenlyo Support (Ticket #${ticketId}).\n\nOur response:\n${adminReply}\n\nYour original message:\n${userMessage}\n\nBest regards,\nEvenlyo Support Team`,
+    text: `Hoi ${toName},\n\nBedankt dat je contact hebt opgenomen met Evenlyo Support (Ticket #${ticketId}).\n\nOns antwoord:\n${adminReply}\n\nJe oorspronkelijke bericht:\n${userMessage}\n\nMet vriendelijke groet,\nEvenlyo Support Team`,
   };
 
   return transporter.sendMail(mailOptions);

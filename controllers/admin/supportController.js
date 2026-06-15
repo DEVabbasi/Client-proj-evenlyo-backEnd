@@ -30,7 +30,7 @@ exports.sendEmailToTicketUser = async (req, res) => {
         const mailOptions = {
             from: process.env.EMAIL_USER,
             to: toEmail,
-            subject: subject || 'Support Ticket Response from Evenlyo',
+            subject: subject || 'Reactie op je supportticket van Evenlyo',
             html: `<div style="font-family: Arial, sans-serif; padding: 20px;">${message}</div>`
         };
         await transporter.sendMail(mailOptions);

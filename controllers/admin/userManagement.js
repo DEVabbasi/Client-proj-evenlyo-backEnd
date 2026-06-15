@@ -225,26 +225,26 @@ const resetClientPassword = async (req, res) => {
           <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
             <div style="text-align: center; margin-bottom: 30px;">
               <h1 style="color: #333; margin: 0;">Evenlyo</h1>
-              <p style="color: #666; margin: 5px 0;">Event Management Platform</p>
+              <p style="color: #666; margin: 5px 0;">Evenementbeheerplatform</p>
             </div>
 
-            <h2 style="color: #333; margin-bottom: 20px;">Password Reset Notification</h2>
+            <h2 style="color: #333; margin-bottom: 20px;">Melding wachtwoord opnieuw ingesteld</h2>
 
-            <p style="color: #666; margin-bottom: 20px;">Hello ${client.firstName} ${client.lastName},</p>
+            <p style="color: #666; margin-bottom: 20px;">Hallo ${client.firstName} ${client.lastName},</p>
 
             <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-              <p style="margin: 0;">Your password has been reset by an administrator.</p>
-              <p style="margin: 10px 0 0 0;">If you did not request this change, please contact support immediately.</p>
+              <p style="margin: 0;">Je wachtwoord is opnieuw ingesteld door een beheerder.</p>
+              <p style="margin: 10px 0 0 0;">Als je deze wijziging niet hebt aangevraagd, neem dan onmiddellijk contact op met de ondersteuning.</p>
             </div>
 
             <p style="color: #666; font-size: 14px; margin-top: 30px; text-align: center;">
-              Best regards,<br>
+              Met vriendelijke groet,<br>
               Evenlyo Admin Team
             </p>
 
             <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
               <p style="color: #999; font-size: 12px;">
-                This is an automated message. Please do not reply to this email.
+                Dit is een automatisch bericht. Reageer niet op deze e-mail.
               </p>
             </div>
           </div>
@@ -254,9 +254,9 @@ const resetClientPassword = async (req, res) => {
       const mailOptions = {
         from: process.env.EMAIL_USER,
         to: client.email,
-        subject: '[Evenlyo] Password Reset Notification',
+        subject: '[Evenlyo] Melding wachtwoord opnieuw ingesteld',
         html: htmlMessage,
-        text: `Hello ${client.firstName} ${client.lastName},\n\nYour password has been reset by an administrator.\n\nIf you did not request this change, please contact support immediately.\n\nBest regards,\nEvenlyo Admin Team`
+        text: `Hallo ${client.firstName} ${client.lastName},\n\nJe wachtwoord is opnieuw ingesteld door een beheerder.\n\nAls je deze wijziging niet hebt aangevraagd, neem dan onmiddellijk contact op met de ondersteuning.\n\nMet vriendelijke groet,\nEvenlyo Admin Team`
       };
 
       await transporter.sendMail(mailOptions);
@@ -329,26 +329,26 @@ const resetVendorPassword = async (req, res) => {
           <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
             <div style="text-align: center; margin-bottom: 30px;">
               <h1 style="color: #333; margin: 0;">Evenlyo</h1>
-              <p style="color: #666; margin: 5px 0;">Event Management Platform</p>
+              <p style="color: #666; margin: 5px 0;">Evenementbeheerplatform</p>
             </div>
 
-            <h2 style="color: #333; margin-bottom: 20px;">Password Reset Notification</h2>
+            <h2 style="color: #333; margin-bottom: 20px;">Melding wachtwoord opnieuw ingesteld</h2>
 
-            <p style="color: #666; margin-bottom: 20px;">Hello ${vendorName},</p>
+            <p style="color: #666; margin-bottom: 20px;">Hallo ${vendorName},</p>
 
             <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-              <p style="margin: 0;">Your password has been reset by an administrator.</p>
-              <p style="margin: 10px 0 0 0;">If you did not request this change, please contact support immediately.</p>
+              <p style="margin: 0;">Je wachtwoord is opnieuw ingesteld door een beheerder.</p>
+              <p style="margin: 10px 0 0 0;">Als je deze wijziging niet hebt aangevraagd, neem dan onmiddellijk contact op met de ondersteuning.</p>
             </div>
 
             <p style="color: #666; font-size: 14px; margin-top: 30px; text-align: center;">
-              Best regards,<br>
+              Met vriendelijke groet,<br>
               Evenlyo Admin Team
             </p>
 
             <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
               <p style="color: #999; font-size: 12px;">
-                This is an automated message. Please do not reply to this email.
+                Dit is een automatisch bericht. Reageer niet op deze e-mail.
               </p>
             </div>
           </div>
@@ -358,9 +358,9 @@ const resetVendorPassword = async (req, res) => {
       const mailOptions = {
         from: process.env.EMAIL_USER,
         to: vendor.email,
-        subject: '[Evenlyo Partner] Password Reset Notification',
+        subject: '[Evenlyo Partner] Melding wachtwoord opnieuw ingesteld',
         html: htmlMessage,
-        text: `Hello ${vendorName},\n\nYour password has been reset by an administrator.\n\nIf you did not request this change, please contact support immediately.\n\nBest regards,\nEvenlyo Admin Team`
+        text: `Hallo ${vendorName},\n\nJe wachtwoord is opnieuw ingesteld door een beheerder.\n\nAls je deze wijziging niet hebt aangevraagd, neem dan onmiddellijk contact op met de ondersteuning.\n\nMet vriendelijke groet,\nEvenlyo Admin Team`
       };
 
       await transporter.sendMail(mailOptions);
@@ -736,7 +736,7 @@ const sendEmailToClients = async (req, res) => {
           to: client.email,
           subject: `[Evenlyo] ${subject}`,
           html: htmlMessage,
-          text: `Hello ${client.firstName} ${client.lastName},\n\n${message}\n\nBest regards,\nEvenlyo Admin Team`
+          text: `Hallo ${client.firstName} ${client.lastName},\n\n${message}\n\nMet vriendelijke groet,\nEvenlyo Admin Team`
         };
 
         try {
@@ -841,23 +841,23 @@ const sendEmailToVendors = async (req, res) => {
             <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
               <div style="text-align: center; margin-bottom: 30px;">
                 <h1 style="color: #333; margin: 0;">Evenlyo</h1>
-                <p style="color: #666; margin: 5px 0;">Event Management Platform</p>
+                <p style="color: #666; margin: 5px 0;">Evenementbeheerplatform</p>
               </div>
               
-              <h2 style="color: #333; margin-bottom: 20px;">Hello ${vendorName},</h2>
+              <h2 style="color: #333; margin-bottom: 20px;">Hallo ${vendorName},</h2>
               
               <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
                 ${message.replace(/\n/g, '<br>')}
               </div>
               
               <p style="color: #666; font-size: 14px; margin-top: 30px; text-align: center;">
-                Best regards,<br>
+                Met vriendelijke groet,<br>
                 Evenlyo Admin Team
               </p>
               
               <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
                 <p style="color: #999; font-size: 12px;">
-                  This email was sent by Evenlyo admin. If you have any questions, please contact support.
+                  Deze e-mail is verzonden door de Evenlyo-admin. Als je vragen hebt, neem dan contact op met de ondersteuning.
                 </p>
               </div>
             </div>
@@ -869,7 +869,7 @@ const sendEmailToVendors = async (req, res) => {
           to: vendor.email,
           subject: `[Evenlyo Partner] ${subject}`,
           html: htmlMessage,
-          text: `Hello ${vendorName},\n\n${message}\n\nBest regards,\nEvenlyo Admin Team`
+          text: `Hallo ${vendorName},\n\n${message}\n\nMet vriendelijke groet,\nEvenlyo Admin Team`
         };
 
         try {
