@@ -225,10 +225,10 @@ const resetClientPassword = async (req, res) => {
           <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
             <div style="text-align: center; margin-bottom: 30px;">
               <h1 style="color: #333; margin: 0;">Evenlyo</h1>
-              <p style="color: #666; margin: 5px 0;">Evenementbeheerplatform</p>
+              <p style="color: #666; margin: 5px 0;">Evenementenbeheerplatform</p>
             </div>
 
-            <h2 style="color: #333; margin-bottom: 20px;">Melding wachtwoord opnieuw ingesteld</h2>
+            <h2 style="color: #333; margin-bottom: 20px;">Je wachtwoord is opnieuw ingesteld</h2>
 
             <p style="color: #666; margin-bottom: 20px;">Hallo ${client.firstName} ${client.lastName},</p>
 
@@ -254,7 +254,7 @@ const resetClientPassword = async (req, res) => {
       const mailOptions = {
         from: process.env.EMAIL_USER,
         to: client.email,
-        subject: '[Evenlyo] Melding wachtwoord opnieuw ingesteld',
+        subject: '[Evenlyo] Melding: wachtwoord opnieuw ingesteld',
         html: htmlMessage,
         text: `Hallo ${client.firstName} ${client.lastName},\n\nJe wachtwoord is opnieuw ingesteld door een beheerder.\n\nAls je deze wijziging niet hebt aangevraagd, neem dan onmiddellijk contact op met de ondersteuning.\n\nMet vriendelijke groet,\nEvenlyo Admin Team`
       };
@@ -329,10 +329,10 @@ const resetVendorPassword = async (req, res) => {
           <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
             <div style="text-align: center; margin-bottom: 30px;">
               <h1 style="color: #333; margin: 0;">Evenlyo</h1>
-              <p style="color: #666; margin: 5px 0;">Evenementbeheerplatform</p>
+              <p style="color: #666; margin: 5px 0;">Evenementenbeheerplatform</p>
             </div>
 
-            <h2 style="color: #333; margin-bottom: 20px;">Melding wachtwoord opnieuw ingesteld</h2>
+            <h2 style="color: #333; margin-bottom: 20px;">Je wachtwoord is opnieuw ingesteld</h2>
 
             <p style="color: #666; margin-bottom: 20px;">Hallo ${vendorName},</p>
 
@@ -358,7 +358,7 @@ const resetVendorPassword = async (req, res) => {
       const mailOptions = {
         from: process.env.EMAIL_USER,
         to: vendor.email,
-        subject: '[Evenlyo Partner] Melding wachtwoord opnieuw ingesteld',
+        subject: '[Evenlyo Partner] Melding: wachtwoord opnieuw ingesteld',
         html: htmlMessage,
         text: `Hallo ${vendorName},\n\nJe wachtwoord is opnieuw ingesteld door een beheerder.\n\nAls je deze wijziging niet hebt aangevraagd, neem dan onmiddellijk contact op met de ondersteuning.\n\nMet vriendelijke groet,\nEvenlyo Admin Team`
       };
@@ -708,7 +708,7 @@ const sendEmailToClients = async (req, res) => {
     <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
       <div style="text-align: center; margin-bottom: 30px;">
         <h1 style="color: #333; margin: 0;">Evenlyo</h1>
-        <p style="color: #666; margin: 5px 0;">Evenementbeheerplatform</p>
+        <p style="color: #666; margin: 5px 0;">Evenementenbeheerplatform</p>
       </div>
       
       <h2 style="color: #333; margin-bottom: 20px;">Hallo ${client.firstName} ${client.lastName},</h2>
@@ -841,7 +841,7 @@ const sendEmailToVendors = async (req, res) => {
             <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
               <div style="text-align: center; margin-bottom: 30px;">
                 <h1 style="color: #333; margin: 0;">Evenlyo</h1>
-                <p style="color: #666; margin: 5px 0;">Evenementbeheerplatform</p>
+                <p style="color: #666; margin: 5px 0;">Evenementenbeheerplatform</p>
               </div>
               
               <h2 style="color: #333; margin-bottom: 20px;">Hallo ${vendorName},</h2>

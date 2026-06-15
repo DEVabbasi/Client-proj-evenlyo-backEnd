@@ -131,7 +131,7 @@ async function sendPromotionalEmail(to, userName) {
             <h2 style="color: #666; font-weight: normal;">Jouw reis in evenementenplanning begint hier</h2>
           </div>
           
-          <p style="color: #333; font-size: 16px; line-height: 1.5;">Hoi ${userName},</p>
+          <p style="color: #333; font-size: 16px; line-height: 1.5;">Hallo ${userName},</p>
           
           <p style="color: #333; font-size: 16px; line-height: 1.5;">Bedankt voor je betrokkenheid bij onze blog! We stellen je graag voor aan Evenlyo - jouw centrale plek voor al je behoeften op het gebied van evenementenplanning.</p>
           
@@ -156,7 +156,7 @@ async function sendPromotionalEmail(to, userName) {
           
           <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
             <h4 style="color: #333; margin: 0 0 15px 0;">🎁 Speciale aanbieding voor nieuwe leden:</h4>
-            <p style="color: #666; margin: 0; font-size: 14px;">Ontvang 20% korting op je eerste evenementboeking als je je binnen de komende 7 dagen registreert!</p>
+            <p style="color: #666; margin: 0; font-size: 14px;">Ontvang 20% korting op je eerste evenementenboeking bij registratie binnen de komende 7 dagen!</p>
           </div>
           
           <p style="color: #666; font-size: 14px; line-height: 1.5;">Heb je vragen? Ons vriendelijke team helpt je graag bij het plannen van het perfecte evenement.</p>
@@ -170,7 +170,7 @@ async function sendPromotionalEmail(to, userName) {
         </div>
       </div>
     `,
-    text: `Hoi ${userName}, Welkom bij Evenlyo! Bedankt voor je betrokkenheid bij onze blog. Wij zijn jouw centrale plek voor evenementenplanning. Word vandaag lid en ontvang 20% korting op je eerste boeking! Ga naar ${process.env.FRONTEND_URL || "http://localhost:3000"}/register om te beginnen.`,
+    text: `Hallo ${userName}, Welkom bij Evenlyo! Bedankt voor je betrokkenheid bij onze blog. Wij zijn jouw centrale plek voor evenementenplanning. Word vandaag lid en ontvang 20% korting op je eerste boeking! Ga naar ${process.env.FRONTEND_URL || "http://localhost:3000"}/register om te beginnen.`,
   };
 
   try {
@@ -684,7 +684,7 @@ async function sendChatbotTicketReply({ toEmail, toName, subject, userMessage, a
             <p style="color: #888; font-size: 13px; margin-top: 4px;">Ticket #${ticketId}</p>
           </div>
 
-          <p style="color: #333; font-size: 15px;">Hoi <strong>${toName}</strong>,</p>
+          <p style="color: #333; font-size: 15px;">Hallo <strong>${toName}</strong>,</p>
           <p style="color: #333; font-size: 15px; line-height: 1.6;">
             Bedankt dat je contact hebt opgenomen met Evenlyo Support. Hier is ons antwoord op je vraag:
           </p>
@@ -710,7 +710,7 @@ async function sendChatbotTicketReply({ toEmail, toName, subject, userMessage, a
         </div>
       </div>
     `,
-    text: `Hoi ${toName},\n\nBedankt dat je contact hebt opgenomen met Evenlyo Support (Ticket #${ticketId}).\n\nOns antwoord:\n${adminReply}\n\nJe oorspronkelijke bericht:\n${userMessage}\n\nMet vriendelijke groet,\nEvenlyo Support Team`,
+    text: `Hallo ${toName},\n\nBedankt dat je contact hebt opgenomen met Evenlyo Support (Ticket #${ticketId}).\n\nOns antwoord:\n${adminReply}\n\nJe oorspronkelijke bericht:\n${userMessage}\n\nMet vriendelijke groet,\nEvenlyo Support Team`,
   };
 
   return transporter.sendMail(mailOptions);
