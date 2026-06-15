@@ -122,58 +122,55 @@ async function sendPromotionalEmail(to, userName) {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to,
-    subject: "Welcome to Evenlyo - Discover Amazing Events!",
+    subject: "Welkom bij Evenlyo - Ontdek Geweldige Evenementen!",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
         <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
           <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #333; margin-bottom: 10px;">Welcome to Evenlyo!</h1>
-            <h2 style="color: #666; font-weight: normal;">Your Event Planning Journey Starts Here</h2>
+            <h1 style="color: #333; margin-bottom: 10px;">Welkom bij Evenlyo!</h1>
+            <h2 style="color: #666; font-weight: normal;">Jouw Evenementenplanning Begint Hier</h2>
           </div>
           
-          <p style="color: #333; font-size: 16px; line-height: 1.5;">Hi ${userName},</p>
+          <p style="color: #333; font-size: 16px; line-height: 1.5;">Hallo ${userName},</p>
           
-          <p style="color: #333; font-size: 16px; line-height: 1.5;">Thank you for engaging with our blog! We're excited to introduce you to Evenlyo - your one-stop destination for all event planning needs.</p>
+          <p style="color: #333; font-size: 16px; line-height: 1.5;">Bedankt voor je betrokkenheid bij onze blog! We stellen je graag voor aan Evenlyo - jouw alles-in-één bestemming voor al je evenementenplanningsbehoeften.</p>
           
           <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 10px; margin: 25px 0; text-align: center;">
-            <h3 style="margin: 0 0 15px 0; font-size: 24px;">🎉 What We Offer 🎉</h3>
+            <h3 style="margin: 0 0 15px 0; font-size: 24px;">🎉 Wat Wij Bieden 🎉</h3>
             <ul style="list-style: none; padding: 0; margin: 0;">
-              <li style="margin: 10px 0; font-size: 16px;">✨ Professional Event Planning Services</li>
-              <li style="margin: 10px 0; font-size: 16px;">🎪 Wedding & Corporate Event Management</li>
-              <li style="margin: 10px 0; font-size: 16px;">🎂 Birthday Parties & Special Occasions</li>
-              <li style="margin: 10px 0; font-size: 16px;">📱 Easy Online Booking Platform</li>
+              <li style="margin: 10px 0; font-size: 16px;">✨ Professionele Evenementenplanningsdiensten</li>
+              <li style="margin: 10px 0; font-size: 16px;">🎪 Bruiloft & Zakelijk Evenementenbeheer</li>
+              <li style="margin: 10px 0; font-size: 16px;">🎂 Verjaardagsfeesten & Speciale Gelegenheden</li>
+              <li style="margin: 10px 0; font-size: 16px;">📱 Eenvoudig Online Boekingsplatform</li>
             </ul>
           </div>
           
-          <p style="color: #333; font-size: 16px; line-height: 1.5;">Ready to plan your next amazing event? Join thousands of satisfied customers who trust Evenlyo for their special moments.</p>
+          <p style="color: #333; font-size: 16px; line-height: 1.5;">Klaar om je volgende geweldige evenement te plannen? Sluit je aan bij duizenden tevreden klanten die Evenlyo vertrouwen voor hun speciale momenten.</p>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.FRONTEND_URL || "http://localhost:3000"
-      }/register" 
+            <a href="${process.env.FRONTEND_URL || "http://localhost:3000"}/register" 
                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; font-size: 16px; display: inline-block;">
-              Join Evenlyo Today!
+              Word Vandaag Lid van Evenlyo!
             </a>
           </div>
           
           <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
-            <h4 style="color: #333; margin: 0 0 15px 0;">🎁 Special Offer for New Members:</h4>
-            <p style="color: #666; margin: 0; font-size: 14px;">Get 20% off your first event booking when you register within the next 7 days!</p>
+            <h4 style="color: #333; margin: 0 0 15px 0;">🎁 Speciale Aanbieding voor Nieuwe Leden:</h4>
+            <p style="color: #666; margin: 0; font-size: 14px;">Krijg 20% korting op je eerste evenementenboeking wanneer je je binnen de komende 7 dagen registreert!</p>
           </div>
           
-          <p style="color: #666; font-size: 14px; line-height: 1.5;">Have questions? Our friendly team is here to help you plan the perfect event.</p>
+          <p style="color: #666; font-size: 14px; line-height: 1.5;">Heb je vragen? Ons vriendelijke team staat klaar om je te helpen het perfecte evenement te plannen.</p>
           
           <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
           
           <p style="color: #999; font-size: 12px; text-align: center;">
-            This email was sent because you commented on our blog. If you don't want to receive promotional emails, 
-            <a href="${process.env.FRONTEND_URL || "http://localhost:3000"
-      }/unsubscribe" style="color: #999;">click here to unsubscribe</a>.
+            Deze e-mail is verzonden omdat je een reactie hebt achtergelaten op onze blog. Als je geen promotionele e-mails wilt ontvangen, 
+            <a href="${process.env.FRONTEND_URL || "http://localhost:3000"}/unsubscribe" style="color: #999;">klik hier om uit te schrijven</a>.
           </p>
         </div>
       </div>
     `,
-    text: `Hi ${userName}, Welcome to Evenlyo! Thank you for engaging with our blog. We're your one-stop destination for event planning. Join us today and get 20% off your first booking! Visit ${process.env.FRONTEND_URL || "http://localhost:3000"
-      }/register to get started.`,
+    text: `Hallo ${userName}, Welkom bij Evenlyo! Bedankt voor je betrokkenheid bij onze blog. Wij zijn jouw alles-in-één bestemming voor evenementenplanning. Word vandaag lid en krijg 20% korting op je eerste boeking! Bezoek ${process.env.FRONTEND_URL || "http://localhost:3000"}/register om te beginnen.`,
   };
 
   try {
