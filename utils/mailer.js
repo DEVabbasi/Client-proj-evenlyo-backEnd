@@ -486,6 +486,37 @@ Evenlyo
   }
 };
 
+const sendVendorCancellationEmail = async (booking, reasonType = "non-payment") => {
+  const eventDate = booking?.details?.startDate
+    ? moment(booking.details.startDate).format("DD MMM YYYY")
+    : "N/A";
+
+  const cancellationReason =
+    reasonType === "client_cancelled"
+      ? "De klant heeft deze boeking geannuleerd."
+      : "De boeking is automatisch geannuleerd wegens niet-betaling door de klant.";
+
+  const mailOptions = {
+    from: `"Evenlyo" <${process.env.EMAIL_USER}>`,
+    to: booking?.vendorId?.email,
+    subject: "Kennisgeving: Boeking Geannuleerd",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;">
+        <h2>Boeking Geannuleerd</h2>
+        <p>Hallo ${booking?.vendorId?.firstName || "Leverancier"},</p>
+        <p>${cancellationReason}</p>
+        <p><strong>Tracking ID:</strong> ${booking?.trackingId || "N/A"}</p>
+        <p><strong>Datum:</strong> ${eventDate}</p>
+        <p><strong>Dienst:</strong> ${booking?.listingId?.title?.nl || booking?.listingId?.title?.en || "Service Pakket"}</p>
+        <p><strong>Klant:</strong> ${booking?.userId?.firstName || "Klant"}</p>
+        <p style="margin-top:20px;">Met vriendelijke groet,<br/>Evenlyo Team</p>
+      </div>
+    `,
+  };
+
+  return transporter.sendMail(mailOptions);
+};
+
 const sendEvenlyoProtectBookingEmail = async (booking, client, vendor, status, adminEmail) => {
   const clientName = formatPartyName(client);
   const vendorName = formatPartyName(vendor);
@@ -520,6 +551,13 @@ const sendEvenlyoProtectBookingEmail = async (booking, client, vendor, status, a
       heading = "Boeking afgewezen ❌";
       statusMessage = "De leverancier heeft deze Evenlyo Protect boeking AFGEWEZEN.";
       headingColor = "#e74c3c";
+      break;
+
+    case "RECEIVED":
+      subject = "Evenlyo Protect boeking ontvangen door klant";
+      heading = "Boeking ontvangen door klant";
+      statusMessage = "De klant heeft bevestigd dat deze Evenlyo Protect boeking is ontvangen.";
+      headingColor = "#2980b9";
       break;
 
     default:
@@ -727,8 +765,8 @@ module.exports = {
   sendKvkUpdateEmail,
   sendOrderStatusEmail,
   sendBookingCompletionEmail,
+  sendVendorCancellationEmail,
   sendReminderEmail,
   sendEvenlyoProtectBookingEmail,
   sendChatbotTicketReply,
-  // sendVendorCancellationEmail
 };

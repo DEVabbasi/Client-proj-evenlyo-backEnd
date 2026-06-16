@@ -22,7 +22,10 @@ const mongoose = require("mongoose");
 const { resolveVendorUserId } = require("../../utils/resolveVendorUserId");
 const { notifyVendorNewBooking } = require("../../utils/notifyVendorNewBooking");
 const SupportTicket = require("../../models/SupportTicket");
-const { sendEvenlyoProtectBookingEmail } = require("../../utils/mailer");
+const {
+  sendEvenlyoProtectBookingEmail,
+  sendVendorCancellationEmail,
+} = require("../../utils/mailer");
 const { createActivityLog } = require("../../utils/activityLogger");
 const { getVendorDisplayName } = require("../../utils/vendorDisplayName");
 
@@ -1092,6 +1095,42 @@ const markBookingReceived = asyncHandler(async (req, res) => {
   booking.status = "received";
   await booking.save();
 
+  try {
+    const isEvenlyoProtectEnabled =
+      booking.pricingBreakdown?.paymentPolicy?.isEvenlyoProtectEnabled === true;
+
+    if (isEvenlyoProtectEnabled) {
+      const adminToNotifyEmail = await AdminEmployee.findOne({
+        role: "Admin",
+        status: "active",
+        "notificationSettings.email.evenlyoProtect": true,
+      }).select("_id name email");
+
+      if (adminToNotifyEmail?.email) {
+        const bookingWithRelations = await BookingRequest.findById(booking._id)
+          .populate("userId", "firstName lastName fullName")
+          .populate("listingId", "title");
+
+        const vendorUserId = await resolveVendorUserId(booking.vendorId);
+        const vendorUser = vendorUserId
+          ? await User.findById(vendorUserId).select("firstName lastName fullName")
+          : null;
+
+        if (bookingWithRelations?.userId && vendorUser) {
+          await sendEvenlyoProtectBookingEmail(
+            bookingWithRelations,
+            bookingWithRelations.userId,
+            vendorUser,
+            "RECEIVED",
+            adminToNotifyEmail.email,
+          );
+        }
+      }
+    }
+  } catch (emailErr) {
+    console.error("Failed to send Evenlyo Protect received email:", emailErr);
+  }
+
   // Notify vendor that booking is received
   try {
     const vendor = await Vendor.findById(booking.vendorId);
@@ -1341,6 +1380,22 @@ const cancelBooking = asyncHandler(async (req, res) => {
     notes: notes,
   });
   await booking.save();
+
+  try {
+    const bookingForEmail = await BookingRequest.findById(booking._id)
+      .populate("vendorId", "firstName email notifications")
+      .populate("userId", "firstName")
+      .populate("listingId", "title");
+
+    if (
+      bookingForEmail?.vendorId?.email &&
+      bookingForEmail?.vendorId?.notifications?.email !== false
+    ) {
+      await sendVendorCancellationEmail(bookingForEmail, "client_cancelled");
+    }
+  } catch (emailErr) {
+    console.error("Failed to send vendor cancellation email:", emailErr);
+  }
 
   const incrementBy = 1;
 
