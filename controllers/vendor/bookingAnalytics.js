@@ -17,6 +17,10 @@ const { default: mongoose } = require("mongoose");
 const { sendOrderStatusEmail, sendEvenlyoProtectBookingEmail } = require("../../utils/mailer");
 const AdminEmployee = require("../../models/AdminEmployee");
 const { notifyVendorNewBooking } = require("../../utils/notifyVendorNewBooking");
+const {
+  getVendorDisplayName,
+  getClientDisplayName,
+} = require("../../utils/vendorDisplayName");
 // GET /api/vendor/bookings/analytics
 const getVendorBookingAnalytics = async (req, res) => {
   console.log("HAHAHAHHA");
@@ -170,12 +174,6 @@ const acceptBooking = asyncHandler(async (req, res) => {
   const listingDetails = await Listing.findOne({
     _id: booking.listingId,
   });
-
-
-
-
-  // return res.send("ok")
-
 
   if (!booking) {
     return res.status(404).json({
@@ -353,41 +351,53 @@ const acceptBooking = asyncHandler(async (req, res) => {
   }
 
   const bookingDates = `${moment(booking.details.startDate).format("DD-MMM-YYYY")}${booking.details.endDate !== booking.details.startDate ? ` to ${moment(booking.details.endDate).format("Do MMM YYYY")}` : ""}`;
+  try {
+    const isEvenlyoProtectEnabled =
+      booking.pricingBreakdown?.paymentPolicy?.isEvenlyoProtectEnabled === true;
 
-  const adminsToNotifyPush = await AdminEmployee.findOne({
-    role: "Admin",
-    status: "active",
-    "notificationSettings.push.evenlyoProtect": true
-  }).select("_id name email");
+    if (isEvenlyoProtectEnabled) {
+      const adminsToNotifyPush = await AdminEmployee.findOne({
+        role: "Admin",
+        status: "active",
+        "notificationSettings.push.evenlyoProtect": true
+      }).select("_id name email");
 
-  const adminsToNotifyEmail = await AdminEmployee.findOne({
-    role: "Admin",
-    status: "active",
-    "notificationSettings.email.evenlyoProtect": true
-  }).select("_id name email");
+      const adminsToNotifyEmail = await AdminEmployee.findOne({
+        role: "Admin",
+        status: "active",
+        "notificationSettings.email.evenlyoProtect": true
+      }).select("_id name email");
 
-  if (
-    booking.pricingBreakdown.paymentPolicy
-      .isEvenlyoProtectEnabled === true && adminsToNotifyPush
-  ) {
-    await notificationController.createNotification({
-      title: {
-        en: "Evenlyo protected booking accepted",
-        nl: "Door Evenlyo beschermde boeking geaccepteerd"
-      },
-      notificationFor: "Admin",
-      vendorId: vendorDetails._id, // vendor's user account receives notification
-      clientId: booking.userId, // vendor's user account receives notification
-      bookingId: booking._id,
-      message: {
-        en: `A evenlyo protected booking request from ${user.fullName} for "${booking.listingId.title.en}" on ${bookingDates} is accepted. Tracking ID: ${booking.trackingId}`,
-        nl: `Een beschermde boekingsaanvraag op Evenlyo van ${user.fullName} voor "${booking.listingId.title.nl}" op ${bookingDates} is geaccepteerd. Tracking-ID: ${booking.trackingId}`,
-      },
-    });
-  }
-  if (booking.pricingBreakdown.paymentPolicy
-    .isEvenlyoProtectEnabled === true && adminsToNotifyEmail) {
-    sendEvenlyoProtectBookingEmail(booking, user.fullName, vendorDetails.fullName, 'ACCEPTED');
+      if (adminsToNotifyPush) {
+        await notificationController.createNotification({
+          title: {
+            en: "Evenlyo protected booking accepted",
+            nl: "Door Evenlyo beschermde boeking geaccepteerd"
+          },
+          notificationFor: "Admin",
+          vendorId: vendorDetails._id,
+          clientId: booking.userId,
+          bookingId: booking._id,
+          message: {
+            en: `A evenlyo protected booking request from ${user.fullName} for "${booking.listingId.title.en}" on ${bookingDates} is accepted. Tracking ID: ${booking.trackingId}`,
+            nl: `Een beschermde boekingsaanvraag op Evenlyo van ${user.fullName} voor "${booking.listingId.title.nl}" op ${bookingDates} is geaccepteerd. Tracking-ID: ${booking.trackingId}`,
+          },
+        });
+      }
+      if (adminsToNotifyEmail) {
+        const clientDisplayName = getClientDisplayName(user);
+        const vendorDisplayName = getVendorDisplayName(vendorDetails, vendor);
+        sendEvenlyoProtectBookingEmail(
+          booking,
+          clientDisplayName,
+          vendorDisplayName,
+          'ACCEPTED',
+          adminsToNotifyEmail.email,
+        );
+      }
+    }
+  } catch (e) {
+    console.error("Failed to send admin notifications for accepted booking:", e);
   }
 
   res.json({
@@ -414,8 +424,6 @@ const rejectBooking = asyncHandler(async (req, res) => {
       message: "Vendor profile not found",
     });
   }
-  console.log(vendor, vendorDetails, "vendorvendorvendorvendorvendorvendor");
-
   const booking = await BookingRequest.findOne({
     _id: id,
     vendorId: vendor._id,
@@ -453,13 +461,6 @@ const rejectBooking = asyncHandler(async (req, res) => {
   }
 
   try {
-    // await notificationController.createNotification({
-    //   user: booking.userId,
-    //   bookingId: booking._id,
-    //   message: `Your booking has been rejected.`,
-    // });
-    console.log(vendor, "vendorvendorvendorvendor");
-
     await notificationController.createNotification({
       title: {
         en: "Booking Status",
@@ -488,6 +489,9 @@ const rejectBooking = asyncHandler(async (req, res) => {
 
   console.log(booking, "bookingbookingbookingbookingbookingbookingbooking");
 
+  const listingDetails = await Listing.findOne({
+    _id: booking.listingId,
+  });
   const user = await User.findById({ _id: booking.userId._id });
   console.log(user, "useruseruseruser");
 
@@ -507,42 +511,70 @@ const rejectBooking = asyncHandler(async (req, res) => {
     }
   }
 
-  const bookingDates = `${moment(booking.details.startDate).format("DD-MMM-YYYY")}${booking.details.endDate !== booking.details.startDate ? ` to ${moment(booking.details.endDate).format("Do MMM YYYY")}` : ""}`;
-
-  const adminsToNotifyPush = await AdminEmployee.findOne({
-    role: "Admin",
-    status: "active",
-    "notificationSettings.push.evenlyoProtect": true
-  }).select("_id name email");
-
-  const adminsToNotifyEmail = await AdminEmployee.findOne({
-    role: "Admin",
-    status: "active",
-    "notificationSettings.email.evenlyoProtect": true
-  }).select("_id name email");
-
-  if (
-    booking.pricingBreakdown.paymentPolicy
-      .isEvenlyoProtectEnabled === true && adminsToNotifyPush
-  ) {
-    await notificationController.createNotification({
-      title: {
-        en: "Evenlyo protected booking accepted",
-        nl: "Door Evenlyo beschermde boeking geaccepteerd"
-      },
-      notificationFor: "Admin",
-      vendorId: vendorDetails._id, // vendor's user account receives notification
-      clientId: booking.userId, // vendor's user account receives notification
-      bookingId: booking._id,
-      message: {
-        en: `A evenlyo protected booking request from ${user.fullName} for "${booking.listingId.title.en}" on ${bookingDates} is rejected. Tracking ID: ${booking.trackingId}`,
-        nl: `Een beschermde boekingsaanvraag op Evenlyo van ${user.fullName} voor "${booking.listingId.title.nl}" op ${bookingDates} is geweigerd. Tracking-ID: ${booking.trackingId}`,
-      },
-    });
+  if (user.notifications?.push === true) {
+    try {
+      await notifyVendorNewBooking({
+        title: "Boeking Geweigerd",
+        message: `Nieuwe boekingsaanvraag voor uw aanbod "${listingDetails.title.nl}" van ${moment(booking.details.startDate).format("DD MMM YYYY")} is geweigerd.`,
+        receiverDetails: user,
+        bookingRequest: booking,
+      });
+    } catch (e) {
+      console.error("Failed to create vendor notification for new booking:", e);
+    }
   }
-  if (booking.pricingBreakdown.paymentPolicy
-    .isEvenlyoProtectEnabled === true && adminsToNotifyEmail) {
-    sendEvenlyoProtectBookingEmail(booking, user.fullName, vendorDetails.fullName, 'REJECTED');
+
+  const bookingDates = `${moment(booking.details.startDate).format("DD-MMM-YYYY")}${booking.details.endDate !== booking.details.startDate ? ` to ${moment(booking.details.endDate).format("Do MMM YYYY")}` : ""}`;
+  try {
+    const isEvenlyoProtectEnabled =
+      booking.pricingBreakdown?.paymentPolicy?.isEvenlyoProtectEnabled === true;
+
+    if (isEvenlyoProtectEnabled) {
+      const adminsToNotifyPush = await AdminEmployee.findOne({
+        role: "Admin",
+        status: "active",
+        "notificationSettings.push.evenlyoProtect": true
+      }).select("_id name email");
+
+      const adminsToNotifyEmail = await AdminEmployee.findOne({
+        role: "Admin",
+        status: "active",
+        "notificationSettings.email.evenlyoProtect": true
+      }).select("_id name email");
+
+      if (adminsToNotifyPush) {
+        await notificationController.createNotification({
+          title: {
+            en: "Evenlyo protected booking rejected",
+            nl: "Door Evenlyo beschermde boeking geweigerd"
+          },
+          notificationFor: "Admin",
+          vendorId: vendorDetails._id,
+          clientId: booking.userId,
+          bookingId: booking._id,
+          message: {
+            en: `A evenlyo protected booking request from ${user.fullName} for "${booking.listingId.title.en}" on ${bookingDates} is rejected. Tracking ID: ${booking.trackingId}`,
+            nl: `Een beschermde boekingsaanvraag op Evenlyo van ${user.fullName} voor "${booking.listingId.title.nl}" op ${bookingDates} is geweigerd. Tracking-ID: ${booking.trackingId}`,
+          },
+        });
+      }
+      if (adminsToNotifyEmail) {
+        const vendorProfile = await Vendor.findOne({ userId: req.user.id }).select(
+          "businessName",
+        );
+        const clientDisplayName = getClientDisplayName(user);
+        const vendorDisplayName = getVendorDisplayName(vendorDetails, vendorProfile);
+        sendEvenlyoProtectBookingEmail(
+          booking,
+          clientDisplayName,
+          vendorDisplayName,
+          'REJECTED',
+          adminsToNotifyEmail.email,
+        );
+      }
+    }
+  } catch (e) {
+    console.error("Failed to send admin notifications for rejected booking:", e);
   }
 
   res.json({
@@ -646,6 +678,21 @@ const paymentConfirmation = async (req, res) => {
     }
 
     const booking = await Booking.findById(bookingId);
+    const vendorDetails = await User.findOne({ _id: booking.vendorId });
+    console.log(vendorDetails, "vendorDetailsvendorDetailsvendorDetailsvendorDetails");
+
+    if (vendorDetails.notifications?.push === true) {
+      try {
+        await notifyVendorNewBooking({
+          title: "Betaling Ontvangen",
+          message: `Een betaling van €${amount} is ontvangen voor boeking ${booking.trackingId}.`,
+          receiverDetails: vendorDetails,
+          bookingRequest: booking,
+        });
+      } catch (e) {
+        console.error("Failed to create vendor notification for new booking:", e);
+      }
+    }
 
     if (!booking) {
       return res.status(404).json({

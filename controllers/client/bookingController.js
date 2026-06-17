@@ -22,8 +22,12 @@ const mongoose = require("mongoose");
 const { resolveVendorUserId } = require("../../utils/resolveVendorUserId");
 const { notifyVendorNewBooking } = require("../../utils/notifyVendorNewBooking");
 const SupportTicket = require("../../models/SupportTicket");
-const { sendEvenlyoProtectBookingEmail } = require("../../utils/mailer");
+const {
+  sendEvenlyoProtectBookingEmail,
+  sendVendorCancellationEmail,
+} = require("../../utils/mailer");
 const { createActivityLog } = require("../../utils/activityLogger");
+const { getVendorDisplayName } = require("../../utils/vendorDisplayName");
 
 const momentTime = require("moment-timezone");
 // @desc    Create Stripe PaymentIntent for a booking
@@ -187,6 +191,7 @@ function getDayCount(startDate, endDate) {
 // @desc    Create a booking request
 // @route   POST /api/booking/request
 // @access  Private (User)
+
 const createBookingRequest = asyncHandler(async (req, res) => {
   const {
     listingId,
@@ -510,17 +515,18 @@ const createBookingRequest = asyncHandler(async (req, res) => {
     } catch (cartError) {
       console.error("Failed to remove item from cart:", cartError);
     }
-
     try {
       const client = await User.findById(bookingRequest.userId).select(
         "firstName lastName",
       );
-      const vendor = await User.findById(vendorId)
-
-      console.log(vendor,"vendor_data=>>>");
-      
+      const vendorUser = await User.findById(vendorUserId).select(
+        "firstName lastName email accountType",
+      );
+      const vendorProfile = await Vendor.findOne({ userId: vendorUserId }).select(
+        "businessName",
+      );
+      const vendorDisplayName = getVendorDisplayName(vendorUser, vendorProfile);
       const bookingDates = `${startDate}${endDate !== startDate ? ` to ${endDate}` : ""}`;
-
       const clientName = client
         ? `${client.firstName} ${client.lastName}`.trim()
         : "A client";
@@ -536,8 +542,15 @@ const createBookingRequest = asyncHandler(async (req, res) => {
 
       try {
         await notifyVendorNewBooking({
-          message: `Nieuwe boekingsaanvraag voor uw aanbod "${listing.title.nl}`,
-          receiverDetails: vendor,
+          title: {
+            en: "New Booking Request",
+            nl: "Nieuwe boekingsaanvraag",
+          },
+          message: {
+            en: `New booking request for "${listing.title.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
+            nl: `Nieuwe boekingsaanvraag voor "${listing.title.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
+          },
+          receiverDetails: vendorUser,
           bookingRequest,
           listing,
           startDate,
@@ -577,12 +590,13 @@ const createBookingRequest = asyncHandler(async (req, res) => {
           });
         }
 
-        if (adminsToNotifyEmail && vendor) {
+        if (adminsToNotifyEmail && vendorDisplayName !== "N/A") {
           sendEvenlyoProtectBookingEmail(
             bookingRequest,
             clientName,
-            vendor,
+            vendorDisplayName,
             "NEW",
+            adminsToNotifyEmail.email,
           );
         }
         try {
@@ -1081,6 +1095,42 @@ const markBookingReceived = asyncHandler(async (req, res) => {
   booking.status = "received";
   await booking.save();
 
+  try {
+    const isEvenlyoProtectEnabled =
+      booking.pricingBreakdown?.paymentPolicy?.isEvenlyoProtectEnabled === true;
+
+    if (isEvenlyoProtectEnabled) {
+      const adminToNotifyEmail = await AdminEmployee.findOne({
+        role: "Admin",
+        status: "active",
+        "notificationSettings.email.evenlyoProtect": true,
+      }).select("_id name email");
+
+      if (adminToNotifyEmail?.email) {
+        const bookingWithRelations = await BookingRequest.findById(booking._id)
+          .populate("userId", "firstName lastName fullName")
+          .populate("listingId", "title");
+
+        const vendorUserId = await resolveVendorUserId(booking.vendorId);
+        const vendorUser = vendorUserId
+          ? await User.findById(vendorUserId).select("firstName lastName fullName")
+          : null;
+
+        if (bookingWithRelations?.userId && vendorUser) {
+          await sendEvenlyoProtectBookingEmail(
+            bookingWithRelations,
+            bookingWithRelations.userId,
+            vendorUser,
+            "RECEIVED",
+            adminToNotifyEmail.email,
+          );
+        }
+      }
+    }
+  } catch (emailErr) {
+    console.error("Failed to send Evenlyo Protect received email:", emailErr);
+  }
+
   // Notify vendor that booking is received
   try {
     const vendor = await Vendor.findById(booking.vendorId);
@@ -1330,6 +1380,22 @@ const cancelBooking = asyncHandler(async (req, res) => {
     notes: notes,
   });
   await booking.save();
+
+  try {
+    const bookingForEmail = await BookingRequest.findById(booking._id)
+      .populate("vendorId", "firstName email notifications")
+      .populate("userId", "firstName")
+      .populate("listingId", "title");
+
+    if (
+      bookingForEmail?.vendorId?.email &&
+      bookingForEmail?.vendorId?.notifications?.email !== false
+    ) {
+      await sendVendorCancellationEmail(bookingForEmail, "client_cancelled");
+    }
+  } catch (emailErr) {
+    console.error("Failed to send vendor cancellation email:", emailErr);
+  }
 
   const incrementBy = 1;
 

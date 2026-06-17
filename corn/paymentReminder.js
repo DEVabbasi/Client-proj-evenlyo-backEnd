@@ -96,7 +96,7 @@ const sendReminderEmail = async (booking, daysLeft) => {
 
     await sendEmail(
         booking.userId.email,
-        `Uw evenement is over ${daysLeft} dag(en) – Betalingsherinnering`,
+        `Uw evenement is over ${daysLeft} dag${daysLeft > 1 ? "en" : ""} – Betalingsherinnering`,
         emailHtml
     );
 };
@@ -108,7 +108,7 @@ const sendAdminCancellationEmail = async (booking) => {
     const emailHtml = `
   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;">
 
-    <h2>Admin Alert: Boeking Geannuleerd</h2>
+    <h2>Beheerdersmelding: Boeking geannuleerd</h2>
 
     <p>Een boeking is geannuleerd wegens niet-betaling.</p>
 

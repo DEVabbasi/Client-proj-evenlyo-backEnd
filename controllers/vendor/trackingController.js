@@ -17,9 +17,6 @@ const momentTime = require("moment-timezone");
 // GET /api/vendor/tracking
 const getVendorBookings = async (req, res) => {
   try {
-    // Find the vendor profile for the logged-in user
-    console.log("CALLED");
-
     const vendor = await Vendor.findOne({ userId: req.user.id });
     console.log(vendor, "vendorvendorvendorvendorvendorvendorvendorasdasd");
 
@@ -61,6 +58,7 @@ const getVendorBookings = async (req, res) => {
       status: b.status,
       _id: b._id,
       statusHistory: b.statusHistory || [],
+      specialInstructions: b?.details?.specialRequests.nl || "",
     }));
     res.json({ bookings: result });
   } catch (err) {

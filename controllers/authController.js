@@ -81,7 +81,10 @@ const clientLogin = async (req, res) => {
 
       return res.json({
         success: true,
-        message: "Google login successful",
+        message: {
+          en: "Google login successful",
+          nl: "Google login succesvol"
+        },
         token,
         user: {
           id: user._id,
@@ -131,7 +134,7 @@ const clientLogin = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Login successful",
+      message: { en: "Login successful", nl: "Login succesvol" },
       token,
       user: {
         id: user._id,
@@ -375,7 +378,7 @@ const performLogin = async (req, res, userType) => {
 
         return res.json({
           success: true,
-          message: "Google login successful",
+          message: { en: "Google login successful", nl: "Google login succesvol" },
           token,
           admin: {
             id: user._id,
@@ -420,7 +423,7 @@ const performLogin = async (req, res, userType) => {
 
       return res.json({
         success: true,
-        message: "Login successful",
+        message: { en: "Login successful", nl: "Login succesvol" },
         token,
         admin: {
           id: user._id,
@@ -1301,7 +1304,7 @@ const googleAuth = async (req, res) => {
       const accessToken = buildAccessToken(user);
       return res.status(201).json({
         success: true,
-        message: "Registration and login successful",
+        message: { en: "Registration and login successful", nl: "Registratie en inloggen succesvol" },
         tokens: { access: accessToken },
         user: {
           id: user._id,
@@ -1383,7 +1386,7 @@ const googleAuth = async (req, res) => {
 
       return res.json({
         success: true,
-        message: "Login successful",
+        message: { en: "Login successful", nl: "Login succesvol" },
         tokens: { access: accessToken },
         user: {
           id: user._id,
@@ -1416,7 +1419,7 @@ const googleAuth = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Registration and login successful",
+      message: { en: "Registration and login successful", nl: "Registratie en inloggen succesvol" },
       tokens: { access: accessToken },
       user: {
         id: user._id,
@@ -1896,8 +1899,14 @@ const checkRegisteredUser = async (req, res) => {
     const provider = existingUser.provider || "email";
     const accountHint =
       provider === "google"
-        ? "This account uses Google Sign-In. Please use Google to sign in."
-        : "An account already exists.";
+        ? {
+          en: "This account uses Google Sign-In. Please use Google to sign in.",
+          nl: "Dit account gebruikt Google Sign-In. Gebruik Google om in te loggen."
+        }
+        : {
+          en: "An account already exists.",
+          nl: "Er bestaat al een account."
+        };
     return res.json({
       success: true,
       exists: true,

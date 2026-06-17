@@ -1,13 +1,103 @@
 const Message = require("../models/Message");
+const Conversation = require("../models/Conversation");
+
+const WELCOME_MESSAGES = {
+  en: "How can we help you!",
+  nl: "Hoe kunnen we u helpen!",
+};
+
+const normalizeId = (id) => String(id || "");
+
+const getWelcomeMessage = (language = "en") =>
+  WELCOME_MESSAGES[language === "nl" ? "nl" : "en"];
+
+const seedClientWelcomeMessage = async ({
+  conversation,
+  conversationId,
+  clientUserId,
+  vendorId,
+  language,
+}) => {
+  const existingCount = await Message.countDocuments({ conversationId });
+  if (existingCount > 0) {
+    return null;
+  }
+
+  const welcomeText = getWelcomeMessage(language);
+  const welcomeMessage = await Message.create({
+    conversationId,
+    senderId: vendorId,
+    receiverId: clientUserId,
+    senderRole: "vendor",
+    receiverRole: "user",
+    senderRefrence: "Vendor",
+    receiverRefrence: "User",
+    message: welcomeText,
+  });
+
+  conversation.lastMessage = welcomeText;
+  conversation.lastUpdated = Date.now();
+  conversation.messagesCount = (conversation.messagesCount || 0) + 1;
+
+  const clientUnreadKey = normalizeId(clientUserId);
+  const currentUnread =
+    conversation.unreadMessagesCount?.get?.(clientUnreadKey) || 0;
+  conversation.unreadMessagesCount.set(clientUnreadKey, currentUnread + 1);
+
+  await conversation.save();
+
+  return welcomeMessage;
+};
 
 // Get all messages in a chat room
 const getMessages = async (req, res) => {
   try {
     const { conversationId, userId } = req.params;
-    const messages = await Message.find({
+    const preferredLanguage = req.query.preferredLanguage === "nl" ? "nl" : "en";
+
+    const conversation = await Conversation.findOne({ conversationId });
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "Conversation not found",
+      });
+    }
+
+    const clientParticipant = conversation.participants.find(
+      (participant) => participant.role === "user"
+    );
+    const vendorParticipant = conversation.participants.find(
+      (participant) => participant.role === "vendor"
+    );
+
+    const clientUserId = normalizeId(clientParticipant?.userId);
+    const vendorId = normalizeId(vendorParticipant?.userId);
+    const requesterId = normalizeId(userId);
+    const isClientRequest = requesterId === clientUserId;
+
+    let messages = await Message.find({
       conversationId,
       deletedFor: { $ne: userId },
-    });
+    }).sort({ createdAt: 1 });
+
+    if (messages.length === 0 && isClientRequest && clientUserId && vendorId) {
+      const welcomeMessage = await seedClientWelcomeMessage({
+        conversation,
+        conversationId,
+        clientUserId,
+        vendorId,
+        language: preferredLanguage,
+      });
+
+      if (welcomeMessage) {
+        messages = [welcomeMessage];
+      } else {
+        messages = await Message.find({
+          conversationId,
+          deletedFor: { $ne: userId },
+        }).sort({ createdAt: 1 });
+      }
+    }
 
     res.status(200).json({
       success: true,

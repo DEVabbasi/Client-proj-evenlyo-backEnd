@@ -75,10 +75,12 @@ const getDashboardAnalytics = async (req, res) => {
     const totalClients =
       totalClientsAgg.length > 0 ? totalClientsAgg[0].total : 0;
 
-    // Use Vendor model stats if available
-    const vendorDoc = await Vendor.findById(vendorId);
-    const completedBookingsCount = vendorDoc?.completedBookings ?? 0;
-    const totalBookings = vendorDoc?.totalBookings ?? 0;
+    const totalBookingsCount = await Booking.countDocuments({ vendorId });
+    const completedBookingsCount = await Booking.countDocuments({
+      vendorId,
+      status: "completed",
+    });
+    const totalBookings = totalBookingsCount;
 
     // 2. Monthly Revenue (current month and all months for average)
     const now = new Date();
@@ -201,6 +203,42 @@ const getDashboardAnalytics = async (req, res) => {
       return { month: i + 1, totalOrders: found ? found.totalOrders : 0 };
     });
 
+    const orderOverviewDailyAgg = await Booking.aggregate([
+      {
+        $match: {
+          vendorId: vendorObjectId,
+          createdAt: { $gte: startOfMonth, $lt: endOfMonth },
+        },
+      },
+      {
+        $group: {
+          _id: { $dayOfMonth: "$createdAt" },
+          totalOrders: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    const daysInCurrentMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+    ).getDate();
+    const currentMonthNumber = now.getMonth() + 1;
+    const orderOverviewDaily = Array.from(
+      { length: daysInCurrentMonth },
+      (_, index) => {
+        const day = index + 1;
+        const found = orderOverviewDailyAgg.find((item) => item._id === day);
+        const date = `${now.getFullYear()}-${String(currentMonthNumber).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        return {
+          date,
+          day,
+          totalOrders: found ? found.totalOrders : 0,
+        };
+      },
+    );
+
     // 6. Purchase Overview by Month (sale item purchases for this vendor)
     const purchaseAgg = await Purchase.aggregate([
       {
@@ -277,9 +315,6 @@ const getDashboardAnalytics = async (req, res) => {
       .select(
         "trackingId itemName user userName quantity totalPrice status purchasedAt"
       );
-
-    const totalBookingsCount = await Booking.countDocuments({ vendorId });
-    console.log(totalBookingsCount, "totalBookingstotalBookingstotalBookings");
 
     // const monthlyBookingAgg = await Booking.aggregate([
     //   {
@@ -359,6 +394,7 @@ const getDashboardAnalytics = async (req, res) => {
         _id: b._id,
       })),
       orderOverview,
+      orderOverviewDaily,
       purchaseOverview: result,
       recentPurchases: recentPurchases.map((p) => ({
         // ...p.toObject(),
