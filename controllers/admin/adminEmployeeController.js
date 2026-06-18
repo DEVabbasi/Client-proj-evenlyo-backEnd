@@ -228,15 +228,21 @@ exports.loginEmployee = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Email and password are required"
+        message: {
+          en: "Email and password are required",
+          nl: "E-mail en wachtwoord zijn verplicht",
+        },
       });
     }
 
     const employee = await AdminEmployee.findOne({ email });
     if (!employee) {
-      return res.status(404).json({
+      return res.status(401).json({
         success: false,
-        message: "Invalid email or password"
+        message: {
+          en: "Invalid email or password",
+          nl: "Ongeldig e-mailadres of wachtwoord",
+        },
       });
     }
 
@@ -244,14 +250,20 @@ exports.loginEmployee = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: "Invalid password"
+        message: {
+          en: "Invalid email or password",
+          nl: "Ongeldig e-mailadres of wachtwoord",
+        },
       });
     }
 
     if (employee.status == "inactive") {
       return res.status(401).json({
         success: false,
-        message: "user is inactive! Contact Admin"
+        message: {
+          en: "Your account is inactive. Please contact an administrator.",
+          nl: "Je account is inactief. Neem contact op met een beheerder.",
+        },
       });
     }
 
@@ -284,7 +296,10 @@ exports.loginEmployee = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Login successful",
+      message: {
+        en: "Login successful",
+        nl: "Inloggen gelukt",
+      },
       token,
       user: responseData
     });
@@ -293,7 +308,10 @@ exports.loginEmployee = async (req, res) => {
     console.error("Login Error:", err);
     res.status(500).json({
       success: false,
-      message: "Internal server error"
+      message: {
+        en: "Internal server error",
+        nl: "Interne serverfout",
+      },
     });
   }
 };

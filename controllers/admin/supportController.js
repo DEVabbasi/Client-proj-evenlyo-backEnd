@@ -22,7 +22,7 @@ exports.sendEmailToTicketUser = async (req, res) => {
             port: process.env.EMAIL_PORT,
             secure: false,
             auth: {
-                user: process.env.EMAIL_USER, // info@evenlyo.nl
+                user: process.env.EMAIL_USER, // info@evenlyo.nl 
                 pass: process.env.EMAIL_PASS  // 12-digit app password
             },
             requireTLS: true

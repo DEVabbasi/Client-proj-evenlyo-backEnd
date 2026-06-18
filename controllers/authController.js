@@ -317,10 +317,11 @@ const registerClient = async (req, res) => {
   return verifyOtpAndRegister(req, res, "client");
 };
 
-// --- Admin Login ---
-const performAdminLogin = async (req, res) => {
-  // ...existing code for performLogin with userType 'admin'...
-  return performLogin(req, res, "admin");
+// --- Admin Login (AdminEmployee — same handler as /api/login-admin) ---
+const adminEmployeeController = require("./admin/adminEmployeeController");
+
+const performAdminLogin = (req, res) => {
+  return adminEmployeeController.loginEmployee(req, res);
 };
 
 // Helper to build JWT access token only (refresh tokens disabled)
