@@ -203,6 +203,7 @@ cron.schedule("0 */5 * * *", async () => {
         const bookings = await Booking.find({
             paymentStatus: "upfront_paid",
             isFullyPaid: false,
+            status: { $nin: ["cancelled", "rejected"] },
         })
             .populate("userId", "firstName email")
             .populate("listingId", "title")
@@ -249,7 +250,6 @@ cron.schedule("0 */5 * * *", async () => {
 
                 await Booking.findByIdAndUpdate(booking._id, {
                     status: "cancelled",
-                    paymentStatus: "cancelled_due_to_non_payment",
                 });
 
                 await StockLog.create({

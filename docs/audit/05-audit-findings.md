@@ -207,14 +207,14 @@ Consolidated risks verified against **current code**. Inline flags in flow docs 
 
 ---
 
-### M-003 — paymentStatus enum mismatch {#M-003}
+### M-003 — paymentStatus enum mismatch {#M-003} — **Resolved**
 
-**Severity:** Medium  
+**Severity:** Medium (was)  
 **File:** `models/Booking.js` vs `corn/paymentReminder.js`
 
-**Finding:** Cron sets `cancelled_due_to_non_payment` not in enum.
+**Finding:** Cron previously set `cancelled_due_to_non_payment` not in enum.
 
-**Suggested fix:** Add to enum or use `cancelled` + `cancellationDetails.reason`.
+**Resolution:** Auto-cancel now only sets `status: "cancelled"`; `paymentStatus` is left unchanged (`upfront_paid`). Cron query excludes `cancelled`/`rejected` bookings. Backfill: `node scripts/backfill-cancelled-payment-status.js`.
 
 ---
 

@@ -65,8 +65,6 @@ Key fields:
 
 **Status enum:** `pending`, `accepted`, `rejected`, `paid`, `on_the_way`, `received`, `picked_up`, `completed`, `cancelled`, `claim`, `finished`, `received_back`, `complain`
 
-> **Audit — Medium:** Cron sets `paymentStatus: 'cancelled_due_to_non_payment'` which is **not** in schema enum. [05-audit-findings.md](./05-audit-findings.md#M-003).
-
 ### ServiceItem (`serviceitems`) + saleorders (`saleorders`)
 
 **Buy** path (not rental). `SaleItemPurchase.js` exports model `saleorders`.

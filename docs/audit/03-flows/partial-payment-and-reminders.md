@@ -84,7 +84,7 @@ Charges full `pricing.totalPrice` — ignores upfront split.
 
 > **Discrepancy vs `PARTIAL_PAYMENT_FLOW_AUDIT.md`:** That doc may describe different timing — **verified in code:** every 5 hours, not daily midnight. Comment in file says "daily at midnight" — wrong.
 
-**Query:** `paymentStatus: "upfront_paid"`, `isFullyPaid: false`
+**Query:** `paymentStatus: "upfront_paid"`, `isFullyPaid: false`, `status` not `cancelled`/`rejected`
 
 For each booking with `details.startDate`:
 
@@ -103,7 +103,7 @@ Sent via **inline Nodemailer** in cron file (not `utils/mailer.sendReminderEmail
 When `now.isAfter(eventDate)`:
 
 1. `status = "cancelled"`
-2. `paymentStatus = "cancelled_due_to_non_payment"` — **not in schema enum**
+2. `paymentStatus` unchanged (stays `upfront_paid` for partial-pay bookings)
 3. `StockLog` checkin (note: may not restore `listing.quantity`)
 4. Vendor FCM push (if `notifications.push`)
 5. Vendor email `sendVendorCancellationEmail` (cron-local copy)
