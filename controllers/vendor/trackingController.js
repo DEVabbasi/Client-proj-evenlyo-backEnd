@@ -17,35 +17,57 @@ const momentTime = require("moment-timezone");
 // GET /api/vendor/tracking
 const getVendorBookings = async (req, res) => {
   try {
+    const { page = 1, limit = 20, vendorId: queryVendorId } = req.query;
+
     const vendor = await Vendor.findOne({ userId: req.user.id });
-    console.log(vendor, "vendorvendorvendorvendorvendorvendorvendorasdasd");
 
     if (!vendor) {
       return res
         .status(404)
         .json({ bookings: [], message: "Vendor profile not found" });
     }
-    const bookings = await Booking.find({ vendorId: vendor.userId })
-      .populate({
-        path: "userId",
-        select: "firstName lastName profileImage address contactNumber startTime endTime",
-      })
-      .populate({
-        path: "vendorId",
-        select: "firstName lastName profileImage address contactNumber",
-      })
-      .populate({
-        path: "listingId",
-        select: "title",
-      })
-      .sort({ createdAt: -1 });
 
-    console.log(bookings, "bookingsbookingsbookingsbookings");
+    if (queryVendorId) {
+      const qid = String(queryVendorId);
+      const matchesProfile =
+        qid === String(vendor._id) || qid === String(vendor.userId);
+      if (!matchesProfile) {
+        return res.status(403).json({
+          bookings: [],
+          message: "vendorId does not match authenticated vendor",
+        });
+      }
+    }
 
+    const filter = { vendorId: vendor.userId };
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const perPage = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+    const skip = (pageNum - 1) * perPage;
+
+    const [total, bookings] = await Promise.all([
+      Booking.countDocuments(filter),
+      Booking.find(filter)
+        .populate({
+          path: "userId",
+          select:
+            "firstName lastName profileImage address contactNumber startTime endTime",
+        })
+        .populate({
+          path: "vendorId",
+          select: "firstName lastName profileImage address contactNumber",
+        })
+        .populate({
+          path: "listingId",
+          select: "title",
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(perPage),
+    ]);
 
     const result = bookings.map((b) => ({
-      startTime: b.details.startTime,
-      endTime: b.details.endTime,
+      startTime: b.details?.startTime,
+      endTime: b.details?.endTime,
       paymentStatus: b.paymentStatus,
       trackingId: b.trackingId,
       eventDate: b.details?.startDate,
@@ -58,9 +80,18 @@ const getVendorBookings = async (req, res) => {
       status: b.status,
       _id: b._id,
       statusHistory: b.statusHistory || [],
-      specialInstructions: b?.details?.specialRequests.nl || "",
+      specialInstructions: b?.details?.specialRequests?.nl || "",
     }));
-    res.json({ bookings: result });
+
+    res.json({
+      bookings: result,
+      pagination: {
+        page: pageNum,
+        limit: perPage,
+        total,
+        totalPages: Math.ceil(total / perPage) || 0,
+      },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
