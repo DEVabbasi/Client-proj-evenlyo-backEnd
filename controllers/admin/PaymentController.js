@@ -4,6 +4,11 @@ const User = require("../../models/User");
 const Booking = require("../../models/Booking");
 const stripe = require("../../config/stripe");
 
+const toMoney = (value) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+};
+
 const getVendorPayoutDashboard = async (req, res) => {
     try {
         const { page = 1, limit = 10 } = req.query;
@@ -248,9 +253,9 @@ const getVendorPayoutOrders = async (req, res) => {
             const escrowHours =
                 booking.listingId?.subCategory?.escrowHours || 0;
 
-            const subtotal = booking.pricingBreakdown?.subtotal || 0;
-            const total = booking.pricingBreakdown?.total || 0;
-            const upfrontFee = booking.pricingBreakdown?.upfrontFee || 0;
+            const subtotal = toMoney(booking.pricingBreakdown?.subtotal);
+            const total = toMoney(booking.pricingBreakdown?.total);
+            const upfrontFee = toMoney(booking.pricingBreakdown?.upfrontFee);
 
             let payoutAmount = 0;
 
@@ -291,13 +296,10 @@ const getVendorPayoutOrders = async (req, res) => {
 
             if (booking.status === "complain") {
 
-                const refund = booking.claimDetails?.refundAmount || 0;
+                const refund = toMoney(booking.claimDetails?.refundAmount);
 
-                const subtotal = booking.pricingBreakdown?.subtotal || 0;
-                const total = booking.pricingBreakdown?.total || 0;
-
-                const adminShare = total - subtotal; // 820 in your example
-                const vendorShare = subtotal;        // 1000 in your example
+                const adminShare = total - subtotal;
+                const vendorShare = subtotal;
 
                 let remainingRefund = refund;
 
@@ -339,7 +341,7 @@ const getVendorPayoutOrders = async (req, res) => {
                 orderType: booking.orderType,
                 userName: `${booking.userId?.firstName || ""} ${booking.userId?.lastName || ""}`.trim(),
                 userEmail: booking.userId?.email || "",
-                amount: payoutAmount.toFixed(2),
+                amount: toMoney(payoutAmount).toFixed(2),
                 bookingDate: booking.completedAt,
                 serviceName: {
                     en: booking.listingId?.title?.en || "",
