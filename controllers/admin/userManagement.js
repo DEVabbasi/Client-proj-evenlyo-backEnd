@@ -1,6 +1,7 @@
 const User = require('../../models/User');
 const Vendor = require('../../models/Vendor');
 const Booking = require('../../models/Booking');
+const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcryptjs');
 
@@ -574,10 +575,20 @@ const toggleVendorApproval = async (req, res) => {
 // --- Get Vendor Details ---
 const getVendorDetails = async (req, res) => {
   try {
-    const { vendorId } = req.params;
+    const { vendorId: paramId } = req.params;
 
-    const vendorUser = await User.findOne({ _id: vendorId, userType: 'vendor' })
+    let vendorUser = await User.findOne({ _id: paramId, userType: 'vendor' })
       .select('firstName lastName email contactNumber address isActive createdAt lastLogin');
+
+    let vendorProfile = await Vendor.findOne({ userId: paramId });
+
+    if (!vendorUser && mongoose.Types.ObjectId.isValid(paramId)) {
+      vendorProfile = await Vendor.findById(paramId);
+      if (vendorProfile) {
+        vendorUser = await User.findOne({ _id: vendorProfile.userId, userType: 'vendor' })
+          .select('firstName lastName email contactNumber address isActive createdAt lastLogin');
+      }
+    }
 
     if (!vendorUser) {
       return res.status(404).json({
@@ -586,24 +597,34 @@ const getVendorDetails = async (req, res) => {
       });
     }
 
-    // Get vendor profile
-    const vendorProfile = await Vendor.findOne({ userId: vendorId });
+    if (!vendorProfile) {
+      vendorProfile = await Vendor.findOne({ userId: vendorUser._id });
+    }
+
+    const bookingVendorId = vendorUser._id;
 
     // Get vendor's booking history
-    const bookings = vendorProfile ? await Booking.find({ vendorId: vendorProfile._id })
-      .select('trackingId status createdAt pricing.totalPrice details.eventLocation')
+    const bookings = await Booking.find({ vendorId: bookingVendorId })
+      .select('trackingId status createdAt pricingBreakdown details.eventLocation')
       .sort({ createdAt: -1 })
-      .limit(10) : [];
+      .limit(10);
 
     // Get booking stats
     const [totalBookings, completedBookings, pendingBookings, totalEarnings] = await Promise.all([
-      vendorProfile ? Booking.countDocuments({ vendorId: vendorProfile._id }) : 0,
-      vendorProfile ? Booking.countDocuments({ vendorId: vendorProfile._id, status: 'completed' }) : 0,
-      vendorProfile ? Booking.countDocuments({ vendorId: vendorProfile._id, status: 'pending' }) : 0,
-      vendorProfile ? Booking.aggregate([
-        { $match: { vendorId: vendorProfile._id, status: 'completed' } },
-        { $group: { _id: null, total: { $sum: '$pricing.totalPrice' } } }
-      ]) : []
+      Booking.countDocuments({ vendorId: bookingVendorId }),
+      Booking.countDocuments({ vendorId: bookingVendorId, status: 'completed' }),
+      Booking.countDocuments({ vendorId: bookingVendorId, status: 'pending' }),
+      Booking.aggregate([
+        { $match: { vendorId: bookingVendorId, status: 'completed' } },
+        {
+          $group: {
+            _id: null,
+            total: {
+              $sum: { $toDouble: { $ifNull: ['$pricingBreakdown.total', 0] } },
+            },
+          },
+        },
+      ]),
     ]);
 
     const vendorDetails = {
@@ -631,7 +652,7 @@ const getVendorDetails = async (req, res) => {
       recentBookings: bookings.map(booking => ({
         trackingId: booking.trackingId,
         status: booking.status,
-        amount: booking.pricing?.totalPrice || 0,
+        amount: booking.pricingBreakdown?.total || 0,
         location: booking.details?.eventLocation || 'Not specified',
         date: booking.createdAt
       }))

@@ -3,6 +3,8 @@
  * Run: node scripts/test-payout-orders.js [vendorUserId]
  */
 require("dotenv").config();
+const dns = require("dns");
+dns.setServers(["1.1.1.1", "8.8.8.8"]);
 const mongoose = require("mongoose");
 const moment = require("moment");
 const User = require("../models/User");
