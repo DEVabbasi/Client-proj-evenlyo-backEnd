@@ -1493,6 +1493,8 @@ const getBookingDetails = asyncHandler(async (req, res) => {
     ? getVendorActionButtons(booking.status)
     : getClientActionButtons(booking.status);
 
+  const reviewExists = await Review.exists({ bookingId: booking._id });
+
   const bookingData = {
     ...booking.toObject(),
     _id: booking._id,
@@ -1520,6 +1522,7 @@ const getBookingDetails = asyncHandler(async (req, res) => {
     claimDetails: booking.claimDetails,
     deliveryDetails: booking.deliveryDetails,
     feedback: booking.feedback,
+    isReviewed: !!reviewExists,
   };
   res.json({
     success: true,
