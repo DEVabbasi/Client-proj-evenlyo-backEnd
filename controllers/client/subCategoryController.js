@@ -1,7 +1,6 @@
 const SubCategory = require('../../models/SubCategory');
 const Category = require('../../models/Category');
 const mongoose = require('mongoose');
-const { withPngSubCategoryIcon } = require('../../utils/cloudinary');
 
 // @desc    Get all subcategories
 // @route   GET /api/subcategories
@@ -43,7 +42,7 @@ const getSubCategories = async (req, res) => {
     
     res.json({
       success: true,
-      data: subCategories.map(withPngSubCategoryIcon),
+      data: subCategories,
       pagination: {
         current: parseInt(page),
         pages: Math.ceil(total / limit),
@@ -78,7 +77,7 @@ const getSubCategoryById = async (req, res) => {
     
     res.json({
       success: true,
-      data: withPngSubCategoryIcon(subCategory)
+      data: subCategory
     });
   } catch (error) {
     console.error('Error fetching subcategory:', error);
@@ -128,7 +127,7 @@ const getSubCategoriesByCategory = async (req, res) => {
 
     res.json({
       success: true,
-      data: subCategories.map(withPngSubCategoryIcon),
+      data: subCategories,
       category
     });
 
