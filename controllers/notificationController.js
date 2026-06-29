@@ -114,8 +114,14 @@ const stringifyFcmData = (data = {}) =>
 const sendPushOnly = async (data) => {
   try {
     console.log("sendPushOnly called with data:", data);
-    let receiverDetails = data?.receiverDetails;
-    if (!receiverDetails) {
+  let receiverDetails = data?.receiverDetails;
+  if (receiverDetails && !receiverDetails.appFcm && !receiverDetails.webFcm) {
+    const userId = normalizeObjectId(receiverDetails._id || receiverDetails.id);
+    if (userId) {
+      receiverDetails = await User.findById(userId).select("appFcm webFcm");
+    }
+  }
+  if (!receiverDetails) {
       receiverDetails = await resolveTargetUser({
         notificationFor: data.notificationFor,
         clientId: data.clientId,

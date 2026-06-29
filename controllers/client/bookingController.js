@@ -520,7 +520,7 @@ const createBookingRequest = asyncHandler(async (req, res) => {
         "firstName lastName",
       );
       const vendorUser = await User.findById(vendorUserId).select(
-        "firstName lastName email accountType",
+        "firstName lastName email accountType appFcm webFcm",
       );
       const vendorProfile = await Vendor.findOne({ userId: vendorUserId }).select(
         "businessName",
