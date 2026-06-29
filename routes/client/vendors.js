@@ -56,6 +56,6 @@ router.get('/dashboard', requireAuth, requireVendor, vendorController.getVendorD
 // @desc    Get all details related to a vendor (business, user, listings, popular)
 // @route   GET /api/vendor/:vendorId/details
 // @access  Public
-router.post('/details/:vendorId', vendorController.getVendorFullDetails);
+router.get('/details/:vendorId', vendorController.getVendorFullDetails);
 
 module.exports = router;
