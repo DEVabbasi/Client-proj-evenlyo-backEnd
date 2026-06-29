@@ -451,7 +451,7 @@ const sendBookingCompletionEmail = async ({
           <p><strong>Boekings-ID:</strong> ${bookingId}</p>
           <p><strong>Datum:</strong> ${bookingDate}</p>
           <p><strong>Tijd:</strong> ${bookingTime}</p>
-          <p><strong>Totaalbedrag:</strong> $${totalAmount}</p>
+          <p><strong>Totaalbedrag:</strong> €${totalAmount}</p>
 
           <p style="margin-top: 20px;">Bedankt dat je gebruik hebt gemaakt van onze diensten. We hopen dat je een geweldige ervaring hebt gehad!</p>
 
@@ -467,7 +467,7 @@ We zijn verheugd je te kunnen meedelen dat je boeking voor ${listingTitle} succe
 Boekings-ID: ${bookingId}
 Datum: ${bookingDate}
 Tijd: ${bookingTime}
-Totaalbedrag: $${totalAmount}
+Totaalbedrag: €${totalAmount}
 
 Bedankt dat je gebruik hebt gemaakt van onze diensten. We hopen dat je een geweldige ervaring hebt gehad!
 

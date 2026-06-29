@@ -1,6 +1,9 @@
 # Ignore Node.js dependencies
 node_modules/
 
+# Heroku config backups (may contain secrets)
+.heroku-backup/
+
 # Environment variables
 .env
 .env.local
