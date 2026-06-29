@@ -5,6 +5,7 @@ const Booking = require('../../models/Booking');
 const Item = require('../../models/Item');
 const Purchase = require('../../models/SaleItemPurchase');
 const ActivityLog = require('../../models/ActivityLog');
+const { forcePng, withPngSubCategoryIcon } = require('../../utils/cloudinary');
 
 const getAllListingManagementData = async (req, res) => {
   try {
@@ -167,7 +168,7 @@ const getSubCategoriesByMainCategory = async (req, res) => {
 
     const result = subcategories.map(sub => ({
       id: sub._id,
-      icon: sub.icon || '',
+      icon: forcePng(sub.icon || ''),
       name: sub.name,
       description: sub.description,
       isActive: sub.isActive,
@@ -251,7 +252,7 @@ const createSubCategory = async (req, res) => {
     return res.status(201).json({
       success: true,
       message: "Subcategory created successfully",
-      data: newSubCategory
+      data: withPngSubCategoryIcon(newSubCategory)
     });
 
   } catch (error) {
@@ -290,7 +291,7 @@ const editSubCategory = async (req, res) => {
     return res.json({
       success: true,
       message: "SubCategory updated successfully",
-      data: updated,
+      data: withPngSubCategoryIcon(updated),
     });
 
   } catch (err) {
