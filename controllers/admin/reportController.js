@@ -17,8 +17,8 @@ const getMonthlyBookingEarnings = async () => {
                             total: {
                                 $sum: {
                                     $add: [
-                                        "$pricingBreakdown.platformFee",
-                                        "$pricingBreakdown.evenyloProtectFee"
+                                        { $toDouble: { $ifNull: ["$pricingBreakdown.platformFee", 0] } },
+                                        { $toDouble: { $ifNull: ["$pricingBreakdown.evenyloProtectFee", 0] } }
                                     ]
                                 }
                             }
@@ -37,7 +37,10 @@ const getMonthlyBookingEarnings = async () => {
                             _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
                             total: {
                                 $sum: {
-                                    $multiply: ["$pricingBreakdown.upfrontFee", 0.12]
+                                    $multiply: [
+                                        { $toDouble: { $ifNull: ["$pricingBreakdown.upfrontFee", 0] } },
+                                        0.12
+                                    ]
                                 }
                             }
                         }
@@ -118,8 +121,8 @@ const getPlatformEarningFromBooking = async () => {
                             total: {
                                 $sum: {
                                     $add: [
-                                        "$pricingBreakdown.evenyloProtectFee",
-                                        "$pricingBreakdown.platformFee"
+                                        { $toDouble: { $ifNull: ["$pricingBreakdown.evenyloProtectFee", 0] } },
+                                        { $toDouble: { $ifNull: ["$pricingBreakdown.platformFee", 0] } }
                                     ]
                                 }
                             }
@@ -139,7 +142,10 @@ const getPlatformEarningFromBooking = async () => {
                             _id: null,
                             total: {
                                 $sum: {
-                                    $multiply: ["$pricingBreakdown.upfrontFee", 0.12]
+                                    $multiply: [
+                                        { $toDouble: { $ifNull: ["$pricingBreakdown.upfrontFee", 0] } },
+                                        0.12
+                                    ]
                                 }
                             }
                         }
@@ -202,7 +208,12 @@ const getCategoryWiseEarnings = async () => {
                     $sum: {
                         $cond: [
                             { $eq: ["$status", "completed"] },
-                            { $add: ["$pricingBreakdown.platformFee", "$pricingBreakdown.evenyloProtectFee"] },
+                            {
+                                $add: [
+                                    { $toDouble: { $ifNull: ["$pricingBreakdown.platformFee", 0] } },
+                                    { $toDouble: { $ifNull: ["$pricingBreakdown.evenyloProtectFee", 0] } }
+                                ]
+                            },
                             {
                                 $cond: [
                                     {
@@ -211,7 +222,12 @@ const getCategoryWiseEarnings = async () => {
                                             { $eq: ["$paymentStatus", "upfront_paid"] }
                                         ]
                                     },
-                                    { $multiply: ["$pricingBreakdown.upfrontFee", 0.12] },
+                                    {
+                                        $multiply: [
+                                            { $toDouble: { $ifNull: ["$pricingBreakdown.upfrontFee", 0] } },
+                                            0.12
+                                        ]
+                                    },
                                     0
                                 ]
                             }
@@ -220,7 +236,9 @@ const getCategoryWiseEarnings = async () => {
                 },
 
                 // also keep raw totals if you want to show them
-                totalEarnings: { $sum: { $ifNull: ["$pricingBreakdown.total", 0] } }
+                totalEarnings: {
+                    $sum: { $toDouble: { $ifNull: ["$pricingBreakdown.total", 0] } }
+                }
             }
         },
 

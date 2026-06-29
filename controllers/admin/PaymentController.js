@@ -3,11 +3,7 @@ const Vendor = require("../../models/Vendor");
 const User = require("../../models/User");
 const Booking = require("../../models/Booking");
 const stripe = require("../../config/stripe");
-
-const toMoney = (value) => {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : 0;
-};
+const { toMoney } = require("../../utils/money");
 
 const getVendorPayoutDashboard = async (req, res) => {
     try {
@@ -68,20 +64,18 @@ const getVendorPayoutDashboard = async (req, res) => {
             // ✅ Amount Logic
             const getVendorAmount = (booking) => {
                 if (booking.status === "completed") {
-                    return booking.pricingBreakdown?.subtotal || 0;
+                    return toMoney(booking.pricingBreakdown?.subtotal);
                 }
 
                 if (
                     booking.status === "cancelled" &&
                     booking.paymentStatus === "upfront_paid"
                 ) {
-                    return (
-                        (booking.pricingBreakdown?.upfrontFee || 0) * 0.88
-                    );
+                    return toMoney(booking.pricingBreakdown?.upfrontFee) * 0.88;
                 }
 
                 if (booking.status === "complain") {
-                    return booking.claimDetails?.amount || 0;
+                    return toMoney(booking.claimDetails?.amount);
                 }
 
                 return 0;
@@ -171,7 +165,7 @@ const getVendorPayoutDashboard = async (req, res) => {
                 totalCompletedOrders,
                 readyToPayOrdersCount: readyToPayOrders.length,
                 pendingPaymentsCount: pendingPayments.length,
-                paidThisMonthAmount,
+                paidThisMonthAmount: toMoney(paidThisMonthAmount),
 
                 stripeOnboarded:
                     !!vendor.userId?.stripeOnboardingComplete,
@@ -185,7 +179,7 @@ const getVendorPayoutDashboard = async (req, res) => {
                 totalOrdersReadyToPay,
                 totalPendingPayments,
                 totalPaidThisMonthAmount: Number(
-                    totalPaidThisMonthAmount.toFixed(2)
+                    toMoney(totalPaidThisMonthAmount).toFixed(2)
                 ),
             },
             pagination: {
@@ -438,7 +432,7 @@ const payoutVendorBookings = async (req, res) => {
             });
         }
 
-        const stripeAmount = Math.round(Number(amount) * 100);
+        const stripeAmount = Math.round(toMoney(amount) * 100);
 
         const transfer = await stripe.transfers.create({
             amount: stripeAmount,
@@ -637,7 +631,7 @@ const payVendorClaim = async (req, res) => {
         }
 
         const transfer = await stripe.transfers.create({
-            amount: Math.round(amount * 100),
+            amount: Math.round(toMoney(amount) * 100),
             currency: "eur",
             destination: vendor.stripeAccountId,
             metadata: {
@@ -699,7 +693,7 @@ const refundClient = async (req, res) => {
                 });
             }
 
-            refundAmount = booking.pricingBreakdown?.securityFee || 0;
+            refundAmount = toMoney(booking.pricingBreakdown?.securityFee);
 
             if (refundAmount <= 0) {
                 return res.status(400).json({
@@ -727,13 +721,13 @@ const refundClient = async (req, res) => {
                     },
                 });
             }
-            if (!amount || amount <= 0) {
+            if (!amount || toMoney(amount) <= 0) {
                 return res.status(400).json({
                     success: false,
                     message: "Valid refund amount required",
                 });
             }
-            refundAmount = amount;
+            refundAmount = toMoney(amount);
         }
 
         // 💸 STRIPE REFUND
@@ -744,7 +738,7 @@ const refundClient = async (req, res) => {
         for (let payment of payments) {
             if (remainingRefund <= 0) break;
             if (!payment.paymentIntentId) continue;
-            const availableAmount = payment.amount;
+            const availableAmount = toMoney(payment.amount);
             const refundForThisPayment = Math.min(availableAmount, remainingRefund);
             const refund = await stripe.refunds.create({
                 payment_intent: payment.paymentIntentId,

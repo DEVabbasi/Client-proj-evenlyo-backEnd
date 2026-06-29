@@ -17,6 +17,7 @@ const { default: mongoose } = require("mongoose");
 const { sendOrderStatusEmail, sendEvenlyoProtectBookingEmail } = require("../../utils/mailer");
 const AdminEmployee = require("../../models/AdminEmployee");
 const { notifyVendorNewBooking } = require("../../utils/notifyVendorNewBooking");
+const { toMoney } = require("../../utils/money");
 const {
   getVendorDisplayName,
   getClientDisplayName,
@@ -647,11 +648,11 @@ const createPaymentIntent = async (req, res) => {
       });
     }
 
-    console.log(Math.round(amount * 100), "Math.round(amount * 100)Math.round(amount * 100)Math.round(amount * 100)");
+    console.log(Math.round(toMoney(amount) * 100), "Math.round(amount * 100)Math.round(amount * 100)Math.round(amount * 100)");
 
     // ✅ Create PaymentIntent if event not passed
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100),
+      amount: Math.round(toMoney(amount) * 100),
       currency,
       automatic_payment_methods: { enabled: true },
     });
@@ -701,9 +702,9 @@ const paymentConfirmation = async (req, res) => {
       });
     }
 
-    const paidAmount = Number(amount);
+    const paidAmount = toMoney(amount);
 
-    if (isNaN(paidAmount) || paidAmount <= 0) {
+    if (paidAmount <= 0) {
       return res.status(400).json({
         success: false,
         message: "Amount must be a valid positive number.",
@@ -736,8 +737,8 @@ const paymentConfirmation = async (req, res) => {
     }
 
     // ✅ Calculate total before adding new payment
-    const currentPaid = booking.AmountPaid || 0;
-    const totalAmount = Number(booking.pricingBreakdown?.total || 0);
+    const currentPaid = toMoney(booking.AmountPaid);
+    const totalAmount = toMoney(booking.pricingBreakdown?.total);
 
     // ❌ Prevent overpayment
     console.log(currentPaid, paidAmount, totalAmount, "payment amounts");

@@ -201,7 +201,7 @@ const getMonthlyData = async () => {
         $group: {
           _id: { month: { $month: "$createdAt" } },
           count: { $sum: 1 },
-          totalAmount: { $sum: "$pricingBreakdown.total" }
+          totalAmount: { $sum: { $toDouble: { $ifNull: ["$pricingBreakdown.total", 0] } } }
         }
       }
     ]);

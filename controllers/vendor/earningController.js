@@ -4,6 +4,7 @@ const Purchase = require('../../models/SaleItemPurchase');
 const Listing = require('../../models/Listing');
 const Item = require('../../models/Item');
 const Category = require('../../models/Category');
+const { toMoney } = require('../../utils/money');
 
 // Helper to round numeric values to 3 decimal places (and ensure number type)
 const round3 = (n) => Number(Number(n || 0).toFixed(3));
@@ -170,7 +171,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
     const earningsByCategory = earningsByCategoryAgg.map(cat => ({
       categoryId: cat._id || 'unknown',
       categoryName: cat.categoryName || 'Others',
-      totalEarnings: cat?.totalEarnings?.toFixed(2),
+      totalEarnings: toMoney(cat?.totalEarnings).toFixed(2),
       totalBookings: cat.totalBookings
     }));
 
@@ -441,7 +442,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
       return {
         month,
         totalEarnings: foundMonth
-          ? Number(foundMonth.totalEarnings.toFixed(2))
+          ? Number(toMoney(foundMonth.totalEarnings).toFixed(2))
           : 0
       };
     });
@@ -513,7 +514,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
           date,
           day,
           totalEarnings: found
-            ? Number(found.totalEarnings.toFixed(2))
+            ? Number(toMoney(found.totalEarnings).toFixed(2))
             : 0,
         };
       },
@@ -598,7 +599,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
     const earningsByCategoryMonthly = earningsByCategoryMonthlyAgg.map((cat) => ({
       categoryId: cat._id || "unknown",
       categoryName: cat.categoryName || "Others",
-      totalEarnings: cat?.totalEarnings?.toFixed(2),
+      totalEarnings: toMoney(cat?.totalEarnings).toFixed(2),
       totalBookings: cat.totalBookings,
     }));
 
