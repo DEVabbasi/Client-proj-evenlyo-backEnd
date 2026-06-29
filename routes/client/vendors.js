@@ -57,5 +57,6 @@ router.get('/dashboard', requireAuth, requireVendor, vendorController.getVendorD
 // @route   GET /api/vendor/:vendorId/details
 // @access  Public
 router.get('/details/:vendorId', vendorController.getVendorFullDetails);
+router.post('/details/:vendorId', vendorController.getVendorFullDetails);
 
 module.exports = router;

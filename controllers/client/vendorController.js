@@ -14,9 +14,10 @@ const getVendorFullDetails = async (req, res) => {
   try {
     const { vendorId } = req.params;
 
+    const rawClientUserId = req.body?.userId ?? req.query?.userId;
     const loggedInUserId =
-      req.body.userId && mongoose.Types.ObjectId.isValid(req.body.userId)
-        ? new mongoose.Types.ObjectId(req.body.userId)
+      rawClientUserId && mongoose.Types.ObjectId.isValid(rawClientUserId)
+        ? new mongoose.Types.ObjectId(rawClientUserId)
         : null;
 
     if (!mongoose.Types.ObjectId.isValid(vendorId)) {
@@ -44,8 +45,10 @@ const getVendorFullDetails = async (req, res) => {
         .json({ success: false, message: "Vendor not found" });
     }
 
+    const vendorUserId = vendor.userId?._id ?? vendor.userId;
+
     // ✅ Fetch Listings
-    const listingItemsRaw = await Listing.find({ vendor: vendorId }).lean();
+    const listingItemsRaw = await Listing.find({ vendor: vendorUserId }).lean();
     console.log(listingItemsRaw, "listingItemsRawlistingItemsRawlistingItemsRawlistingItemsRaw");
 
     const listingItems = listingItemsRaw.map((item) => ({
@@ -102,7 +105,7 @@ const getVendorFullDetails = async (req, res) => {
     // ✅ REVIEWS
     // =====================================================
 
-    const reviews = await Review.find({ vendorId })
+    const reviews = await Review.find({ vendorId: vendorUserId })
       .populate("userId", "firstName lastName email profileImage")
       .lean();
 
@@ -122,7 +125,7 @@ const getVendorFullDetails = async (req, res) => {
     if (loggedInUserId) {
       const eligibleBooking = await BookingRequest.findOne({
         userId: loggedInUserId,
-        vendorId: vendorId,   // use actual vendor _id
+        vendorId: vendorUserId,
         $or: [
           {
             isFullyPaid: true,
