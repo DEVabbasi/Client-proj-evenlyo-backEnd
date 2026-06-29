@@ -2,7 +2,7 @@ const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const { sendReportEmail } = require("../utils/mailer");
 
-const WELCOME_MESSAGE = "Welcome to our service!";
+const WELCOME_MESSAGE = "How can we help you!";
 
 const createChatUserWithVendor = async (req, res) => {
   const { userId, vendorId } = req.body;

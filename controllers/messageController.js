@@ -2,8 +2,8 @@ const Message = require("../models/Message");
 const Conversation = require("../models/Conversation");
 
 const WELCOME_MESSAGES = {
-  en: "Welcome to our service!",
-  nl: "Welcome to our service!",
+  en: "How can we help you!",
+  nl: "Hoe kunnen we u helpen!",
 };
 
 const normalizeId = (id) => String(id || "");
