@@ -1,5 +1,8 @@
 const Conversation = require("../models/Conversation");
+const Message = require("../models/Message");
 const { sendReportEmail } = require("../utils/mailer");
+
+const WELCOME_MESSAGE = "Welcome to our service!";
 
 const createChatUserWithVendor = async (req, res) => {
   const { userId, vendorId } = req.body;
@@ -31,10 +34,10 @@ const createChatUserWithVendor = async (req, res) => {
         { userId: userId, role: "user", refPath: "User" },
       ],
       conversationId: `${vendorId}_${userId}`,
-      lastMessage: "",
+      lastMessage: WELCOME_MESSAGE,
       lastUpdated: Date.now(),
       unreadMessagesCount: new Map([
-        [vendorId.toString(), 0],
+        [vendorId.toString(), 1],
         [userId, 0],
       ]),
     };
@@ -43,6 +46,18 @@ const createChatUserWithVendor = async (req, res) => {
     const newConversation = await createdConversation.populate(
       "participants.userId"
     );
+
+    const newMessage = new Message({
+      conversationId: newConversation?.conversationId,
+      senderId: vendorId,
+      receiverId: userId,
+      senderRole: "vendor",
+      receiverRole: "user",
+      senderRefrence: "Vendor",
+      receiverRefrence: "User",
+      message: WELCOME_MESSAGE,
+    });
+    await newMessage.save();
 
     io.to(`user_${userId}`).emit("new_conversation", newConversation);
     io.to(`vendor_${vendorId}`).emit("new_conversation", newConversation);
