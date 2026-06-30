@@ -247,7 +247,7 @@ const getVendorPayoutOrders = async (req, res) => {
             const escrowHours =
                 booking.listingId?.subCategory?.escrowHours || 0;
 
-            const subtotal = toMoney(booking.pricingBreakdown?.subtotal);
+            const subtotal = toMoney(booking.pricingBreakdown?.subTotal);
             const total = toMoney(booking.pricingBreakdown?.total);
             const upfrontFee = toMoney(booking.pricingBreakdown?.upfrontFee);
 
@@ -385,7 +385,6 @@ const getVendorPayoutOrders = async (req, res) => {
         });
     }
 };
-
 
 const payoutVendorBookings = async (req, res) => {
     try {
