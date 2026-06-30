@@ -263,6 +263,7 @@ function chatSocket(io) {
             pricingBreakdown: item.pricingBreakdown
           };
         });
+        console.log("PRICING BREAKDOWN", offerObject.pricingBreakdown);
         console.log("finalItemsfinalItems", finalItems);
         for (let item of finalItems) {
           await createBookingRequest(item, session);
