@@ -202,8 +202,8 @@ function chatSocket(io) {
     socket.on("accept_offer", async (offerObject) => {
       console.log("LOGGING ACCEPT OFFER LOGGING ACCEPT OFFERLOGGING ACCEPT OFFERLOGGING ACCEPT OFFERLOGGING ACCEPT OFFER", offerObject);
       console.log("Pricing Breakdown in accept_offer:", offerObject?.pricingBreakdown);
-      console.log("Items in accept_offer:", offerObject?.items?.pricingBreakdown);
-      return
+      console.log("Items in accept_offer:", offerObject?.items[0]?.pricingBreakdown);
+      // return
       const session = await mongoose.startSession();
       session.startTransaction();
 
@@ -245,7 +245,7 @@ function chatSocket(io) {
 
 
         const finalItems = offerObject.items.map((item, index) => {
-          console.log(`Item ${index}:`, item);
+          console.log(`Items are hereeeee ${index}:`, item);
           return {
             userId: offerObject.userId,
             listingId: item._id,
@@ -268,7 +268,7 @@ function chatSocket(io) {
         console.log("PRICING BREAKDOWN", offerObject.pricingBreakdown);
         console.log("finalItemsfinalItems", finalItems);
         for (let item of finalItems) {
-          await createBookingRequest(item, session);
+          // await createBookingRequest(item, session);
         }
         // All booking requests created successfully - commit transaction
         await session.commitTransaction();
