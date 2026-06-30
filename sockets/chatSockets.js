@@ -201,6 +201,7 @@ function chatSocket(io) {
 
     socket.on("accept_offer", async (offerObject) => {
       console.log("LOGGING ACCEPT OFFER LOGGING ACCEPT OFFERLOGGING ACCEPT OFFERLOGGING ACCEPT OFFERLOGGING ACCEPT OFFER", offerObject);
+      console.log("Pricing Breakdown in accept_offer:", offerObject?.pricingBreakdown);
       return
       const session = await mongoose.startSession();
       session.startTransaction();
