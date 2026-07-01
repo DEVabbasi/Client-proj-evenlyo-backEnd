@@ -897,10 +897,13 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
 
   const total = await Vendor.countDocuments(query);
 
-  // Get vendor userIds
-  const vendorIds = vendors.map(v => v.userId?._id).filter(Boolean);
+  // Filter out blocked vendors (User.isActive === false)
+  const activeVendors = vendors.filter(
+    (v) => v.userId?.isActive !== false
+  );
 
-  // Get actual review stats
+  const vendorIds = activeVendors.map(v => v.userId?._id).filter(Boolean);
+
   const reviewStats = await Review.aggregate([
     {
       $match: {
@@ -924,7 +927,6 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
     };
   });
 
-  // Booking visibility logic
   let bookingMap = {};
 
   if (loggedInUserId) {
@@ -952,7 +954,7 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
     });
   }
 
-  const formattedVendors = vendors.map((vendor) => {
+  const formattedVendors = activeVendors.map((vendor) => {
     const description =
       typeof vendor.description === "object"
         ? vendor.description.en || vendor.description.nl || ""
@@ -1001,7 +1003,6 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
           ? description.substring(0, 100) + "..."
           : description,
 
-      // CONDITIONAL CONTACT INFO
       businessEmail: canShowContact ? vendor.businessEmail : "",
       businessPhone: canShowContact ? vendor.businessPhone : "",
 

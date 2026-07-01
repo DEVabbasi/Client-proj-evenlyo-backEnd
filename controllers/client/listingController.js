@@ -1165,25 +1165,21 @@ const getHomeData = async (req, res) => {
       isActive: true,
     };
 
-    // ✅ Category filter
     if (categoryId && mongoose.Types.ObjectId.isValid(categoryId)) {
       query.category = categoryId;
     }
 
-    // ✅ Subcategory filter
     if (subCategoryId && mongoose.Types.ObjectId.isValid(subCategoryId)) {
       query.subCategory = subCategoryId;
     }
 
-    // ✅ Availability filter
     if (date) {
       const dayKey = getDayKey(date);
       query["availability.availableDays"] = dayKey;
     }
 
-    // 1️⃣ Fetch listings
     const listings = await Listing.find(query)
-      .populate("vendor", "firstName rating")
+      .populate("vendor", "firstName rating isActive")
       .populate("category", "name")
       .populate("subCategory", "name")
       .select(
@@ -1192,39 +1188,32 @@ const getHomeData = async (req, res) => {
 
     const listingIds = listings.map((l) => l._id);
 
-    // ✅ 2️⃣ GET ALL VENDOR IDS
     const vendorIds = listings.map((l) => l.vendor?._id).filter(Boolean);
 
-    // ✅ 3️⃣ FETCH ALL VENDOR DETAILS (ONE QUERY)
     const vendorDetails = await Vendor.find({
       userId: { $in: vendorIds },
     }).select("userId businessLogo");
 
-    // ✅ CREATE MAP userId → businessLogo
     const vendorLogoMap = {};
     vendorDetails.forEach((vd) => {
       vendorLogoMap[vd.userId.toString()] = vd.businessLogo;
     });
 
-    // 4️⃣ BOOKINGS
     const bookings = await BookingRequest.find({
       listingId: { $in: listingIds },
     }).select("_id listingId");
 
     const bookingIds = bookings.map((b) => b._id);
 
-    // bookingId → listingId map
     const bookingMap = {};
     bookings.forEach((b) => {
       bookingMap[b._id.toString()] = b.listingId.toString();
     });
 
-    // 5️⃣ REVIEWS
     const reviews = await Review.find({
       bookingId: { $in: bookingIds },
     }).select("bookingId rating");
 
-    // 6️⃣ CALCULATE RATINGS
     const ratingData = {};
     reviews.forEach((review) => {
       const listingId = bookingMap[review.bookingId.toString()];
@@ -1241,7 +1230,6 @@ const getHomeData = async (req, res) => {
       ratingData[listingId].count += 1;
     });
 
-    // 7️⃣ FINAL RESPONSE BUILD
     let enrichedListings = listings.map((listing) => {
       const obj = listing.toObject();
       const id = obj._id.toString();
@@ -1251,7 +1239,6 @@ const getHomeData = async (req, res) => {
         count: 0,
       };
 
-      // ✅ ADD REVIEWS
       obj.reviewStats = {
         average:
           ratingInfo.count > 0
@@ -1260,7 +1247,6 @@ const getHomeData = async (req, res) => {
         totalReviews: ratingInfo.count,
       };
 
-      // ✅ ADD BUSINESS LOGO (vendor may be null if user was deleted or ref is missing)
       const vendorId = obj.vendor?._id?.toString();
       if (obj.vendor) {
         obj.vendor.businessLogo = vendorLogoMap[vendorId] || "";
@@ -1269,7 +1255,11 @@ const getHomeData = async (req, res) => {
       return obj;
     });
 
-    // 8️⃣ LOCATION FILTER
+    // Filter out listings whose vendor has been blocked (User.isActive === false)
+    enrichedListings = enrichedListings.filter(
+      (listing) => listing.vendor?.isActive !== false
+    );
+
     if (latitude && longitude) {
       const allowedRadius = radius || 100;
 
