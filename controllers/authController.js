@@ -1968,9 +1968,39 @@ const registerVendor2 = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Passwords do not match" });
 
-    // ✅ Account-specific validation
+    // ✅ Choose email first so we can validate it early
+    const registrationEmail =
+      accountType === "business" ? businessEmail : email;
+
+    console.log("[registerVendor2] accountType:", accountType);
+    console.log("[registerVendor2] email from body:", email);
+    console.log("[registerVendor2] businessEmail from body:", businessEmail);
+    console.log("[registerVendor2] registrationEmail resolved to:", registrationEmail);
+
+    if (!registrationEmail || (typeof registrationEmail === "string" && !registrationEmail.trim())) {
+      return res.status(400).json({
+        success: false,
+        message:
+          accountType === "business"
+            ? "Business email is required"
+            : "Email is required",
+      });
+    }
+
+    const normalizedRegistrationEmail =
+      typeof registrationEmail === "string"
+        ? registrationEmail.trim().toLowerCase()
+        : "";
+
+    const isMissingValue = (value) =>
+      value === undefined ||
+      value === null ||
+      value === "" ||
+      (Array.isArray(value) && value.length === 0);
+
+    const requiredBase = [contactNumber, password, confirmPassword, otp];
     const requiredPersonal = [
-      email,
+      normalizedRegistrationEmail,
       firstName,
       lastName,
       fullAddress,
@@ -1979,7 +2009,7 @@ const registerVendor2 = async (req, res) => {
       subCategories,
     ];
     const requiredBusiness = [
-      businessEmail,
+      normalizedRegistrationEmail,
       businessName,
       teamType,
       teamSize,
@@ -1988,19 +2018,33 @@ const registerVendor2 = async (req, res) => {
       subCategories,
     ];
 
-    // ✅ Choose email
-    const registrationEmail =
-      accountType === "business" ? businessEmail : email;
+    const requiredFields =
+      accountType === "business"
+        ? [...requiredBase, ...requiredBusiness]
+        : [...requiredBase, ...requiredPersonal];
+
+    if (requiredFields.some(isMissingValue)) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields for " + accountType + " account",
+      });
+    }
 
     // ✅ Check if user exists
-    const existingUser = await User.findOne({ email: registrationEmail });
+    const existingUser = await User.findOne({
+      email: normalizedRegistrationEmail,
+    });
+    console.log(
+      "[registerVendor2] existingUser found:",
+      existingUser?._id || "NONE",
+    );
     if (existingUser)
       return res
         .status(409)
         .json({ success: false, message: "Email already registered" });
 
     // ✅ Verify OTP
-    if (!(await verifyOTP(registrationEmail, otp)))
+    if (!(await verifyOTP(normalizedRegistrationEmail, otp)))
       return res
         .status(400)
         .json({
@@ -2012,7 +2056,7 @@ const registerVendor2 = async (req, res) => {
 
     // ✅ Create User
     const user = await User.create({
-      email: registrationEmail,
+      email: normalizedRegistrationEmail,
       contactNumber,
       password: await bcrypt.hash(password, 10),
       userType: "vendor",
@@ -2036,7 +2080,7 @@ const registerVendor2 = async (req, res) => {
       subCategories,
       businessName:
         accountType === "personal" ? `${firstName} ${lastName}` : businessName,
-      businessEmail: registrationEmail,
+      businessEmail: normalizedRegistrationEmail,
       businessPhone:
         accountType === "personal" ? contactNumber : businessNumber,
       businessWebsite,
@@ -2065,6 +2109,9 @@ const registerVendor2 = async (req, res) => {
     console.log(adminsToNotify, "adminsToNotifyadminsToNotifyadminsToNotify");
 
 
+    const vendorDisplayName =
+      businessName || `${firstName || ""} ${lastName || ""}`.trim() || normalizedRegistrationEmail;
+
     if (adminsToNotify) {
       await notificationController.createNotification({
         title: {
@@ -2076,8 +2123,8 @@ const registerVendor2 = async (req, res) => {
         clientId: user._id, // vendor's user account receives notification
         bookingId: null,
         message: {
-          en: `A new vendor has registered: ${businessName}`,
-          nl: `Een nieuwe leverancier heeft zich geregistreerd: ${businessName}`,
+          en: `A new vendor has registered: ${vendorDisplayName}`,
+          nl: `Een nieuwe leverancier heeft zich geregistreerd: ${vendorDisplayName}`,
         },
       });
     }
