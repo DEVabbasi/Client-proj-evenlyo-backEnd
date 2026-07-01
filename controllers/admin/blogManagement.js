@@ -11,6 +11,9 @@ const sanitizeHtml = require('sanitize-html');
 // @access  Private (Admin only)
 const createBlog = asyncHandler(async (req, res) => {
   try {
+    console.log('=== createBlog called ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+
     const {
       title,
       description,
@@ -29,15 +32,28 @@ const createBlog = asyncHandler(async (req, res) => {
 
     // Validation
     if (!title || !description || !content || !author || !category || !readTime || !image) {
+      console.log('❌ Validation failed. Missing fields:', {
+        title: !!title,
+        description: !!description,
+        content: !!content,
+        author: !!author,
+        category: !!category,
+        readTime: !!readTime,
+        image: !!image
+      });
       return res.status(400).json({
         success: false,
         message: 'All required fields must be provided'
       });
     }
 
+    console.log('✅ Basic validation passed');
+
     // If setting as main blog, unset other main blogs
     if (isMain) {
-      await Blog.updateMany({ isMain: true }, { isMain: false });
+      console.log('isMain is true, unsetting other main blogs...');
+      const unsetResult = await Blog.updateMany({ isMain: true }, { isMain: false });
+      console.log('Unset result:', unsetResult);
     }
 
     // Sanitize HTML content
@@ -62,11 +78,22 @@ const createBlog = asyncHandler(async (req, res) => {
       return content;
     };
 
-    const processedContent = sanitizeContent(toMultilingualText(content));
+    console.log('Raw content received:', content, '| typeof:', typeof content);
 
-    const blog = await Blog.create({
-      title: toMultilingualText(title),
-      description: toMultilingualText(description),
+    const multilingualContent = toMultilingualText(content);
+    console.log('After toMultilingualText:', multilingualContent);
+
+    const processedContent = sanitizeContent(multilingualContent);
+    console.log('After sanitizeContent:', processedContent);
+
+    const titleML = toMultilingualText(title);
+    const descriptionML = toMultilingualText(description);
+    console.log('Title (multilingual):', titleML);
+    console.log('Description (multilingual):', descriptionML);
+
+    const blogPayload = {
+      title: titleML,
+      description: descriptionML,
       content: processedContent,
       author,
       category,
@@ -78,7 +105,13 @@ const createBlog = asyncHandler(async (req, res) => {
       metaDescription,
       keywords,
       slug
-    });
+    };
+
+    console.log('Final payload passed to Blog.create:', JSON.stringify(blogPayload, null, 2));
+
+    const blog = await Blog.create(blogPayload);
+
+    console.log('✅ Blog created successfully:', blog._id);
 
     res.status(201).json({
       success: true,
@@ -86,6 +119,24 @@ const createBlog = asyncHandler(async (req, res) => {
       data: blog
     });
   } catch (error) {
+    console.error('❌ Error creating blog:', error.name, '-', error.message);
+
+    // Mongoose validation errors hide the actual field-level reason
+    // inside error.errors — log that out specifically.
+    if (error.name === 'ValidationError') {
+      console.error('Validation error details:');
+      Object.keys(error.errors).forEach((field) => {
+        console.error(`  Field "${field}":`, error.errors[field].message);
+      });
+    }
+
+    // Duplicate key errors (e.g. unique slug) show up differently
+    if (error.code === 11000) {
+      console.error('Duplicate key error:', error.keyValue);
+    }
+
+    console.error('Full stack:', error.stack);
+
     res.status(500).json({
       success: false,
       message: 'Error creating blog',
