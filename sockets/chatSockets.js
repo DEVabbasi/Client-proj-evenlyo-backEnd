@@ -268,7 +268,7 @@ function chatSocket(io) {
         console.log("PRICING BREAKDOWN", offerObject.pricingBreakdown);
         console.log("finalItemsfinalItems", finalItems);
         for (let item of finalItems) {
-          // await createBookingRequest(item, session);
+          await createBookingRequest(item, session);
         }
         // All booking requests created successfully - commit transaction
         await session.commitTransaction();
