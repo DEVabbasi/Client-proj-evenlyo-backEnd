@@ -220,7 +220,7 @@ const getVendorPayoutOrders = async (req, res) => {
 
         const bookings = await Booking.find({
             vendorId: vendorId,
-            status: { $in: ["completed", "complain", "cancelled"] },
+            status: { $in: ["claim", "completed", "complain", "cancelled"] },
         })
             .populate("userId", "firstName lastName email")
             .populate({
@@ -241,21 +241,14 @@ const getVendorPayoutOrders = async (req, res) => {
         const paidOrders = [];
 
         bookings.forEach((booking) => {
-
             if (!booking) return;
-
             const escrowHours =
                 booking.listingId?.subCategory?.escrowHours || 0;
-
             const subtotal = toMoney(booking.pricingBreakdown?.subTotal);
             const total = toMoney(booking.pricingBreakdown?.total);
             const upfrontFee = toMoney(booking.pricingBreakdown?.upfrontFee);
-
             let payoutAmount = 0;
 
-            // =====================================================
-            // PAID ORDERS
-            // =====================================================
             if (booking.vendorPaid) {
                 paidOrders.push({
                     bookingId: booking._id,
@@ -277,17 +270,12 @@ const getVendorPayoutOrders = async (req, res) => {
 
                     claimDetails: booking.claimDetails || null,
                 });
-
                 return;
             }
 
-            // =====================================================
-            // PAYOUT LOGIC
-            // =====================================================
             if (booking.status === "completed") {
                 payoutAmount = subtotal;
             }
-
             if (booking.status === "complain") {
 
                 const refund = toMoney(booking.claimDetails?.refundAmount);
@@ -297,24 +285,14 @@ const getVendorPayoutOrders = async (req, res) => {
 
                 let remainingRefund = refund;
 
-                // ==============================
-                // 1. First deduct from admin
-                // ==============================
                 const adminDeduction = Math.min(remainingRefund, adminShare);
                 remainingRefund -= adminDeduction;
 
-                // ==============================
-                // 2. Then deduct from vendor
-                // ==============================
                 const vendorDeduction = Math.min(remainingRefund, vendorShare);
                 remainingRefund -= vendorDeduction;
 
-                // ==============================
-                // FINAL PAYOUT
-                // ==============================
                 payoutAmount = vendorShare - vendorDeduction;
 
-                // safety
                 payoutAmount = Math.max(payoutAmount, 0);
             }
 
@@ -377,7 +355,6 @@ const getVendorPayoutOrders = async (req, res) => {
 
     } catch (error) {
         console.error("Get vendor payout orders error:", error);
-
         return res.status(500).json({
             success: false,
             message: "Failed to fetch payout orders",
@@ -691,9 +668,7 @@ const refundClient = async (req, res) => {
                     message: "Security fee already refunded",
                 });
             }
-
             refundAmount = toMoney(booking.pricingBreakdown?.securityFee);
-
             if (refundAmount <= 0) {
                 return res.status(400).json({
                     success: false,
@@ -748,10 +723,8 @@ const refundClient = async (req, res) => {
                 refunded: refundForThisPayment,
                 stripeRefundId: refund.id,
             });
-
             remainingRefund -= refundForThisPayment;
         }
-
         if (remainingRefund > 0) {
             return res.status(400).json({
                 success: false,
@@ -773,7 +746,6 @@ const refundClient = async (req, res) => {
             // booking.securityRefundDetails.stripeRefundId = refund.id;
             booking.securityRefundDetails.securityRefundAmount = refundAmount;
         }
-
         if (type === "client_claim") {
             booking.claimDetails.status = "paid";
             booking.claimDetails.paidAt = new Date();
@@ -784,7 +756,10 @@ const refundClient = async (req, res) => {
         await booking.save();
         return res.status(200).json({
             success: true,
-            message: "Refund Successful"
+            message: {
+                en: "Refund Successful",
+                nl: "Terugbetaling succesvol"
+            }
         });
 
     } catch (error) {
