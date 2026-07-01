@@ -627,11 +627,23 @@ const createPaymentIntent = async (req, res) => {
     const booking = await Booking.findById(bookingId);
 
     if (!booking) {
-      return res.status(404).json({ error: "Booking not found" });
+      return res.status(404).json({
+        success: false,
+        message: {
+          en: "Booking not found.",
+          nl: "Boeking is niet gevonden.",
+        },
+      });
     }
 
     if (!amount) {
-      return res.status(400).json({ error: "Amount is required" });
+      return res.status(400).json({
+        success: false,
+        message: {
+          en: "Amount is required.",
+          nl: "Bedrag is vereist.",
+        },
+      });
     }
 
     // 🔥 Combine endDate + endTime into one Date object
@@ -644,7 +656,11 @@ const createPaymentIntent = async (req, res) => {
     // 🚫 If event already finished
     if (now > eventEndDateTime) {
       return res.status(400).json({
-        error: "This event has already ended. Payment is no longer allowed.",
+        success: false,
+        message: {
+          en: "This event has already ended. Payment is no longer allowed.",
+          nl: "Deze gebeurtenis is al afgelopen. Betaling is niet meer toegestaan.",
+        },
       });
     }
 
@@ -662,7 +678,14 @@ const createPaymentIntent = async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      success: false,
+      message: {
+        en: "Unable to create payment intent. Please try again later.",
+        nl: "Kan geen betalingsintentie aanmaken. Probeer het later opnieuw.",
+      },
+      error: err.message,
+    });
   }
 };
 
