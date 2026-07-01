@@ -264,7 +264,11 @@ const getVendorPayoutOrders = async (req, res) => {
                     // ✅ STATUS ADDED
                     status: booking.status,
 
-                    vendorName: `${vendor.firstName} ${vendor.lastName}`,
+                    // ✅ FIXED: filter(Boolean) removes undefined/null lastName
+                    // so business vendors (no lastName set at registration)
+                    // don't show "InFinity Market undefined"
+                    vendorName: [vendor.firstName, vendor.lastName].filter(Boolean).join(' '),
+
                     userName: `${booking.userId?.firstName || ""} ${booking.userId?.lastName || ""}`.trim(),
                     userEmail: booking.userId?.email || "",
                     amount: booking.AmountPaid || subtotal,
