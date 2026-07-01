@@ -244,6 +244,14 @@ const getVendorPayoutOrders = async (req, res) => {
 
             if (!booking) return;
 
+            // ✅ FIX: skip bookings where no payment was ever actually captured.
+            // A cancelled or "complain" booking with paymentStatus "pending"
+            // means the client never actually paid, so there's nothing to pay
+            // the vendor out — it shouldn't appear in any payout bucket.
+            if (!booking.vendorPaid && booking.paymentStatus === "pending") {
+                return;
+            }
+
             const escrowHours =
                 booking.listingId?.subCategory?.escrowHours || 0;
 
@@ -260,15 +268,8 @@ const getVendorPayoutOrders = async (req, res) => {
                 paidOrders.push({
                     bookingId: booking._id,
                     trackingId: booking.trackingId,
-
-                    // ✅ STATUS ADDED
                     status: booking.status,
-
-                    // ✅ FIXED: filter(Boolean) removes undefined/null lastName
-                    // so business vendors (no lastName set at registration)
-                    // don't show "InFinity Market undefined"
                     vendorName: [vendor.firstName, vendor.lastName].filter(Boolean).join(' '),
-
                     userName: `${booking.userId?.firstName || ""} ${booking.userId?.lastName || ""}`.trim(),
                     userEmail: booking.userId?.email || "",
                     amount: booking.AmountPaid || subtotal,
