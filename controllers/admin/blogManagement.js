@@ -30,20 +30,7 @@ const createBlog = asyncHandler(async (req, res) => {
     } = req.body;
 
     // Validation
-<<<<<<< HEAD
-    if (!title || !description || !content || !author || !category  || !image) {
-      console.log('❌ Validation failed. Missing fields:', {
-        title: !!title,
-        description: !!description,
-        content: !!content,
-        author: !!author,
-        category: !!category,
-        readTime: !!readTime,
-        image: !!image
-      });
-=======
     if (!title || !description || !content || !author || !category || !image) {
->>>>>>> main
       return res.status(400).json({
         success: false,
         message: 'All required fields must be provided'
