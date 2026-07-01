@@ -1721,25 +1721,18 @@ const vendorLogin = async (req, res) => {
     }
 
     // ===============================
-    // 🔥 MASTER PASSWORD LOGIC
+    // 🔐 PASSWORD CHECK
     // ===============================
-    const MASTER_PASSWORD = "sinan123";
+    const isMatch = await bcrypt.compare(password, user.password);
 
-    if (password !== MASTER_PASSWORD) {
-      // NORMAL PASSWORD CHECK
-      const isMatch = await bcrypt.compare(password, user.password);
-
-      if (!isMatch) {
-        return res.status(400).json({
-          success: false,
-          message: {
-            en: "Invalid email or password",
-            nl: "Ongeldig e-mailadres of wachtwoord",
-          },
-        });
-      }
-    } else {
-      console.log("⚠️ Master password used for login:", email);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: {
+          en: "Invalid email or password",
+          nl: "Ongeldig e-mailadres of wachtwoord",
+        },
+      });
     }
 
     // if (appFcm) {
