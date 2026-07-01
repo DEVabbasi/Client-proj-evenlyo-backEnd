@@ -51,7 +51,6 @@ const blogSchema = new mongoose.Schema({
   },
   readTime: {
     type: Number,
-    required: true,
     min: 1
   },
   image: {
