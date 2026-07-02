@@ -164,7 +164,10 @@ const removeFromCart = asyncHandler(async (req, res) => {
   if (!cart) {
     return res.status(404).json({
       success: false,
-      message: "Cart not found",
+      message: {
+        en: "Cart not found.",
+        nl: "Winkelwagen is niet gevonden.",
+      },
     });
   }
 
@@ -182,7 +185,10 @@ const removeFromCart = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: "Item removed from cart successfully",
+    message: {
+      en: "Item removed from cart successfully.",
+      nl: "Artikel is succesvol uit de winkelwagen verwijderd.",
+    },
     data: {
       cart,
     },
