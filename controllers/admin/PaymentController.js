@@ -260,7 +260,7 @@ const getVendorPayoutOrders = async (req, res) => {
                     vendorName: `${vendor.firstName}`,
                     userName: `${booking.userId?.firstName || ""} ${booking.userId?.lastName || ""}`.trim(),
                     userEmail: booking.userId?.email || "",
-                    amount: booking.status == "completed" ? booking.pricingBreakdown?.subtotal : 0,
+                    amount: booking.status == "completed" ? booking.pricingBreakdown?.subtotal : booking.status == "complain" ? booking.claimDetails?.refundVendorAmount : booking.status == "cancelled" ? upfrontFee * 0.88 : 0,
                     bookingDate: booking.completedAt,
                     serviceName: {
                         en: booking.listingId?.title?.en || "",
@@ -422,10 +422,12 @@ const payoutVendorBookings = async (req, res) => {
                 },
                 {
                     status: "cancelled",
-                    paymentStatus: "paid",
+                    paymentStatus: {
+                        $in: ["paid", "upfront_paid"],
+                    },
                 },
             ],
-        });
+        })
 
         if (!bookings.length) {
             return res.status(404).json({
@@ -736,6 +738,23 @@ const refundClient = async (req, res) => {
         const refundResults = [];
         const payments = booking.payments || [];
 
+
+        const totalPaid = (booking.payments || []).reduce(
+            (sum, payment) => sum + toMoney(payment.amount),
+            0
+        );
+
+        // Max refundable = Total Paid - 5%
+        const maxRefundable = Number((totalPaid * 0.95).toFixed(2));
+
+        if (refundAmount > maxRefundable) {
+            return res.status(400).json({
+                success: false,
+                message: `Refund amount cannot exceed ${maxRefundable}. Maximum refundable amount is total paid minus 5%.`,
+                maxRefundable,
+            });
+        }
+
         try {
             if (refundAmount > 0) {
                 for (const payment of payments) {
@@ -746,6 +765,8 @@ const refundClient = async (req, res) => {
                         availableAmount,
                         remainingRefund
                     );
+                    console.log(Math.round(refundForThisPayment * 100), "VALUEEE")
+
                     console.log("Refunding PaymentIntent:", payment.paymentIntentId);
                     const refund = await stripe.refunds.create({
                         payment_intent: payment.paymentIntentId,
