@@ -837,7 +837,17 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
       ? new mongoose.Types.ObjectId(req.body.userId)
       : null;
 
-  const query = {};
+  // Get all active vendor User IDs upfront so pagination is accurate
+  const activeVendorUsers = await User.find({
+    userType: "vendor",
+    isActive: true,
+  }).select("_id");
+
+  const activeUserIds = activeVendorUsers.map((u) => u._id);
+
+  const query = {
+    userId: { $in: activeUserIds }, // only active vendors from DB level
+  };
 
   if (categoryId) {
     query.mainCategories = categoryId;
@@ -895,20 +905,9 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(parseInt(limit));
 
-  const allVendorsForCount = await Vendor.find(query)
-    .populate("userId", "isActive")
-    .select("userId");
+  const total = await Vendor.countDocuments(query);
 
-  const total = allVendorsForCount.filter(
-    (v) => v.userId?.isActive !== false
-  ).length;
-
-  // Filter out blocked vendors (User.isActive === false)
-  const activeVendors = vendors.filter(
-    (v) => v.userId?.isActive !== false
-  );
-
-  const vendorIds = activeVendors.map(v => v.userId?._id).filter(Boolean);
+  const vendorIds = vendors.map((v) => v.userId?._id).filter(Boolean);
 
   const reviewStats = await Review.aggregate([
     {
@@ -960,7 +959,7 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
     });
   }
 
-  const formattedVendors = activeVendors.map((vendor) => {
+  const formattedVendors = vendors.map((vendor) => {
     const description =
       typeof vendor.description === "object"
         ? vendor.description.en || vendor.description.nl || ""
