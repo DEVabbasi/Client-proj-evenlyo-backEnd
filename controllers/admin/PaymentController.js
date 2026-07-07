@@ -4,6 +4,7 @@ const User = require("../../models/User");
 const Booking = require("../../models/Booking");
 const stripe = require("../../config/stripe");
 const { toMoney } = require("../../utils/money");
+const { sendSecurityRefundEmail, sendClientClaimRefundEmail } = require("../../utils/mailer")
 
 const getVendorPayoutDashboard = async (req, res) => {
     try {
@@ -220,7 +221,7 @@ const getVendorPayoutOrders = async (req, res) => {
 
         const bookings = await Booking.find({
             vendorId: vendorId,
-            status: { $in: ["completed", "complain", "cancelled"] },
+            status: { $in: ["claim", "completed", "complain", "cancelled"] },
         })
             .populate("userId", "firstName lastName email")
             .populate({
@@ -241,97 +242,61 @@ const getVendorPayoutOrders = async (req, res) => {
         const paidOrders = [];
 
         bookings.forEach((booking) => {
-
             if (!booking) return;
-
-            // ✅ FIX: skip bookings where no payment was ever actually captured.
-            // A cancelled or "complain" booking with paymentStatus "pending"
-            // means the client never actually paid, so there's nothing to pay
-            // the vendor out — it shouldn't appear in any payout bucket.
-            if (!booking.vendorPaid && booking.paymentStatus === "pending") {
-                return;
-            }
-
             const escrowHours =
                 booking.listingId?.subCategory?.escrowHours || 0;
-
             const subtotal = toMoney(booking.pricingBreakdown?.subtotal);
             const total = toMoney(booking.pricingBreakdown?.total);
             const upfrontFee = toMoney(booking.pricingBreakdown?.upfrontFee);
-
             let payoutAmount = 0;
 
-            // =====================================================
-            // PAID ORDERS
-            // =====================================================
             if (booking.vendorPaid) {
+                console.log(booking, "cleared_boooking");
                 paidOrders.push({
                     bookingId: booking._id,
                     trackingId: booking.trackingId,
+                    // ✅ STATUS ADDED
                     status: booking.status,
-                    vendorName: [vendor.firstName, vendor.lastName].filter(Boolean).join(' '),
+                    vendorName: `${vendor.firstName}`,
                     userName: `${booking.userId?.firstName || ""} ${booking.userId?.lastName || ""}`.trim(),
                     userEmail: booking.userId?.email || "",
-                    amount: booking.AmountPaid || subtotal,
+                    amount: booking.status == "completed" ? booking.pricingBreakdown?.subtotal : booking.status == "complain" ? booking.claimDetails?.refundVendorAmount : booking.status == "cancelled" ? upfrontFee * 0.88 : 0,
                     bookingDate: booking.completedAt,
-
                     serviceName: {
                         en: booking.listingId?.title?.en || "",
                         nl: booking.listingId?.title?.nl || "",
                     },
-
                     claimDetails: booking.claimDetails || null,
                 });
-
                 return;
             }
 
-            // =====================================================
-            // PAYOUT LOGIC
-            // =====================================================
             if (booking.status === "completed") {
+                console.log(subtotal, booking.trackingId, "subtotalsubtotalsubtotalsubtotal");
                 payoutAmount = subtotal;
             }
-
             if (booking.status === "complain") {
-
                 const refund = toMoney(booking.claimDetails?.refundAmount);
-
                 const adminShare = total - subtotal;
                 const vendorShare = subtotal;
-
                 let remainingRefund = refund;
-
-                // ==============================
-                // 1. First deduct from admin
-                // ==============================
                 const adminDeduction = Math.min(remainingRefund, adminShare);
                 remainingRefund -= adminDeduction;
-
-                // ==============================
-                // 2. Then deduct from vendor
-                // ==============================
                 const vendorDeduction = Math.min(remainingRefund, vendorShare);
                 remainingRefund -= vendorDeduction;
-
-                // ==============================
-                // FINAL PAYOUT
-                // ==============================
                 payoutAmount = vendorShare - vendorDeduction;
-
-                // safety
-                payoutAmount = Math.max(payoutAmount, 0);
+                payoutAmount = Math.max(booking.claimDetails?.refundVendorAmount || 0, 0);
             }
-
             if (booking.status === "cancelled") {
                 payoutAmount = upfrontFee * 0.88;
             }
+
+            console.log(booking.trackingId, payoutAmount, "payoutAmountpayoutAmountpayoutAmount");
 
             const payoutReadyAt = moment(booking.completedAt).add(
                 escrowHours,
                 "hours"
             );
-
             const formattedBooking = {
                 bookingId: booking._id,
                 trackingId: booking.trackingId,
@@ -341,7 +306,7 @@ const getVendorPayoutOrders = async (req, res) => {
                 userName: `${booking.userId?.firstName || ""} ${booking.userId?.lastName || ""}`.trim(),
                 userEmail: booking.userId?.email || "",
                 amount: toMoney(payoutAmount).toFixed(2),
-                bookingDate: booking.completedAt,
+                bookingDate: booking.createdAt,
                 serviceName: {
                     en: booking.listingId?.title?.en || "",
                     nl: booking.listingId?.title?.nl || "",
@@ -364,11 +329,26 @@ const getVendorPayoutOrders = async (req, res) => {
             // NORMAL ESCROW
             // =====================================================
             if (now.isSameOrAfter(payoutReadyAt)) {
+                // if (booking.claimDetails.refundVendorAmount) {
                 readyToPayOrders.push(formattedBooking);
+                // }
             } else {
                 pendingOrders.push(formattedBooking);
             }
         });
+
+
+        readyToPayOrders.sort(
+            (a, b) => new Date(b.bookingDate) - new Date(a.bookingDate)
+        );
+
+        pendingOrders.sort(
+            (a, b) => new Date(b.bookingDate) - new Date(a.bookingDate)
+        );
+
+        paidOrders.sort(
+            (a, b) => new Date(b.bookingDate) - new Date(a.bookingDate)
+        );
 
         return res.status(200).json({
             success: true,
@@ -379,10 +359,18 @@ const getVendorPayoutOrders = async (req, res) => {
                 paidOrders,
             },
         });
+        // return res.status(200).json({
+        //     success: true,
+        //     data: {
+        //         stripeOnboarded: !!vendor.stripeOnboardingComplete,
+        //         readyToPayOrders,
+        //         pendingOrders,
+        //         paidOrders,
+        //     },
+        // });
 
     } catch (error) {
         console.error("Get vendor payout orders error:", error);
-
         return res.status(500).json({
             success: false,
             message: "Failed to fetch payout orders",
@@ -390,7 +378,6 @@ const getVendorPayoutOrders = async (req, res) => {
         });
     }
 };
-
 
 const payoutVendorBookings = async (req, res) => {
     try {
@@ -426,9 +413,21 @@ const payoutVendorBookings = async (req, res) => {
         const bookings = await Booking.find({
             trackingId: { $in: trackingIds },
             vendorId: vendorId,
-            status: "completed",
             vendorPaid: false,
-        });
+            $or: [
+                {
+                    status: {
+                        $in: ["completed", "complain", "claim"],
+                    },
+                },
+                {
+                    status: "cancelled",
+                    paymentStatus: {
+                        $in: ["paid", "upfront_paid"],
+                    },
+                },
+            ],
+        })
 
         if (!bookings.length) {
             return res.status(404).json({
@@ -476,7 +475,6 @@ const payoutVendorBookings = async (req, res) => {
         });
     } catch (error) {
         console.error("Vendor payout error:", error);
-
         res.status(500).json({
             success: false,
             message: "Payout failed",
@@ -528,7 +526,7 @@ const getRefundCases = async (req, res) => {
                 allCases.push({
                     ...baseData,
                     type: "client_complain",
-                    amount: booking.claimDetails.amount || 0,
+                    amount: booking.claimDetails.refundAmount || 0,
                     status: booking.claimDetails.status,
                 });
             }
@@ -538,7 +536,8 @@ const getRefundCases = async (req, res) => {
                 allCases.push({
                     ...baseData,
                     type: "vendor_claim",
-                    amount: booking.claimDetails.amount || 0,
+                    amount: booking.claimDetails.refundAmount || 0,
+                    amountAsked: booking.claimDetails.amount || 0,
                     status: booking.claimDetails.status,
                 });
             }
@@ -649,6 +648,7 @@ const payVendorClaim = async (req, res) => {
         booking.claimDetails.paidAt = new Date();
         booking.claimDetails.stripeTransferId = transfer.id;
         booking.claimDetails.AmountPaidByAdmin = amount;
+        booking.claimDetails.refundAmount = amount;
         await booking.save();
         return res.status(200).json({
             success: true,
@@ -668,7 +668,7 @@ const payVendorClaim = async (req, res) => {
 
 const refundClient = async (req, res) => {
     try {
-        const { bookingId, amount, type } = req.body;
+        const { bookingId, amount, type, vendorAmount } = req.body;
         // type = "security_fee" | "client_claim"
 
         const booking = await Booking.findById(bookingId);
@@ -697,9 +697,7 @@ const refundClient = async (req, res) => {
                     message: "Security fee already refunded",
                 });
             }
-
             refundAmount = toMoney(booking.pricingBreakdown?.securityFee);
-
             if (refundAmount <= 0) {
                 return res.status(400).json({
                     success: false,
@@ -740,43 +738,77 @@ const refundClient = async (req, res) => {
         const refundResults = [];
         const payments = booking.payments || [];
 
-        for (let payment of payments) {
-            if (remainingRefund <= 0) break;
-            if (!payment.paymentIntentId) continue;
-            const availableAmount = toMoney(payment.amount);
-            const refundForThisPayment = Math.min(availableAmount, remainingRefund);
-            const refund = await stripe.refunds.create({
-                payment_intent: payment.paymentIntentId,
-                amount: Math.round(refundForThisPayment * 100),
-            });
-            refundResults.push({
-                paymentIntentId: payment.paymentIntentId,
-                refunded: refundForThisPayment,
-                stripeRefundId: refund.id,
-            });
 
-            remainingRefund -= refundForThisPayment;
-        }
+        const totalPaid = (booking.payments || []).reduce(
+            (sum, payment) => sum + toMoney(payment.amount),
+            0
+        );
 
-        if (remainingRefund > 0) {
+        // Max refundable = Total Paid - 5%
+        const maxRefundable = Number((totalPaid * 0.95).toFixed(2));
+
+        if (refundAmount > maxRefundable) {
             return res.status(400).json({
                 success: false,
-                message: "Not enough paid amount to refund fully",
-                remainingUnrefunded: remainingRefund,
+                message: `Refund amount cannot exceed ${maxRefundable}. Maximum refundable amount is total paid minus 5%.`,
+                maxRefundable,
             });
         }
 
-        // const refund = await stripe.refunds.create({
-        //     payment_intent: booking.paymentIntentId,
-        //     amount: Math.round(refundAmount * 100),
-        // });
+        try {
+            if (refundAmount > 0) {
+                for (const payment of payments) {
+                    if (remainingRefund <= 0) break;
+                    if (!payment.paymentIntentId) continue;
+                    const availableAmount = toMoney(payment.amount);
+                    const refundForThisPayment = Math.min(
+                        availableAmount,
+                        remainingRefund
+                    );
+                    console.log(Math.round(refundForThisPayment * 100), "VALUEEE")
 
-        // ✅ UPDATE BOOKING
+                    console.log("Refunding PaymentIntent:", payment.paymentIntentId);
+                    const refund = await stripe.refunds.create({
+                        payment_intent: payment.paymentIntentId,
+                        amount: Math.round(refundForThisPayment * 100),
+                    });
+                    refundResults.push({
+                        paymentIntentId: payment.paymentIntentId,
+                        refunded: refundForThisPayment,
+                        stripeRefundId: refund.id,
+                    });
+                    remainingRefund -= refundForThisPayment;
+                }
+            }
+            if (remainingRefund > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Not enough amount to pay",
+                    remainingUnrefunded: remainingRefund,
+                });
+            }
+
+        } catch (err) {
+            console.error("Stripe refund failed:", err);
+
+            return res.status(400).json({
+                success: false,
+                message: err.raw?.message || err.message,
+            });
+        }
+
+        // =============================
+        // UPDATE BOOKING ONLY AFTER SUCCESSFUL REFUND
+        // =============================
+
+        const user = await User.findById(booking.userId);
+
+        const fullName =
+            `${user.firstName || ""} ${user.lastName || ""}`.trim();
 
         if (type === "security_fee") {
             booking.securityRefundDetails.isSecurityReturned = true;
             booking.securityRefundDetails.securityReturnedAt = new Date();
-            // booking.securityRefundDetails.stripeRefundId = refund.id;
             booking.securityRefundDetails.securityRefundAmount = refundAmount;
         }
 
@@ -785,14 +817,40 @@ const refundClient = async (req, res) => {
             booking.claimDetails.paidAt = new Date();
             booking.claimDetails.refundAmount = refundAmount;
             booking.claimDetails.AmountPaidByAdmin = amount;
-            // booking.claimDetails.stripeTransferIdToUser = refund.id;
+            booking.claimDetails.refundVendorAmount = vendorAmount || 0;
         }
+
         await booking.save();
+
+        // =============================
+        // SEND EMAIL (DON'T FAIL REFUND IF EMAIL FAILS)
+        // =============================
+
+        try {
+            if (type === "security_fee") {
+                await sendSecurityRefundEmail({
+                    email: user.email,
+                    name: fullName,
+                    booking,
+                    amount: refundAmount,
+                });
+            }
+
+            if (type === "client_claim") {
+                await sendClientClaimRefundEmail({
+                    email: user.email,
+                    name: fullName,
+                    booking,
+                    amount: refundAmount,
+                });
+            }
+        } catch (emailError) {
+            console.error("Failed to send refund email:", emailError);
+        }
         return res.status(200).json({
             success: true,
             message: "Refund Successful"
         });
-
     } catch (error) {
         console.error("Refund error:", error);
         return res.status(500).json({
