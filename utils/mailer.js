@@ -681,17 +681,16 @@ const sendReminderEmail = async (booking, daysLeft) => {
 const sendEmail = async (to, subject, html) => {
   try {
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,        // e.g. smtp.gmail.com
-      port: process.env.SMTP_PORT,        // 587 or 465
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT,      // 587 or 465
       secure: false,                      // true if port 465
       auth: {
-        user: process.env.SMTP_EMAIL,     // your email
-        pass: process.env.SMTP_PASSWORD   // app password
+        user: process.env.EMAIL_USER,     // your email
+        pass: process.env.EMAIL_PASS   // app password
       }
     });
-
     const mailOptions = {
-      from: `"Evenlyo" <${process.env.SMTP_EMAIL}>`,
+      from: `"Evenlyo" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       html
@@ -754,6 +753,89 @@ async function sendChatbotTicketReply({ toEmail, toName, subject, userMessage, a
   return transporter.sendMail(mailOptions);
 }
 
+const sendSecurityRefundEmail = async ({ email, name, booking, amount }) => {
+  const subject = "Uw waarborgsom is terugbetaald";
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; font-size:15px; color:#333;">
+      <h2>Uw waarborgsom is terugbetaald</h2>
+
+      <p>Beste ${name},</p>
+
+      <p>Goed nieuws! De waarborgsom voor uw boeking is succesvol terugbetaald.</p>
+
+      <table style="border-collapse:collapse;margin-top:15px;">
+        <tr>
+          <td style="padding:6px 12px;"><strong>Trackingnummer:</strong></td>
+          <td>${booking.trackingId}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 12px;"><strong>Terugbetaald bedrag:</strong></td>
+          <td>€${Number(amount).toFixed(2)}</td>
+        </tr>
+      </table>
+
+ 
+
+      <p>Bedankt voor het gebruik van Evenlyo.</p>
+
+      <br>
+
+      <p>
+        Met vriendelijke groet,<br>
+        <strong>Team Evenlyo</strong>
+      </p>
+    </div>
+  `;
+
+  await sendEmail(email, subject, html);
+};
+
+const sendClientClaimRefundEmail = async ({
+  email,
+  name,
+  booking,
+  amount,
+}) => {
+  const subject = "Uw claim is goedgekeurd";
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; font-size:15px; color:#333;">
+      <h2>Uw claim is goedgekeurd</h2>
+
+      <p>Beste ${name},</p>
+
+      <p>
+        Uw claim is beoordeeld en goedgekeurd door onze administratie.
+        Het onderstaande bedrag is inmiddels terugbetaald.
+      </p>
+
+      <table style="border-collapse:collapse;margin-top:15px;">
+        <tr>
+          <td style="padding:6px 12px;"><strong>Trackingnummer:</strong></td>
+          <td>${booking.trackingId}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 12px;"><strong>Terugbetaald bedrag:</strong></td>
+          <td>€${Number(amount).toFixed(2)}</td>
+        </tr>
+      </table>
+
+
+      <p>Bedankt voor uw geduld.</p>
+
+      <br>
+
+      <p>
+        Met vriendelijke groet,<br>
+        <strong>Team Evenlyo</strong>
+      </p>
+    </div>
+  `;
+
+  await sendEmail(email, subject, html);
+};
+
 
 
 module.exports = {
@@ -769,4 +851,6 @@ module.exports = {
   sendReminderEmail,
   sendEvenlyoProtectBookingEmail,
   sendChatbotTicketReply,
+  sendSecurityRefundEmail,
+  sendClientClaimRefundEmail,
 };

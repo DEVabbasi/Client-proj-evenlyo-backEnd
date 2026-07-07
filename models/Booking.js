@@ -276,6 +276,11 @@ const bookingRequestSchema = new mongoose.Schema(
         default: 0,
         min: 0,
       },
+      refundVendorAmount: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
       adminNotes: { type: String },
       stockUpdated: {
         type: Boolean,
