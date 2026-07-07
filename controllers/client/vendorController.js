@@ -895,7 +895,13 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(parseInt(limit));
 
-  const total = await Vendor.countDocuments(query);
+  const allVendorsForCount = await Vendor.find(query)
+    .populate("userId", "isActive")
+    .select("userId");
+
+  const total = allVendorsForCount.filter(
+    (v) => v.userId?.isActive !== false
+  ).length;
 
   // Filter out blocked vendors (User.isActive === false)
   const activeVendors = vendors.filter(
