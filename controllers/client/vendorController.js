@@ -833,7 +833,7 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
 
   const categoryId = req.params.categoryId || category;
   const loggedInUserId =
-    req.body.userId && mongoose.Types.ObjectId.isValid(req.body.userId)
+    req.body?.userId && mongoose.Types.ObjectId.isValid(req.body.userId)
       ? new mongoose.Types.ObjectId(req.body.userId)
       : null;
 
@@ -877,36 +877,40 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
   } else {
     sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
   }
+  // Tiebreaker: guarantees a deterministic, stable order across paginated
+  // requests when many vendors share the same sort-key value (e.g. rating 0)
+  sortOptions["_id"] = 1;
 
-  const vendors = await Vendor.find(query)
-    .populate(
-      "userId",
-      "firstName lastName profileImage isActive accountType userType"
-    )
-    .populate("mainCategories", "name icon description")
-    .populate("subCategories", "name icon description")
-    .select(`
-      businessName 
-      businessEmail
-      businessPhone
-      description
-      businessLocation 
-      businessLogo 
-      rating 
-      totalBookings 
-      completedBookings
-      contactMeEnabled
-      isApproved
-      createdAt
-      bannerImage
-      accountType
-      userId
-    `)
-    .sort(sortOptions)
-    .skip(skip)
-    .limit(limitNum);
-
-  const total = await Vendor.countDocuments(query);
+  const [vendors, total] = await Promise.all([
+    Vendor.find(query)
+      .populate(
+        "userId",
+        "firstName lastName profileImage isActive accountType userType"
+      )
+      .populate("mainCategories", "name icon description")
+      .populate("subCategories", "name icon description")
+      .select(`
+        businessName 
+        businessEmail
+        businessPhone
+        description
+        businessLocation 
+        businessLogo 
+        rating 
+        totalBookings 
+        completedBookings
+        contactMeEnabled
+        isApproved
+        createdAt
+        bannerImage
+        accountType
+        userId
+      `)
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limitNum),
+    Vendor.countDocuments(query),
+  ]);
 
   const vendorIds = vendors.map((v) => v.userId?._id).filter(Boolean);
 
