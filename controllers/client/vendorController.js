@@ -837,7 +837,10 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
       ? new mongoose.Types.ObjectId(req.body.userId)
       : null;
 
-  // Get all active vendor User IDs upfront so pagination is accurate
+  const pageNum = parseInt(page);
+  const limitNum = parseInt(limit);
+  const skip = (pageNum - 1) * limitNum;
+
   const activeVendorUsers = await User.find({
     userType: "vendor",
     isActive: true,
@@ -846,7 +849,7 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
   const activeUserIds = activeVendorUsers.map((u) => u._id);
 
   const query = {
-    userId: { $in: activeUserIds }, // only active vendors from DB level
+    userId: { $in: activeUserIds },
   };
 
   if (categoryId) {
@@ -863,8 +866,6 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
       });
     }
   }
-
-  const skip = (page - 1) * limit;
 
   const sortOptions = {};
   if (sortBy === "rating") {
@@ -903,7 +904,7 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
     `)
     .sort(sortOptions)
     .skip(skip)
-    .limit(parseInt(limit));
+    .limit(limitNum);
 
   const total = await Vendor.countDocuments(query);
 
@@ -1021,10 +1022,10 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
     success: true,
     data: formattedVendors,
     pagination: {
-      current: parseInt(page),
-      pages: Math.ceil(total / limit),
+      current: pageNum,
+      pages: Math.ceil(total / limitNum),
       total,
-      limit: parseInt(limit),
+      limit: limitNum,
     },
     filters: {
       category: categoryId || "",
