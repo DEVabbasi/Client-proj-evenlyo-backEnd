@@ -57,6 +57,17 @@ exports.createStockEvent = async (req, res) => {
 };
 
 // Tabular GET endpoints
+function getListingName(listing) {
+  if (!listing) return { en: '', nl: '' };
+  const title = listing.title;
+  if (!title) return { en: '', nl: '' };
+  if (typeof title === 'string') return { en: title, nl: title };
+  return {
+    en: title.en || title.nl || '',
+    nl: title.nl || title.en || '',
+  };
+}
+
 exports.getStockTable = async (req, res) => {
   try {
     const { type } = req.params;
@@ -65,13 +76,14 @@ exports.getStockTable = async (req, res) => {
     }
     const vendorId = req.user.id || null;
     console.log(req.user, type, "vendorIdvendorIdvendorId");
+
     // For 'stockin', list all listings of this vendor with current quantity
     if (type === 'stockin' && vendorId) {
       const listings = await Listing.find({ vendor: vendorId }).select('_id title quantity').sort({ createdAt: -1 })
       const table = listings.map((l, idx) => ({
         SNo: idx + 1,
         ListingID: l._id,
-        Name: getListingName(l) || '(Unknown)',
+        Name: getListingName(l),
         'In Stock (Quantity)': l.quantity || 0
       }));
       return res.json({ table });
@@ -84,7 +96,7 @@ exports.getStockTable = async (req, res) => {
     }
     const table = logs.map((log, idx) => {
       const listing = log.listing;
-      const name = getListingName(listing) || '(Unknown)';
+      const name = getListingName(listing);
       const listingId = listing?._id || null;
       console.log(listingId, "listingIdlistingIdlistingIdlistingId");
 
@@ -132,6 +144,7 @@ exports.getStockTable = async (req, res) => {
         };
       }
     });
+
     // For 'missing' type, also include bookings with status 'claim' for this vendor
     if (type === 'missing') {
       const vId = vendorId || req.user?.id;
@@ -140,12 +153,17 @@ exports.getStockTable = async (req, res) => {
           .populate('listingId')
           .sort({ updatedAt: -1 });
         const startIndex = table.length;
-        const claimRows = claimBookings.map((b, i) => ({
-          SNo: startIndex + i + 1,
-          ListingID: b.listingId?._id || null,
-          Name: getListingName(b.listingId) || b.listingDetails?.title.en || '',
-          'Stock Out': b.claimDetails?.claimedAt || b.updatedAt
-        }));
+        const claimRows = claimBookings.map((b, i) => {
+          const name = b.listingId
+            ? getListingName(b.listingId)
+            : getListingName({ title: b.listingDetails?.title });
+          return {
+            SNo: startIndex + i + 1,
+            ListingID: b.listingId?._id || null,
+            Name: name,
+            'Stock Out': b.claimDetails?.claimedAt || b.updatedAt
+          };
+        });
         // Append claim rows to table
         table.push(...claimRows);
       }
