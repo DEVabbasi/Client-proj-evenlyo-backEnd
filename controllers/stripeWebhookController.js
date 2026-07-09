@@ -5,7 +5,7 @@ const paymentController = require('./paymentController');
 // IMPORTANT: This handler expects the raw body to be available on req.rawBody
 exports.handleWebhook = asyncHandler(async (req, res) => {
   const sig = req.headers['stripe-signature'];
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = process.env.LOCAL_WEBHOOK_SECRET;
 
   try {
     let event;
@@ -42,6 +42,12 @@ exports.handleWebhook = asyncHandler(async (req, res) => {
       case 'payment_intent.requires_action': {
         const pi = event.data.object;
         await paymentController.updateStatus(pi.id, pi.status || 'requires_action');
+        break;
+      }
+      case 'payment_intent.processing': {
+        const pi = event.data.object;
+        const paymentMethod = pi.payment_method_types ? pi.payment_method_types[0] : (pi.payment_method || 'stripe');
+        await paymentController.updateStatus(pi.id, pi.status || 'processing', paymentMethod);
         break;
       }
       default:

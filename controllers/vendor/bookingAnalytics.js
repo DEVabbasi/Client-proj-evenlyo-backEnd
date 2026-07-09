@@ -689,7 +689,6 @@ const createPaymentIntent = async (req, res) => {
   }
 };
 
-
 const paymentConfirmation = async (req, res) => {
   try {
     const { bookingId, paymentIntent, amount } = req.body;
@@ -701,15 +700,36 @@ const paymentConfirmation = async (req, res) => {
       });
     }
 
+    // ✅ NEW: verify with Stripe directly before trusting anything from the client
+    let stripePi;
+    try {
+      stripePi = await stripe.paymentIntents.retrieve(paymentIntent);
+    } catch (stripeError) {
+      console.error("Stripe verification error:", stripeError);
+      return res.status(400).json({
+        success: false, 
+        message: "Invalid paymentIntent ID.",
+      });
+    }
+
+    if (stripePi.status !== "succeeded") {
+      return res.status(400).json({
+        success: false,
+        message: `Payment not successful. Status: ${stripePi.status}`,
+      });
+    }
+
+    // ✅ NEW: use Stripe's own amount, not the client-sent one, to avoid amount spoofing
+    const verifiedAmount = toMoney(stripePi.amount_received / 100);
+
     const booking = await Booking.findById(bookingId);
     const vendorDetails = await User.findOne({ _id: booking.vendorId });
-    console.log(vendorDetails, "vendorDetailsvendorDetailsvendorDetailsvendorDetails");
 
     if (vendorDetails.notifications?.push === true) {
       try {
         await notifyVendorNewBooking({
           title: "Betaling Ontvangen",
-          message: `Een betaling van €${amount} is ontvangen voor boeking ${booking.trackingId}.`,
+          message: `Een betaling van €${verifiedAmount} is ontvangen voor boeking ${booking.trackingId}.`,
           receiverDetails: vendorDetails,
           bookingRequest: booking,
         });
@@ -725,7 +745,7 @@ const paymentConfirmation = async (req, res) => {
       });
     }
 
-    const paidAmount = toMoney(amount);
+    const paidAmount = verifiedAmount; // ← use verified amount instead of req.body.amount
 
     if (paidAmount <= 0) {
       return res.status(400).json({
@@ -734,7 +754,6 @@ const paymentConfirmation = async (req, res) => {
       });
     }
 
-    // ❌ Prevent payment if already fully paid
     if (booking.paymentStatus === "paid" || booking.isFullyPaid) {
       return res.status(400).json({
         success: false,
@@ -742,12 +761,10 @@ const paymentConfirmation = async (req, res) => {
       });
     }
 
-    // ✅ INIT payments array if not exists
     if (!booking.payments) {
       booking.payments = [];
     }
 
-    // ✅ Prevent duplicate paymentIntent
     const alreadyExists = booking.payments.find(
       (p) => p.paymentIntentId === paymentIntent
     );
@@ -759,12 +776,8 @@ const paymentConfirmation = async (req, res) => {
       });
     }
 
-    // ✅ Calculate total before adding new payment
     const currentPaid = toMoney(booking.AmountPaid);
     const totalAmount = toMoney(booking.pricingBreakdown?.total);
-
-    // ❌ Prevent overpayment
-    console.log(currentPaid, paidAmount, totalAmount, "payment amounts");
 
     if (currentPaid + paidAmount > totalAmount) {
       return res.status(400).json({
@@ -773,16 +786,13 @@ const paymentConfirmation = async (req, res) => {
       });
     }
 
-    // ✅ Detect payment type
     let paymentType = "remaining";
-
     if (currentPaid === 0 && paidAmount === totalAmount) {
       paymentType = "full";
     } else if (currentPaid === 0) {
       paymentType = "advance";
     }
 
-    // ✅ PUSH PAYMENT (IMPORTANT FIX)
     booking.payments.push({
       paymentIntentId: paymentIntent,
       amount: paidAmount,
@@ -791,21 +801,16 @@ const paymentConfirmation = async (req, res) => {
       createdAt: new Date(),
     });
 
-    // ✅ Update totals
     booking.AmountPaid = currentPaid + paidAmount;
     booking.AmountLeft = totalAmount - booking.AmountPaid;
 
-    // ✅ Fully Paid Check
     if (booking.AmountPaid >= totalAmount) {
       booking.isFullyPaid = true;
       booking.AmountLeft = 0;
       booking.paymentStatus = "paid";
 
       await notificationController.createNotification({
-        title: {
-          en: "Payment Status",
-          nl: "Betalingstatus",
-        },
+        title: { en: "Payment Status", nl: "Betalingstatus" },
         notificationFor: "Vendor",
         vendorId: booking?.vendorId,
         clientId: booking?.userId,
@@ -820,10 +825,7 @@ const paymentConfirmation = async (req, res) => {
       booking.isUpfrontPaid = true;
 
       await notificationController.createNotification({
-        title: {
-          en: "Payment Status",
-          nl: "Betalingstatus",
-        },
+        title: { en: "Payment Status", nl: "Betalingstatus" },
         notificationFor: "Vendor",
         vendorId: booking?.vendorId,
         clientId: booking?.userId,
