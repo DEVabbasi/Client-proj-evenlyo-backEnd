@@ -1246,6 +1246,7 @@ const verifyOtpAndRegisterGeneral = async (req, res) => {
 
 // --- Google Authentication ---
 const googleAuth = async (req, res) => {
+  console.log("LOGLOGLOGLOGLOG😭😭😭😭😭😭😭😭😭😭😭😭😭😭😭😭");
   try {
     const { idToken, type, userData } = req.body;
     const appFcm = resolveFcmTokenFromRequest(req.body);
