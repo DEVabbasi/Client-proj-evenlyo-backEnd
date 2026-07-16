@@ -30,22 +30,22 @@ const userSchema = new mongoose.Schema(
     },
     lastName: {
       type: String,
-      required: function () {
-        // Required for clients and personal vendors, not for business vendors
-        if (this.userType === "client") return true;
-        if (
-          this.userType === "vendor" &&
-          (!this.provider || this.provider === "email")
-        ) {
-          // Check if this is a business vendor (firstName === businessName)
-          // If lastName is not set and firstName is set, assume business if lastName is missing
-          // But better: require lastName for personal vendors only
-          if (this.accountType && this.accountType === "personal") return true;
-          // If accountType is not present, fallback: if lastName is set, allow, else not required
-          return false;
-        }
-        return false;
-      },
+      // required: function () {
+      //   // Required for clients and personal vendors, not for business vendors
+      //   if (this.userType === "client") return true;
+      //   if (
+      //     this.userType === "vendor" &&
+      //     (!this.provider || this.provider === "email")
+      //   ) {
+      //     // Check if this is a business vendor (firstName === businessName)
+      //     // If lastName is not set and firstName is set, assume business if lastName is missing
+      //     // But better: require lastName for personal vendors only
+      //     if (this.accountType && this.accountType === "personal") return true;
+      //     // If accountType is not present, fallback: if lastName is set, allow, else not required
+      //     return false;
+      //   }
+      //   return false;
+      // },
       trim: true,
     },
     email: {

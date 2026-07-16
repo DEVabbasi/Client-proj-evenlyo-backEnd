@@ -1363,7 +1363,9 @@ const googleAuth = async (req, res) => {
           picture: decodedToken.picture,
         };
       } catch (error) {
+        console.log()
         return res.status(401).json({
+
           success: false,
           message: "Invalid Firebase ID token (Web)",
         });
@@ -1447,7 +1449,7 @@ const googleAuth = async (req, res) => {
       },
     });
   } catch (error) {
-    console.log(error, "errorerrorerror");
+    console.log(error, "errorerrorerror😭😭");
 
     return res
       .status(500)

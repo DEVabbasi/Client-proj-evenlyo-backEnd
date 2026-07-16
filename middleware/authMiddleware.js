@@ -94,7 +94,7 @@ const requireAuth = async (req, res, next) => {
     req.user = {
       id: user?._id ? user?._id : user?.id,
       email: user.email,
-      firstName: user.firstName,
+      firstName: user.firstName,  
       lastName: user.lastName,
       userType: user.userType,
       ...baseUser,
