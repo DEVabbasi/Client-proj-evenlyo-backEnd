@@ -14,9 +14,14 @@ const {
 const { createActivityLog } = require("../../utils/activityLogger");
 const stripe = require("../../config/stripe");
 const { default: mongoose } = require("mongoose");
-const { sendOrderStatusEmail, sendEvenlyoProtectBookingEmail } = require("../../utils/mailer");
+const {
+  sendOrderStatusEmail,
+  sendEvenlyoProtectBookingEmail,
+} = require("../../utils/mailer");
 const AdminEmployee = require("../../models/AdminEmployee");
-const { notifyVendorNewBooking } = require("../../utils/notifyVendorNewBooking");
+const {
+  notifyVendorNewBooking,
+} = require("../../utils/notifyVendorNewBooking");
 const { toMoney } = require("../../utils/money");
 const {
   getVendorDisplayName,
@@ -50,7 +55,7 @@ const getVendorBookingAnalytics = async (req, res) => {
           .populate("userId", "firstName lastName email contactNumber address")
           .populate("listingId", "title")
           .select(
-            "pricingBreakdown details status trackingId userId listingId description eventLocation createdAt statusHistory listingDetails"
+            "pricingBreakdown details status trackingId userId listingId description eventLocation createdAt statusHistory listingDetails",
           ),
       ]);
 
@@ -154,7 +159,7 @@ const acceptBooking = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const vendor = await Vendor.findOne({ userId: req.user.id });
   const vendorDetails = await User.findOne({ _id: req.user.id });
-  console.log(vendorDetails, 'vendorvendorvendorvendor');
+  console.log(vendorDetails, "vendorvendorvendorvendor");
 
   if (!vendor) {
     return res.status(404).json({
@@ -170,7 +175,6 @@ const acceptBooking = asyncHandler(async (req, res) => {
   });
 
   console.log(booking, "bookingbookingbookingbooking");
-
 
   const listingDetails = await Listing.findOne({
     _id: booking.listingId,
@@ -226,7 +230,7 @@ const acceptBooking = asyncHandler(async (req, res) => {
       quantity: { $gte: decrementBy },
     },
     { $inc: { quantity: -decrementBy } },
-    { new: true }
+    { new: true },
   );
 
   if (!updatedListing) {
@@ -256,12 +260,12 @@ const acceptBooking = asyncHandler(async (req, res) => {
     try {
       await Listing.updateOne(
         { _id: updatedListing._id },
-        { $inc: { quantity: decrementBy } }
+        { $inc: { quantity: decrementBy } },
       );
     } catch (rbErr) {
       console.error(
         "Failed to rollback listing quantity after booking save failure",
-        rbErr
+        rbErr,
       );
     }
     return res.status(500).json({
@@ -303,12 +307,11 @@ const acceptBooking = asyncHandler(async (req, res) => {
       clientId: booking.userId, //
       vendorId: booking.vendorId, // vendor's user account receives notification
       bookingId: booking._id,
-
     });
   } catch (e) {
     console.error(
       "Failed to create client notification for accepted booking:",
-      e
+      e,
     );
   }
 
@@ -332,8 +335,7 @@ const acceptBooking = asyncHandler(async (req, res) => {
         bookingDate: booking.details.startDate,
         bookingTime: `${booking.details.startTime} - ${booking.details.endTime}`,
       });
-    }
-    catch (e) {
+    } catch (e) {
       console.error("Failed to send order acceptance email:", e);
     }
   }
@@ -341,8 +343,11 @@ const acceptBooking = asyncHandler(async (req, res) => {
   if (user.notifications?.push === true) {
     try {
       await notifyVendorNewBooking({
-        title: "Boeking Geaccepteerd",
-        message: `Nieuwe boekingsaanvraag voor uw aanbod "${listingDetails.title.nl}" van ${moment(booking.details.startDate).format("DD MMM YYYY")} is geaccepteerd.`,
+        title: { en: "Booking Accepted", nl: "Boeking Geaccepteerd" },
+        message: {
+          en: `New booking request for your listing "${listingDetails.title.en}" on ${moment(booking.details.startDate).format("DD MMM YYYY")} is accepted.`,
+          nl: `Nieuwe boekingsaanvraag voor uw aanbod "${listingDetails.title.nl}" van ${moment(booking.details.startDate).format("DD MMM YYYY")} is geaccepteerd.`,
+        },
         receiverDetails: user,
         bookingRequest: booking,
       });
@@ -360,20 +365,20 @@ const acceptBooking = asyncHandler(async (req, res) => {
       const adminsToNotifyPush = await AdminEmployee.findOne({
         role: "Admin",
         status: "active",
-        "notificationSettings.push.evenlyoProtect": true
+        "notificationSettings.push.evenlyoProtect": true,
       }).select("_id name email");
 
       const adminsToNotifyEmail = await AdminEmployee.findOne({
         role: "Admin",
         status: "active",
-        "notificationSettings.email.evenlyoProtect": true
+        "notificationSettings.email.evenlyoProtect": true,
       }).select("_id name email");
 
       if (adminsToNotifyPush) {
         await notificationController.createNotification({
           title: {
             en: "Evenlyo protected booking accepted",
-            nl: "Door Evenlyo beschermde boeking geaccepteerd"
+            nl: "Door Evenlyo beschermde boeking geaccepteerd",
           },
           notificationFor: "Admin",
           vendorId: vendorDetails._id,
@@ -392,13 +397,16 @@ const acceptBooking = asyncHandler(async (req, res) => {
           booking,
           clientDisplayName,
           vendorDisplayName,
-          'ACCEPTED',
+          "ACCEPTED",
           adminsToNotifyEmail.email,
         );
       }
     }
   } catch (e) {
-    console.error("Failed to send admin notifications for accepted booking:", e);
+    console.error(
+      "Failed to send admin notifications for accepted booking:",
+      e,
+    );
   }
 
   res.json({
@@ -479,7 +487,7 @@ const rejectBooking = asyncHandler(async (req, res) => {
   } catch (e) {
     console.error(
       "Failed to create client notification for rejected booking:",
-      e
+      e,
     );
   }
 
@@ -506,8 +514,7 @@ const rejectBooking = asyncHandler(async (req, res) => {
         bookingDate: booking.details.startDate,
         bookingTime: `${booking.details.startTime} - ${booking.details.endTime}`,
       });
-    }
-    catch (e) {
+    } catch (e) {
       console.error("Failed to send order acceptance email:", e);
     }
   }
@@ -515,8 +522,11 @@ const rejectBooking = asyncHandler(async (req, res) => {
   if (user.notifications?.push === true) {
     try {
       await notifyVendorNewBooking({
-        title: "Boeking Geweigerd",
-        message: `Nieuwe boekingsaanvraag voor uw aanbod "${listingDetails.title.nl}" van ${moment(booking.details.startDate).format("DD MMM YYYY")} is geweigerd.`,
+        title: { en: "Booking Rejected", nl: "Boeking Geweigerd" },
+        message: {
+          en: `Your booking request for "${listingDetails.title.en}" on ${moment(booking.details.startDate).format("DD MMM YYYY")} is rejected.`,
+          nl: `Nieuwe boekingsaanvraag voor uw aanbod "${listingDetails.title.nl}" van ${moment(booking.details.startDate).format("DD MMM YYYY")} is geweigerd.`,
+        },
         receiverDetails: user,
         bookingRequest: booking,
       });
@@ -534,20 +544,20 @@ const rejectBooking = asyncHandler(async (req, res) => {
       const adminsToNotifyPush = await AdminEmployee.findOne({
         role: "Admin",
         status: "active",
-        "notificationSettings.push.evenlyoProtect": true
+        "notificationSettings.push.evenlyoProtect": true,
       }).select("_id name email");
 
       const adminsToNotifyEmail = await AdminEmployee.findOne({
         role: "Admin",
         status: "active",
-        "notificationSettings.email.evenlyoProtect": true
+        "notificationSettings.email.evenlyoProtect": true,
       }).select("_id name email");
 
       if (adminsToNotifyPush) {
         await notificationController.createNotification({
           title: {
             en: "Evenlyo protected booking rejected",
-            nl: "Door Evenlyo beschermde boeking geweigerd"
+            nl: "Door Evenlyo beschermde boeking geweigerd",
           },
           notificationFor: "Admin",
           vendorId: vendorDetails._id,
@@ -560,22 +570,28 @@ const rejectBooking = asyncHandler(async (req, res) => {
         });
       }
       if (adminsToNotifyEmail) {
-        const vendorProfile = await Vendor.findOne({ userId: req.user.id }).select(
-          "businessName",
-        );
+        const vendorProfile = await Vendor.findOne({
+          userId: req.user.id,
+        }).select("businessName");
         const clientDisplayName = getClientDisplayName(user);
-        const vendorDisplayName = getVendorDisplayName(vendorDetails, vendorProfile);
+        const vendorDisplayName = getVendorDisplayName(
+          vendorDetails,
+          vendorProfile,
+        );
         sendEvenlyoProtectBookingEmail(
           booking,
           clientDisplayName,
           vendorDisplayName,
-          'REJECTED',
+          "REJECTED",
           adminsToNotifyEmail.email,
         );
       }
     }
   } catch (e) {
-    console.error("Failed to send admin notifications for rejected booking:", e);
+    console.error(
+      "Failed to send admin notifications for rejected booking:",
+      e,
+    );
   }
 
   res.json({
@@ -648,7 +664,7 @@ const createPaymentIntent = async (req, res) => {
 
     // 🔥 Combine endDate + endTime into one Date object
     const eventEndDateTime = new Date(
-      `${booking.details.startDate.toISOString().split("T")[0]}T${booking.details.startTime}:00Z`
+      `${booking.details.startDate.toISOString().split("T")[0]}T${booking.details.startTime}:00Z`,
     );
 
     const now = new Date();
@@ -664,7 +680,10 @@ const createPaymentIntent = async (req, res) => {
       });
     }
 
-    console.log(Math.round(toMoney(amount) * 100), "Math.round(amount * 100)Math.round(amount * 100)Math.round(amount * 100)");
+    console.log(
+      Math.round(toMoney(amount) * 100),
+      "Math.round(amount * 100)Math.round(amount * 100)Math.round(amount * 100)",
+    );
 
     // ✅ Create PaymentIntent if event not passed
     const paymentIntent = await stripe.paymentIntents.create({
@@ -676,7 +695,6 @@ const createPaymentIntent = async (req, res) => {
     res.json({
       clientSecret: paymentIntent.client_secret,
     });
-
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -707,7 +725,7 @@ const paymentConfirmation = async (req, res) => {
     } catch (stripeError) {
       console.error("Stripe verification error:", stripeError);
       return res.status(400).json({
-        success: false, 
+        success: false,
         message: "Invalid paymentIntent ID.",
       });
     }
@@ -727,14 +745,20 @@ const paymentConfirmation = async (req, res) => {
 
     if (vendorDetails.notifications?.push === true) {
       try {
-        await notifyVendorNewBooking({
-          title: "Betaling Ontvangen",
-          message: `Een betaling van €${verifiedAmount} is ontvangen voor boeking ${booking.trackingId}.`,
-          receiverDetails: vendorDetails,
-          bookingRequest: booking,
-        });
+       await notifyVendorNewBooking({
+        title: { en: "Booking Rejected", nl: "Boeking Geweigerd" },
+        message: {
+          en: `Your booking request for "${listingDetails.title.en}" on ${moment(booking.details.startDate).format("DD MMM YYYY")} is rejected.`,
+          nl: `Nieuwe boekingsaanvraag voor uw aanbod "${listingDetails.title.nl}" van ${moment(booking.details.startDate).format("DD MMM YYYY")} is geweigerd.`,
+        },
+        receiverDetails: user,
+        bookingRequest: booking,
+      });
       } catch (e) {
-        console.error("Failed to create vendor notification for new booking:", e);
+        console.error(
+          "Failed to create vendor notification for new booking:",
+          e,
+        );
       }
     }
 
@@ -766,7 +790,7 @@ const paymentConfirmation = async (req, res) => {
     }
 
     const alreadyExists = booking.payments.find(
-      (p) => p.paymentIntentId === paymentIntent
+      (p) => p.paymentIntentId === paymentIntent,
     );
 
     if (alreadyExists) {
@@ -858,7 +882,6 @@ const paymentConfirmation = async (req, res) => {
     });
   }
 };
-
 
 module.exports = {
   acceptBooking,
