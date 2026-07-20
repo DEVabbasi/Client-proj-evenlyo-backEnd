@@ -7,46 +7,13 @@ const pickBestText = (value) => {
 };
 
 const notifyVendorNewBooking = async (data) => {
-  const listingTitle = data.listing?.title || {
-    en: "your listing",
-    nl: "uw aanbod",
-  };
-  const title = data.title || {
-    en: "New Booking Request",
-    nl: "Nieuwe boekingsaanvraag",
-  };
-  const message =
-    typeof data.message === "string"
-      ? {
-          en: data.message,
-          nl: data.message,
-        }
-      : data.message || {
-          en: `New booking request for "${listingTitle.en}"`,
-          nl: `Nieuwe boekingsaanvraag voor "${listingTitle.nl}"`,
-        };
-
-  const vendorId = data.receiverDetails?._id || data.vendorId;
   const bookingId = data.bookingRequest?._id;
-
-  try {
-    await notificationController.createNotification({
-      title,
-      message,
-      notificationFor: "Vendor",
-      vendorId,
-      clientId: data.bookingRequest?.userId,
-      bookingId,
-    });
-  } catch (e) {
-    console.error("Failed to create vendor in-app notification:", e);
-  }
 
   try {
     await notificationController.sendPushOnly({
       receiverDetails: data.receiverDetails,
-      title: pickBestText(title),
-      message: pickBestText(message),
+      title: pickBestText(data.title),
+      message: pickBestText(data.message),
       data: {
         bookingId: bookingId?.toString() || "",
       },
