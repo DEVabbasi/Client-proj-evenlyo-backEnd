@@ -865,7 +865,10 @@ const paymentConfirmation = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Payment recorded successfully.",
+      message: {
+        en: "Payment completed successfully.",
+        nl: "Betaling succesvol voltooid.",
+      },
       data: {
         bookingId: booking._id,
         amountPaid: booking.AmountPaid,
