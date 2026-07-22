@@ -1812,30 +1812,17 @@ const fetchBookingRequestByDate = asyncHandler(async (req, res) => {
   if (vendorId) obj.vendorId = vendorId;
   if (userId) obj.userId = userId;
 
-
   try {
     const inputDateString = date.split("T")[0];
 
-    const allBookings = await Booking.find(obj);
-
-    if (allBookings.length > 0) {
-      allBookings.forEach((booking, index) => {
-        const startDateStr = booking.details?.startDate
-          ? new Date(booking.details.startDate).toISOString().split("T")[0]
-          : "N/A";
-      });
-    }
+    const allBookings = await Booking.find(obj).sort({ createdAt: -1 }); // <-- latest created first
 
     const filteredBookings = allBookings.filter((booking) => {
-      if (!booking.details || !booking.details.startDate) {
-        return false;
-      }
-
+      if (!booking.details || !booking.details.startDate) return false;
       const bookingDateStr = new Date(booking.details.startDate)
         .toISOString()
         .split("T")[0];
-      const matches = bookingDateStr === inputDateString;
-      return matches;
+      return bookingDateStr === inputDateString;
     });
 
     if (filteredBookings.length === 0) {
@@ -1850,13 +1837,9 @@ const fetchBookingRequestByDate = asyncHandler(async (req, res) => {
       model: "User",
       select: "firstName lastName email",
     });
-    populatedBookings.sort((a, b) => {
-      const timeA = a.details?.startTime || "00:00";
-      const timeB = b.details?.startTime || "00:00";
-      if (timeA < timeB) return -1;
-      if (timeA > timeB) return 1;
-      return 0;
-    });
+
+    // No further manual sort needed — order from the DB query is preserved
+    // through both .filter() and Booking.populate().
 
     return res.status(200).json({
       success: true,
