@@ -138,7 +138,7 @@ const markBookingOnTheWay = asyncHandler(async (req, res) => {
         en: "Your booking is on the way!",
         nl: "Uw boeking is onderweg!"
       },
-      notificationFor: "Vendor",
+      notificationFor: "Client",
       vendorId: booking?.vendorId, // vendor's user account receives notification
       clientId: booking?.userId, // 
       bookingId: booking?._id,
