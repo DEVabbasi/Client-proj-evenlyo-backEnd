@@ -141,7 +141,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
                   },
                   {
                     $multiply: [
-                      { $ifNull: ["$pricingBreakdown.upfrontFee", 0] },
+                      { $toDouble: { $ifNull: ["$pricingBreakdown.upfrontFee", 0] } },
                       0.88
                     ]
                   },
@@ -215,7 +215,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
               },
               {
                 $multiply: [
-                  { $ifNull: ["$pricingBreakdown.upfrontFee", 0] },
+                  { $toDouble: { $ifNull: ["$pricingBreakdown.upfrontFee", 0] } },
                   0.88
                 ]
               },
@@ -275,7 +275,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
               },
               {
                 $multiply: [
-                  { $ifNull: ["$pricingBreakdown.upfrontFee", 0] },
+                  { $toDouble: { $ifNull: ["$pricingBreakdown.upfrontFee", 0] } },
                   0.88
                 ]
               },
@@ -336,7 +336,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
               },
               {
                 $multiply: [
-                  { $ifNull: ["$pricingBreakdown.upfrontFee", 0] },
+                  { $toDouble: { $ifNull: ["$pricingBreakdown.upfrontFee", 0] } },
                   0.88
                 ]
               },
@@ -392,7 +392,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
               },
               {
                 $multiply: [
-                  { $ifNull: ["$pricingBreakdown.upfrontFee", 0] },
+                  { $toDouble: { $ifNull: ["$pricingBreakdown.upfrontFee", 0] } },
                   0.88
                 ]
               },
@@ -478,7 +478,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
               },
               {
                 $multiply: [
-                  { $ifNull: ["$pricingBreakdown.upfrontFee", 0] },
+                  { $toDouble: { $ifNull: ["$pricingBreakdown.upfrontFee", 0] } },
                   0.88,
                 ],
               },
@@ -574,7 +574,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
                   },
                   {
                     $multiply: [
-                      { $ifNull: ["$pricingBreakdown.upfrontFee", 0] },
+                      { $toDouble: { $ifNull: ["$pricingBreakdown.upfrontFee", 0] } },
                       0.88,
                     ],
                   },
@@ -700,7 +700,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
               },
               {
                 $multiply: [
-                  { $ifNull: ["$pricingBreakdown.upfrontFee", 0] },
+                  { $toDouble: { $ifNull: ["$pricingBreakdown.upfrontFee", 0] } },
                   0.88
                 ]
               },
