@@ -746,17 +746,17 @@ const paymentConfirmation = async (req, res) => {
     if (vendorDetails.notifications?.push === true) {
       try {
        await notifyVendorNewBooking({
-        title: { en: "Booking Rejected", nl: "Boeking Geweigerd" },
+        title: { en: "Payment Received", nl: "Betaling Ontvangen" },
         message: {
-          en: `Your booking request for "${listingDetails.title.en}" on ${moment(booking.details.startDate).format("DD MMM YYYY")} is rejected.`,
-          nl: `Nieuwe boekingsaanvraag voor uw aanbod "${listingDetails.title.nl}" van ${moment(booking.details.startDate).format("DD MMM YYYY")} is geweigerd.`,
+          en: `Payment received for booking ${booking.trackingId}.`,
+          nl: `Betaling ontvangen voor boeking ${booking.trackingId}.`,
         },
-        receiverDetails: user,
+        receiverDetails: vendorDetails,
         bookingRequest: booking,
       });
       } catch (e) {
         console.error(
-          "Failed to create vendor notification for new booking:",
+          "Failed to create vendor notification for payment:",
           e,
         );
       }
