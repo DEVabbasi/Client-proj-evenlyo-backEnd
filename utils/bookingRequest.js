@@ -319,10 +319,21 @@ const createBookingRequest = async (data, session) => {
   console.log(resss, "bookingRequestbookingRequestbookingRequestbookingRequest");
 
   try {
+    const vendorUser = await User.findById(vendorUserId).select(
+      "firstName lastName email appFcm webFcm",
+    );
+    const listingTitle =
+      typeof listing.title === "string"
+        ? { en: listing.title, nl: listing.title }
+        : listing.title || { en: "your listing", nl: "uw aanbod" };
+    const bookingDates = `${startDate}${endDate !== startDate ? ` to ${endDate}` : ""}`;
     await notifyVendorNewBooking({
-      title: "Nieuwe boekingsaanvraag",
-      vendorUserId,
-      clientUserId: bookingRequest.userId,
+      title: { en: "New Booking Request", nl: "Nieuwe boekingsaanvraag" },
+      message: {
+        en: `New booking request for "${listingTitle.en}" on ${bookingDates}. Tracking ID: ${bookingRequest.trackingId}`,
+        nl: `Nieuwe boekingsaanvraag voor "${listingTitle.nl}" op ${bookingDates}. Tracking-ID: ${bookingRequest.trackingId}`,
+      },
+      receiverDetails: vendorUser,
       bookingRequest,
       listing,
       startDate,

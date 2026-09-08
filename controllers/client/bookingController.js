@@ -1783,7 +1783,7 @@ const fetchBookingRequest = asyncHandler(async (req, res) => {
   if (status) obj.status = status;
 
 
-  const findBookingRequest = await Booking.find(obj);
+  const findBookingRequest = await Booking.find(obj).sort({ createdAt: -1 });
   if (!findBookingRequest || findBookingRequest.length === 0) {
     return res.status(400).json({
       success: false,

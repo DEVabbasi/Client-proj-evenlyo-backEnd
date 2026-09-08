@@ -605,7 +605,7 @@ const getVendorEarningsAnalytics = async (req, res) => {
 
     console.log(vendorId, "vendorIdvendorIdvendorId");
 
-    const allBookings = await Booking.find({ vendorId })
+    const allBookings = await Booking.find({ vendorId }).sort({ createdAt: -1 })
     // const allSale = await Purchase.aggregate([
     //   {
     //     $match: {

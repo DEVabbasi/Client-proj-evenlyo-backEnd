@@ -3,7 +3,7 @@ const notificationController = require("../controllers/notificationController");
 const pickBestText = (value) => {
   if (!value) return "";
   if (typeof value === "string") return value;
-  return value.en || value.nl || "";
+  return value.nl || value.en || "";
 };
 
 const toBilingual = (value, fallback) => {
