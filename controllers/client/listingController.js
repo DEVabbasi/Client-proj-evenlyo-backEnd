@@ -1161,22 +1161,155 @@ const getHomeData = async (req, res) => {
     const { subCategoryId, categoryId, latitude, longitude, date, radius } =
       req.body;
 
+    /*
+     * ---------------------------------------------------------
+     * VALIDATIONS
+     * ---------------------------------------------------------
+     */
+
+    // Validate categoryId if provided
+    if (categoryId !== undefined && categoryId !== null && categoryId !== "") {
+      if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid categoryId",
+        });
+      }
+    }
+
+    // Validate subCategoryId if provided
+    if (
+      subCategoryId !== undefined &&
+      subCategoryId !== null &&
+      subCategoryId !== ""
+    ) {
+      if (!mongoose.Types.ObjectId.isValid(subCategoryId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid subCategoryId",
+        });
+      }
+    }
+
+    // categoryId and subCategoryId should be used together
+    if (categoryId && !subCategoryId) {
+      // This is allowed:
+      // Search the entire main category.
+    }
+
+    if (subCategoryId && !categoryId) {
+      return res.status(400).json({
+        success: false,
+        message: "categoryId is required when subCategoryId is provided",
+      });
+    }
+
+    /*
+     * Validate latitude / longitude if provided
+     */
+    if (latitude !== undefined && latitude !== null && latitude !== "") {
+      if (isNaN(Number(latitude))) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid latitude",
+        });
+      }
+
+      const parsedLatitude = Number(latitude);
+
+      if (parsedLatitude < -90 || parsedLatitude > 90) {
+        return res.status(400).json({
+          success: false,
+          message: "Latitude must be between -90 and 90",
+        });
+      }
+    }
+
+    if (longitude !== undefined && longitude !== null && longitude !== "") {
+      if (isNaN(Number(longitude))) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid longitude",
+        });
+      }
+
+      const parsedLongitude = Number(longitude);
+
+      if (parsedLongitude < -180 || parsedLongitude > 180) {
+        return res.status(400).json({
+          success: false,
+          message: "Longitude must be between -180 and 180",
+        });
+      }
+    }
+
+    /*
+     * Radius validation
+     */
+    if (radius !== undefined && radius !== null && radius !== "") {
+      if (isNaN(Number(radius))) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid radius",
+        });
+      }
+
+      if (Number(radius) <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Radius must be greater than 0",
+        });
+      }
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * BUILD MAIN SEARCH QUERY
+     * ---------------------------------------------------------
+     */
+
     const query = {
       isActive: true,
     };
 
-    if (categoryId && mongoose.Types.ObjectId.isValid(categoryId)) {
+    if (categoryId) {
       query.category = categoryId;
     }
 
-    if (subCategoryId && mongoose.Types.ObjectId.isValid(subCategoryId)) {
+    if (subCategoryId) {
       query.subCategory = subCategoryId;
     }
 
+    /*
+     * Date filter
+     */
     if (date) {
+      const parsedDate = new Date(date);
+
+      if (isNaN(parsedDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid date",
+        });
+      }
+
       const dayKey = getDayKey(date);
+
+      if (!dayKey) {
+        return res.status(400).json({
+          success: false,
+          message: "Unable to determine availability day",
+        });
+      }
+
       query["availability.availableDays"] = dayKey;
     }
+
+    /*
+     * ---------------------------------------------------------
+     * MAIN LISTINGS
+     * ---------------------------------------------------------
+     */
 
     const listings = await Listing.find(query)
       .populate("vendor", "firstName rating isActive")
@@ -1186,38 +1319,137 @@ const getHomeData = async (req, res) => {
         "title description pricing location ratings images media.featuredImage availability vendor",
       );
 
-    const listingIds = listings.map((l) => l._id);
+    /*
+     * ---------------------------------------------------------
+     * RELATED LISTINGS
+     * ---------------------------------------------------------
+     *
+     * IMPORTANT:
+     *
+     * Related listings are searched independently from the main
+     * listings.
+     *
+     * Therefore:
+     *
+     * Main subcategory has listings
+     *        OR
+     * Main subcategory has ZERO listings
+     *
+     * Both cases will still search for related listings.
+     *
+     * Related listings must:
+     *
+     * 1. Be active
+     * 2. Belong to the SAME main category
+     * 3. Belong to a DIFFERENT subcategory
+     * 4. Match date availability if date was provided
+     */
 
-    const vendorIds = listings.map((l) => l.vendor?._id).filter(Boolean);
+    let relatedListings = null;
+
+    if (categoryId && subCategoryId) {
+      const relatedQuery = {
+        isActive: true,
+
+        // SAME MAIN CATEGORY
+        category: categoryId,
+
+        // DIFFERENT SUBCATEGORY
+        subCategory: {
+          $ne: subCategoryId,
+        },
+      };
+
+      /*
+       * Apply date filter to related listings as well
+       */
+      if (date) {
+        const dayKey = getDayKey(date);
+
+        relatedQuery["availability.availableDays"] = dayKey;
+      }
+
+      relatedListings = await Listing.find(relatedQuery)
+        .populate("vendor", "firstName rating isActive")
+        .populate("category", "name")
+        .populate("subCategory", "name")
+        .select(
+          "title description pricing location ratings images media.featuredImage availability vendor",
+        );
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * COMBINE LISTINGS FOR ENRICHMENT
+     * ---------------------------------------------------------
+     */
+
+    const allListings = [...listings, ...(relatedListings || [])];
+
+    const listingIds = allListings.map((listing) => listing._id);
+
+    const vendorIds = allListings
+      .map((listing) => listing.vendor?._id)
+      .filter(Boolean);
+
+    /*
+     * ---------------------------------------------------------
+     * VENDOR LOGOS
+     * ---------------------------------------------------------
+     */
 
     const vendorDetails = await Vendor.find({
-      userId: { $in: vendorIds },
+      userId: {
+        $in: vendorIds,
+      },
     }).select("userId businessLogo");
 
     const vendorLogoMap = {};
+
     vendorDetails.forEach((vd) => {
       vendorLogoMap[vd.userId.toString()] = vd.businessLogo;
     });
 
+    /*
+     * ---------------------------------------------------------
+     * BOOKINGS
+     * ---------------------------------------------------------
+     */
+
     const bookings = await BookingRequest.find({
-      listingId: { $in: listingIds },
+      listingId: {
+        $in: listingIds,
+      },
     }).select("_id listingId");
 
-    const bookingIds = bookings.map((b) => b._id);
+    const bookingIds = bookings.map((booking) => booking._id);
 
     const bookingMap = {};
-    bookings.forEach((b) => {
-      bookingMap[b._id.toString()] = b.listingId.toString();
+
+    bookings.forEach((booking) => {
+      bookingMap[booking._id.toString()] = booking.listingId.toString();
     });
 
+    /*
+     * ---------------------------------------------------------
+     * REVIEWS
+     * ---------------------------------------------------------
+     */
+
     const reviews = await Review.find({
-      bookingId: { $in: bookingIds },
+      bookingId: {
+        $in: bookingIds,
+      },
     }).select("bookingId rating");
 
     const ratingData = {};
+
     reviews.forEach((review) => {
       const listingId = bookingMap[review.bookingId.toString()];
-      if (!listingId) return;
+
+      if (!listingId) {
+        return;
+      }
 
       if (!ratingData[listingId]) {
         ratingData[listingId] = {
@@ -1227,62 +1459,193 @@ const getHomeData = async (req, res) => {
       }
 
       ratingData[listingId].totalRating += review.rating;
+
       ratingData[listingId].count += 1;
     });
 
-    let enrichedListings = listings.map((listing) => {
-      const obj = listing.toObject();
-      const id = obj._id.toString();
+    /*
+     * ---------------------------------------------------------
+     * ENRICH LISTINGS
+     * ---------------------------------------------------------
+     */
 
-      const ratingInfo = ratingData[id] || {
-        totalRating: 0,
-        count: 0,
-      };
+    const enrichListings = (listingArray) => {
+      return listingArray.map((listing) => {
+        const obj = listing.toObject();
 
-      obj.reviewStats = {
-        average:
-          ratingInfo.count > 0
-            ? Number((ratingInfo.totalRating / ratingInfo.count).toFixed(1))
-            : 0,
-        totalReviews: ratingInfo.count,
-      };
+        const id = obj._id.toString();
 
-      const vendorId = obj.vendor?._id?.toString();
-      if (obj.vendor) {
-        obj.vendor.businessLogo = vendorLogoMap[vendorId] || "";
-      }
+        const ratingInfo = ratingData[id] || {
+          totalRating: 0,
+          count: 0,
+        };
 
-      return obj;
-    });
+        /*
+         * Review statistics
+         */
+        obj.reviewStats = {
+          average:
+            ratingInfo.count > 0
+              ? Number((ratingInfo.totalRating / ratingInfo.count).toFixed(1))
+              : 0,
 
-    // Filter out listings whose vendor has been blocked (User.isActive === false)
-    enrichedListings = enrichedListings.filter(
-      (listing) => listing.vendor?.isActive !== false
-    );
+          totalReviews: ratingInfo.count,
+        };
 
-    if (latitude && longitude) {
-      const allowedRadius = radius || 100;
+        /*
+         * Vendor logo
+         */
+        const vendorId = obj.vendor?._id?.toString();
 
-      enrichedListings = enrichedListings.filter((listing) => {
-        const lat = listing.location?.coordinates?.latitude;
-        const lng = listing.location?.coordinates?.longitude;
-        if (!lat || !lng) return false;
+        if (obj.vendor) {
+          obj.vendor.businessLogo = vendorLogoMap[vendorId] || "";
+        }
 
-        const distance = getDistanceInKm(latitude, longitude, lat, lng);
-        return distance <= allowedRadius;
+        return obj;
       });
+    };
+
+    /*
+     * Enrich main listings
+     */
+    let enrichedListings = enrichListings(listings);
+
+    /*
+     * Enrich related listings
+     */
+    if (relatedListings) {
+      relatedListings = enrichListings(relatedListings);
     }
 
-    res.status(200).json({
+    /*
+     * ---------------------------------------------------------
+     * REMOVE BLOCKED / INACTIVE VENDORS
+     * ---------------------------------------------------------
+     */
+
+    enrichedListings = enrichedListings.filter(
+      (listing) => listing.vendor?.isActive !== false,
+    );
+
+    if (relatedListings) {
+      relatedListings = relatedListings.filter(
+        (listing) => listing.vendor?.isActive !== false,
+      );
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * LOCATION / RADIUS FILTER
+     * ---------------------------------------------------------
+     */
+
+    if (
+      latitude !== undefined &&
+      latitude !== null &&
+      latitude !== "" &&
+      longitude !== undefined &&
+      longitude !== null &&
+      longitude !== ""
+    ) {
+      const userLatitude = Number(latitude);
+      const userLongitude = Number(longitude);
+
+      const allowedRadius =
+        radius !== undefined && radius !== null && radius !== ""
+          ? Number(radius)
+          : 100;
+
+      const filterByRadius = (listingArray) => {
+        return listingArray.filter((listing) => {
+          const lat = listing.location?.coordinates?.latitude;
+
+          const lng = listing.location?.coordinates?.longitude;
+
+          /*
+           * Listing without valid coordinates
+           * cannot be included in radius search.
+           */
+          if (
+            lat === undefined ||
+            lat === null ||
+            lng === undefined ||
+            lng === null
+          ) {
+            return false;
+          }
+
+          const listingLatitude = Number(lat);
+          const listingLongitude = Number(lng);
+
+          if (isNaN(listingLatitude) || isNaN(listingLongitude)) {
+            return false;
+          }
+
+          const distance = getDistanceInKm(
+            userLatitude,
+            userLongitude,
+            listingLatitude,
+            listingLongitude,
+          );
+
+          return distance <= allowedRadius;
+        });
+      };
+
+      enrichedListings = filterByRadius(enrichedListings);
+
+      if (relatedListings) {
+        relatedListings = filterByRadius(relatedListings);
+      }
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * RELATED ITEMS FALLBACK
+     * ---------------------------------------------------------
+     *
+     * If the selected subcategory has no listings:
+     *
+     * data = []
+     *
+     * But if other subcategories in the SAME category have
+     * listings:
+     *
+     * relatedItems = [...]
+     *
+     * If there are no other listings:
+     *
+     * relatedItems = null
+     */
+
+    if (relatedListings && relatedListings.length === 0) {
+      relatedListings = null;
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * RESPONSE
+     * ---------------------------------------------------------
+     */
+
+    return res.status(200).json({
       success: true,
+
+      // Main search results
       count: enrichedListings.length,
+
       data: enrichedListings,
+
+      // Other subcategories within same main category
+      relatedItems: relatedListings,
     });
   } catch (error) {
     console.error("Search listings error:", error);
-    res.status(500).json({
+
+    return res.status(500).json({
       success: false,
       message: "Failed to search listings",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
