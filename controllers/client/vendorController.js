@@ -6,13 +6,14 @@ const ServiceItem = require("../../models/Item");
 const Review = require("../../models/Review");
 const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
+const slugify = require("../../utils/slugify");
 
 // @desc    Get all details related to a vendor (business, user, listings, popular)
 // @route   GET /api/vendor/details/:vendorId
 // @access  Public
 const getVendorFullDetails = async (req, res) => {
   try {
-    const { vendorId } = req.params;
+    const { vendorId, slugUrl } = req.params;
 
     const rawClientUserId = req.body?.userId ?? req.query?.userId;
     const loggedInUserId =
@@ -29,13 +30,13 @@ const getVendorFullDetails = async (req, res) => {
     // ✅ Get vendor (by _id or userId)
     let vendor = await Vendor.findById(vendorId).populate(
       "userId",
-      "firstName lastName email profileImage userType"
+      "firstName lastName email profileImage userType",
     );
 
     if (!vendor) {
       vendor = await Vendor.findOne({ userId: vendorId }).populate(
         "userId",
-        "firstName lastName email profileImage userType"
+        "firstName lastName email profileImage userType",
       );
     }
 
@@ -45,11 +46,25 @@ const getVendorFullDetails = async (req, res) => {
         .json({ success: false, message: "Vendor not found" });
     }
 
+    if (slugUrl) {
+      const expectedSlug = slugify(vendor.businessName);
+
+      if (slugUrl !== expectedSlug) {
+        return res.status(404).json({
+          success: false,
+          message: "Vendor URL does not match",
+        });
+      }
+    }
+
     const vendorUserId = vendor.userId?._id ?? vendor.userId;
 
     // ✅ Fetch Listings
     const listingItemsRaw = await Listing.find({ vendor: vendorUserId }).lean();
-    console.log(listingItemsRaw, "listingItemsRawlistingItemsRawlistingItemsRawlistingItemsRaw");
+    console.log(
+      listingItemsRaw,
+      "listingItemsRawlistingItemsRawlistingItemsRawlistingItemsRaw",
+    );
 
     const listingItems = listingItemsRaw.map((item) => ({
       ...item,
@@ -91,8 +106,7 @@ const getVendorFullDetails = async (req, res) => {
       .filter((item) => bookingCountMap[item._id.toString()])
       .sort(
         (a, b) =>
-          bookingCountMap[b._id.toString()] -
-          bookingCountMap[a._id.toString()]
+          bookingCountMap[b._id.toString()] - bookingCountMap[a._id.toString()],
       )
       .slice(0, 5)
       .map((item) => ({
@@ -115,11 +129,10 @@ const getVendorFullDetails = async (req, res) => {
       totalReviews === 0
         ? 0
         : Number(
-          (
-            reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
-          ).toFixed(1)
-        );
-
+            (
+              reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
+            ).toFixed(1),
+          );
 
     let showContact = false;
     if (loggedInUserId) {
@@ -143,7 +156,7 @@ const getVendorFullDetails = async (req, res) => {
         vendor._id,
         eligibleBooking,
         showContact,
-        "CONTACT VISIBILITY CHECK"
+        "CONTACT VISIBILITY CHECK",
       );
     }
 
@@ -157,6 +170,7 @@ const getVendorFullDetails = async (req, res) => {
       email: showContact ? vendor.businessEmail : null,
       phone: showContact ? vendor.businessPhone : null,
       rating: averageRating,
+      slugUrl: slugify(vendor.businessName),
       businessName: vendor.businessName,
       location: vendor.businessLocation || "",
       employees: vendor.teamSize || "",
@@ -208,7 +222,6 @@ const getVendorFullDetails = async (req, res) => {
   }
 };
 
-
 // @desc    Get vendor profile (public and private access)
 // @route   GET /api/vendor/profile/:vendorId (public)
 // @route   GET /api/vendor/profile (private)
@@ -228,7 +241,7 @@ const getVendorProfile = asyncHandler(async (req, res) => {
     vendor = await Vendor.findOne({ userId: req.user.id })
       .populate(
         "userId",
-        "firstName lastName email contactNumber address profileImage isActive"
+        "firstName lastName email contactNumber address profileImage isActive",
       )
       .populate("mainCategories", "name icon description")
       .populate("subCategories", "name icon description");
@@ -286,19 +299,19 @@ const getVendorProfile = asyncHandler(async (req, res) => {
     },
     personalInfo: isPublicAccess
       ? {
-        firstName: vendor.userId?.firstName,
-        lastName: vendor.userId?.lastName,
-        profileImage: vendor.userId?.profileImage,
-      }
+          firstName: vendor.userId?.firstName,
+          lastName: vendor.userId?.lastName,
+          profileImage: vendor.userId?.profileImage,
+        }
       : {
-        firstName: vendor.userId?.firstName,
-        lastName: vendor.userId?.lastName,
-        email: vendor.userId?.email,
-        contactNumber: vendor.userId?.contactNumber,
-        address: vendor.userId?.address,
-        profileImage: vendor.userId?.profileImage,
-        isActive: vendor.userId?.isActive,
-      },
+          firstName: vendor.userId?.firstName,
+          lastName: vendor.userId?.lastName,
+          email: vendor.userId?.email,
+          contactNumber: vendor.userId?.contactNumber,
+          address: vendor.userId?.address,
+          profileImage: vendor.userId?.profileImage,
+          isActive: vendor.userId?.isActive,
+        },
     timestamps: {
       createdAt: vendor.createdAt,
       updatedAt: vendor.updatedAt,
@@ -309,11 +322,11 @@ const getVendorProfile = asyncHandler(async (req, res) => {
   if (isPublicAccess) {
     profileData.businessInfo = Object.fromEntries(
       Object.entries(profileData.businessInfo).filter(
-        ([_, v]) => v !== undefined
-      )
+        ([_, v]) => v !== undefined,
+      ),
     );
     profileData.status = Object.fromEntries(
-      Object.entries(profileData.status).filter(([_, v]) => v !== undefined)
+      Object.entries(profileData.status).filter(([_, v]) => v !== undefined),
     );
   }
 
@@ -376,7 +389,7 @@ const updateVendorProfile = asyncHandler(async (req, res) => {
   const updatedVendor = await Vendor.findById(vendor._id)
     .populate(
       "userId",
-      "firstName lastName email contactNumber address profileImage"
+      "firstName lastName email contactNumber address profileImage",
     )
     .populate("mainCategories", "name icon description")
     .populate("subCategories", "name icon description");
@@ -395,7 +408,7 @@ const getVendorBusinessDetails = asyncHandler(async (req, res) => {
   const vendor = await Vendor.findOne({ userId: req.user.id })
     .populate(
       "userId",
-      "firstName lastName email contactNumber address profileImage"
+      "firstName lastName email contactNumber address profileImage",
     )
     .populate("mainCategories", "name icon description")
     .populate("subCategories", "name icon description");
@@ -420,9 +433,9 @@ const getVendorBusinessDetails = asyncHandler(async (req, res) => {
   const averagePrice =
     listings.length > 0
       ? listings.reduce(
-        (sum, listing) => sum + (listing.pricing?.amount || 0),
-        0
-      ) / listings.length
+          (sum, listing) => sum + (listing.pricing?.amount || 0),
+          0,
+        ) / listings.length
       : 0;
 
   const businessDetails = {
@@ -540,8 +553,8 @@ const getVendorDashboard = asyncHandler(async (req, res) => {
         completionRate:
           vendor.totalBookings > 0
             ? ((vendor.completedBookings / vendor.totalBookings) * 100).toFixed(
-              1
-            )
+                1,
+              )
             : 0,
       },
       rating: {
@@ -609,7 +622,7 @@ const getAllVendors = asyncHandler(async (req, res) => {
     .populate("userId", "firstName lastName profileImage")
     .populate("mainCategories", "name icon")
     .select(
-      "businessName businessLocation businessDescription businessLogo rating totalBookings completedBookings approvalStatus createdAt"
+      "businessName businessLocation businessDescription businessLogo rating totalBookings completedBookings approvalStatus createdAt",
     )
     .sort(sortOptions)
     .skip(skip)
@@ -683,7 +696,7 @@ const getFeaturedVendors = asyncHandler(async (req, res) => {
       approvalStatus
       createdAt
       updatedAt
-    `
+    `,
     )
     .sort(sortOptions)
     .limit(parseInt(limit));
@@ -751,9 +764,9 @@ const getFeaturedVendors = asyncHandler(async (req, res) => {
           completionRate:
             vendor.totalBookings > 0
               ? (
-                (vendor.completedBookings / vendor.totalBookings) *
-                100
-              ).toFixed(1)
+                  (vendor.completedBookings / vendor.totalBookings) *
+                  100
+                ).toFixed(1)
               : 0,
         },
       },
@@ -885,11 +898,12 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
     Vendor.find(query)
       .populate(
         "userId",
-        "firstName lastName profileImage isActive accountType userType"
+        "firstName lastName profileImage isActive accountType userType",
       )
       .populate("mainCategories", "name icon description")
       .populate("subCategories", "name icon description")
-      .select(`
+      .select(
+        `
         businessName 
         businessEmail
         businessPhone
@@ -905,7 +919,8 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
         bannerImage
         accountType
         userId
-      `)
+      `,
+      )
       .sort(sortOptions)
       .skip(skip)
       .limit(limitNum),
@@ -955,8 +970,7 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
 
       const canShow =
         booking.isFullyPaid === true ||
-        (booking.willPayUpfront === true &&
-          booking.isUpfrontPaid === true);
+        (booking.willPayUpfront === true && booking.isUpfrontPaid === true);
 
       if (canShow) {
         bookingMap[vendorId] = true;
@@ -976,19 +990,21 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
         ? `${vendor.userId.firstName} ${vendor.userId.lastName}`
         : "Business Name Not Set");
 
+    const slugUrl = slugify(displayBusinessName);
+
     const reviewData = reviewMap[vendor.userId?._id?.toString()] || {
       avgRating: 0,
       totalReviews: 0,
     };
 
     const canShowContact =
-      loggedInUserId &&
-      bookingMap[vendor.userId?._id?.toString()] === true;
+      loggedInUserId && bookingMap[vendor.userId?._id?.toString()] === true;
 
     return {
       _id: vendor._id,
       userId: vendor?.userId?._id,
       businessName: displayBusinessName,
+      slugUrl,
       businessLogo: vendor.businessLogo,
       businessLocation: vendor.businessLocation,
       accountType: vendor.userId?.accountType || vendor.accountType,
@@ -1021,7 +1037,10 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
       isApproved: vendor.isApproved,
     };
   });
-
+  console.log(
+    formattedVendors,
+    "formatttttttttttttttttttttttttttttttttttttttttt",
+  );
   res.json({
     success: true,
     data: formattedVendors,

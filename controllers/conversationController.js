@@ -44,7 +44,7 @@ const createChatUserWithVendor = async (req, res) => {
 
     const createdConversation = await Conversation.create(payloadWithWorker);
     const newConversation = await createdConversation.populate(
-      "participants.userId"
+      "participants.userId",
     );
 
     const newMessage = new Message({
@@ -64,13 +64,20 @@ const createChatUserWithVendor = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Conversation created successfully",
+      // message: "Conversation created successfully",
+      message: {
+        en: "Conversation created sucessfully",
+        nl: "Het gesprek is succesvol tot stand gekomen.",
+      },
       data: newConversation,
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Error creating conversation",
+      message: {
+        en: "Error creating conversation",
+        nl: "Fout bij maken van gesprek",
+      },
       error: error.message,
     });
   }
@@ -179,10 +186,10 @@ const blockConversation = async (req, res) => {
     await convo.save();
 
     io.to(
-      `user_${convo.participants.find((p) => p.role === "user")?.userId}`
+      `user_${convo.participants.find((p) => p.role === "user")?.userId}`,
     ).emit("conversation_blocked", convo);
     io.to(
-      `vendor_${convo.participants.find((p) => p.role === "vendor")?.userId}`
+      `vendor_${convo.participants.find((p) => p.role === "vendor")?.userId}`,
     ).emit("conversation_blocked", convo);
 
     return res.status(200).json({
@@ -223,10 +230,10 @@ const unblockConversation = async (req, res) => {
     await convo.save();
 
     io.to(
-      `user_${convo.participants.find((p) => p.role === "user")?.userId}`
+      `user_${convo.participants.find((p) => p.role === "user")?.userId}`,
     ).emit("conversation_unblocked", convo);
     io.to(
-      `vendor_${convo.participants.find((p) => p.role === "vendor")?.userId}`
+      `vendor_${convo.participants.find((p) => p.role === "vendor")?.userId}`,
     ).emit("conversation_unblocked", convo);
 
     return res.status(200).json({
@@ -278,7 +285,7 @@ const reportConversation = async (req, res) => {
     convo.reportedByRefrence = reportedByRefrence;
     convo.isReported = true;
     convo.reportReason = reportReason;
-    
+
     convo.blockedBy = reportedBy;
     convo.blockedByRefrence = reportedByRefrence;
     convo.isBlocked = true;
@@ -286,10 +293,10 @@ const reportConversation = async (req, res) => {
     await convo.save();
 
     io.to(
-      `user_${convo.participants.find((p) => p.role === "user")?.userId}`
+      `user_${convo.participants.find((p) => p.role === "user")?.userId}`,
     ).emit("conversation_blocked", convo);
     io.to(
-      `vendor_${convo.participants.find((p) => p.role === "vendor")?.userId}`
+      `vendor_${convo.participants.find((p) => p.role === "vendor")?.userId}`,
     ).emit("conversation_blocked", convo);
 
     res.status(200).json({
@@ -302,7 +309,7 @@ const reportConversation = async (req, res) => {
       "masoodansari584@gmail.com",
       reporter,
       reportedPerson,
-      reportReason
+      reportReason,
     );
   } catch (error) {
     return res.status(500).json({
