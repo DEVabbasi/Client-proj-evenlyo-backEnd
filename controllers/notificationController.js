@@ -4,7 +4,6 @@ const User = require("../models/User");
 const Vendor = require("../models/Vendor");
 const Admin = require("../models/Admin");
 const { sendNotification } = require("../utils/notifications");
-const { resolveUserFcmToken } = require("../utils/fcmToken");
 const { resolveVendorOwnerUserId } = require("../utils/resolveVendorUserId");
 
 const normalizeObjectId = (value) => {
@@ -99,7 +98,7 @@ const createNotification = async ({
 const pickBestText = (value) => {
   if (!value) return "";
   if (typeof value === "string") return value;
-  return value.en || value.nl || "";
+  return value.nl || value.en || "";
 };
 
 const stringifyFcmData = (data = {}) =>
