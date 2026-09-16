@@ -77,11 +77,7 @@ router.get(
 // @route   GET /api/vendor/:vendorId/details
 // @access  Public
 
-
-router.get(
-  "/details/:vendorId/:slugUrl",
-  vendorController.getVendorFullDetails,
-);
+router.get("/details/:vendorId", vendorController.getVendorFullDetails);
 router.post(
   "/details/:vendorId/:slugUrl",
   vendorController.getVendorFullDetails,
