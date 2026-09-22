@@ -108,6 +108,47 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // -----------------------------------------
+    // Vendor Admin Approval
+    // Only relevant when userType === "vendor"
+    // -----------------------------------------
+    approvalStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: function () {
+        return this.userType === "vendor" ? "pending" : "approved";
+      },
+    },
+
+    approvalRejectionReason: {
+      en: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+      nl: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+    },
+
+    submittedForReviewAt: {
+      type: Date,
+      default: null,
+    },
+
+    reviewedAt: {
+      type: Date,
+      default: null,
+    },
+
+    reviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     designationID: { type: mongoose.Types.ObjectId },
     language: {
       type: String,
@@ -127,11 +168,11 @@ const userSchema = new mongoose.Schema(
     },
     stripeAccountId: {
       type: String,
-      default: ""
+      default: "",
     },
     stripeOnboardingComplete: {
       type: Boolean,
-      default: false
+      default: false,
     },
     lastLogin: Date,
     role: {
@@ -152,6 +193,7 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
 
 // Virtual for fullName
 userSchema.virtual("fullName").get(function () {
@@ -178,9 +220,10 @@ userSchema.pre("save", function (next) {
 
   next();
 });
+
 // Indexes for better performance
 // Note: email already has unique index from schema definition
-userSchema.index({ userType: 1, isActive: 1 });
+userSchema.index({ userType: 1, approvalStatus: 1, isActive: 1 });
 // userSchema.index({ googleId: 1 }, { sparse: true });
 userSchema.index({ provider: 1 });
 

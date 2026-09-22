@@ -125,6 +125,33 @@ const vendorSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    // approvalStatus: {
+    //   type: String,
+    //   enum: ["pending", "approved", "rejected"],
+    //   default: "pending",
+    // },
+
+    // rejectionReason: {
+    //   type: String,
+    //   trim: true,
+    //   default: "",
+    // },
+
+    // submittedForReviewAt: {
+    //   type: Date,
+    //   default: null,
+    // },
+
+    // reviewedAt: {
+    //   type: Date,
+    //   default: null,
+    // },
+
+    // reviewedBy: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "User",
+    //   default: null,
+    // },
     contactMeEnabled: {
       type: Boolean,
       default: true,
@@ -151,11 +178,11 @@ const vendorSchema = new mongoose.Schema(
   {
     timestamps: true,
     collection: "vendorDetails",
-  }
+  },
 );
 
 vendorSchema.index({ userId: 1 });
 vendorSchema.index({ mainCategories: 1 });
-vendorSchema.index({ approvalStatus: 1 });
+// vendorSchema.index({ approvalStatus: 1 });
 
 module.exports = mongoose.model("Vendor", vendorSchema);

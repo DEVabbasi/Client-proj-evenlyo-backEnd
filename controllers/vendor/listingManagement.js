@@ -8,6 +8,9 @@ const { toMultilingualText } = require("../../utils/textUtils");
 const { createActivityLog } = require("../../utils/activityLogger");
 const { resolveVendorOwnerUserId } = require("../../utils/resolveVendorUserId");
 const mongoose = require("mongoose");
+const { getApprovalSettings } = require("../../utils/getApprovalSettings");
+const Vendor = require("../../models/Vendor");
+const User = require("../../models/User");
 
 
 const filterByCategory = async (req, res) => {
@@ -363,80 +366,338 @@ const getVendorListingsOverview = async (req, res) => {
 // @desc    Create a new listing
 // @route   POST /api/listings
 // @access  Private (Vendor only)
-// ...existing code...
 const createListing = async (req, res) => {
   try {
-    const data = req.body;
+    const data = { ...req.body };
 
-    // -------- Validate multilingual title --------
+    // -----------------------------------------
+    // 1. Validate authenticated user
+    // -----------------------------------------
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        message: {
+          en: "Authentication required.",
+          nl: "Authenticatie vereist.",
+        },
+      });
+    }
+
+    // -----------------------------------------
+    // 2. Resolve actual vendor owner User ID
+    // -----------------------------------------
+    const ownerUserId = await resolveVendorOwnerUserId(
+      req.user.vendorId || req.user.id,
+    );
+
+    if (!ownerUserId) {
+      return res.status(404).json({
+        success: false,
+        message: {
+          en: "Vendor account not found.",
+          nl: "Leveranciersaccount niet gevonden.",
+        },
+      });
+    }
+
+    // -----------------------------------------
+    // 3. Get vendor profile
+    // -----------------------------------------
+    const vendor = await Vendor.findOne({
+      userId: ownerUserId,
+    })
+      .select("mainCategories subCategories")
+      .lean();
+
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: {
+          en: "Vendor profile not found.",
+          nl: "Leveranciersprofiel niet gevonden.",
+        },
+      });
+    }
+
+    // -----------------------------------------
+    // 4. Vendor must have selected categories
+    // -----------------------------------------
+    const hasCategories =
+      Array.isArray(vendor.mainCategories) &&
+      vendor.mainCategories.length > 0 &&
+      Array.isArray(vendor.subCategories) &&
+      vendor.subCategories.length > 0;
+
+    if (!hasCategories) {
+      return res.status(400).json({
+        success: false,
+        code: "CATEGORIES_REQUIRED",
+        message: {
+          en: "Please select a main category and subcategory before creating a listing.",
+          nl: "Selecteer een hoofdcategorie en subcategorie voordat u een advertentie aanmaakt.",
+        },
+      });
+    }
+
+    // -----------------------------------------
+    // 5. Listing category + subcategory required
+    // -----------------------------------------
+    if (!data.category || !data.subCategory) {
+      return res.status(400).json({
+        success: false,
+        code: "LISTING_CATEGORY_REQUIRED",
+        message: {
+          en: "A category and subcategory are required for the listing.",
+          nl: "Een categorie en subcategorie zijn vereist voor de advertentie.",
+        },
+      });
+    }
+
+    // -----------------------------------------
+    // 6. Validate multilingual title
+    // -----------------------------------------
     if (!data.title || !data.title.en?.trim() || !data.title.nl?.trim()) {
       return res.status(400).json({
         success: false,
-        message: "Title in both EN and NL is required",
+        message: {
+          en: "Title in both English and Dutch is required.",
+          nl: "Een titel in zowel het Engels als het Nederlands is vereist.",
+        },
       });
     }
 
-    // -------- Validate multilingual description --------
-    if (!data.description || !data.description.en?.trim() || !data.description.nl?.trim()) {
+    // -----------------------------------------
+    // 7. Validate multilingual description
+    // -----------------------------------------
+    if (
+      !data.description ||
+      !data.description.en?.trim() ||
+      !data.description.nl?.trim()
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Description in both EN and NL is required",
+        message: {
+          en: "Description in both English and Dutch is required.",
+          nl: "Een beschrijving in zowel het Engels als het Nederlands is vereist.",
+        },
       });
     }
 
-    // -------- Validate subtitle only if sent --------
+    // -----------------------------------------
+    // 8. Validate subtitle only if provided
+    // -----------------------------------------
     if (data.subtitle) {
       if (!data.subtitle.en?.trim() || !data.subtitle.nl?.trim()) {
         return res.status(400).json({
           success: false,
-          message: "Subtitle must have both EN and NL",
+          message: {
+            en: "Subtitle must be provided in both English and Dutch.",
+            nl: "De ondertitel moet zowel in het Engels als in het Nederlands worden opgegeven.",
+          },
         });
       }
     }
 
-    // -------- Set vendor to business owner's User id (listing.vendor refs User) --------
-    const ownerUserId = await resolveVendorOwnerUserId(
-      req?.user?.vendorId || req?.user?.id,
-    );
-    if (!ownerUserId) {
-      return res.status(400).json({
-        success: false,
-        message: "Vendor not found in request",
-      });
-    }
+    // -----------------------------------------
+    // 9. Load the 2 approval settings
+    // -----------------------------------------
+    const approvalSettings = await getApprovalSettings();
+    console.log("APPROVAL SETTINGS:", approvalSettings);
 
+    const { vendorActivationRequired, itemApprovalRequired } = approvalSettings;
+
+    // -----------------------------------------
+    // 10. Check whether this is first listing
+    // BEFORE creating it
+    // -----------------------------------------
+    const existingListingCount = await Listing.countDocuments({
+      vendor: ownerUserId,
+    });
+
+    const isFirstListing = existingListingCount === 0;
+
+    // -----------------------------------------
+    // 11. Protect system/admin-controlled fields
+    // Never trust these from vendor frontend
+    // -----------------------------------------
+    delete data.vendor;
+
+    delete data.approvalStatus;
+    delete data.rejectionReason;
+    delete data.reviewedAt;
+    delete data.reviewedBy;
+    delete data.submittedForReviewAt;
+    delete data.approvalHistory;
+
+    // -----------------------------------------
+    // 12. Backend owns vendor field
+    // -----------------------------------------
     data.vendor = ownerUserId;
 
-    console.log(data, "datadatadatadatadata");
+    const now = new Date();
 
+    // -----------------------------------------
+    // 13. Determine LISTING approval
+    //
+    // Toggle ON  -> pending
+    // Toggle OFF -> approved
+    // -----------------------------------------
+    if (itemApprovalRequired) {
+      data.approvalStatus = "pending";
+      data.submittedForReviewAt = now;
+    } else {
+      data.approvalStatus = "approved";
+      data.submittedForReviewAt = null;
+    }
 
-    // -------- Create listing (no extra logic) --------
+    // -----------------------------------------
+    // 14. Create listing
+    // -----------------------------------------
     const listing = new Listing(data);
+
     await listing.save();
 
-    // -------- Populate vendor, category, subCategory --------
+    // -----------------------------------------
+    // 15. First listing triggers VENDOR review
+    // -----------------------------------------
+    if (isFirstListing) {
+      const vendorUser = await User.findOne({
+        _id: ownerUserId,
+        userType: "vendor",
+      });
+
+      if (!vendorUser) {
+        // Listing exists, so don't pretend the whole
+        // request completely failed.
+        // Return result explaining what happened.
+        return res.status(201).json({
+          success: true,
+          code: "LISTING_CREATED_VENDOR_REVIEW_NOT_UPDATED",
+          message: {
+            en: "Listing was created, but the vendor approval status could not be updated.",
+            nl: "De advertentie is aangemaakt, maar de goedkeuringsstatus van de leverancier kon niet worden bijgewerkt.",
+          },
+          data: {
+            listing,
+          },
+        });
+      }
+
+      // ---------------------------------------
+      // Vendor approval required
+      // ---------------------------------------
+      if (vendorActivationRequired) {
+        vendorUser.approvalStatus = "pending";
+
+        vendorUser.submittedForReviewAt = now;
+
+        vendorUser.approvalRejectionReason = {
+          en: "",
+          nl: "",
+        };
+
+        // Clear previous review metadata
+        vendorUser.reviewedAt = null;
+        vendorUser.reviewedBy = null;
+      }
+
+      // ---------------------------------------
+      // Vendor approval NOT required
+      // ---------------------------------------
+      else {
+        vendorUser.approvalStatus = "approved";
+
+        vendorUser.approvalRejectionReason = {
+          en: "",
+          nl: "",
+        };
+
+        vendorUser.submittedForReviewAt = now;
+
+        // System approved — not an Admin review
+        vendorUser.reviewedAt = null;
+        vendorUser.reviewedBy = null;
+      }
+
+      await vendorUser.save();
+    }
+
+    // -----------------------------------------
+    // 16. Populate listing
+    // -----------------------------------------
     const populated = await Listing.findById(listing._id)
-      .populate(
-        "vendor",
-        "_id businessName businessLocation businessDescription businessEmail businessPhone businessWebsite gallery userId"
-      )
+      .populate("vendor", "_id email contactNumber accountType approvalStatus")
       .populate("category", "name icon description")
       .populate("subCategory", "name icon description");
 
+    // -----------------------------------------
+    // 17. Result-based response
+    // -----------------------------------------
     return res.status(201).json({
       success: true,
+
       message: {
-        en: "Listing created successfully",
-        nl: "Listing succesvol aangemaakt",
+        en: itemApprovalRequired
+          ? "Listing created successfully and submitted for review."
+          : "Listing created successfully.",
+        nl: itemApprovalRequired
+          ? "Advertentie succesvol aangemaakt en ter beoordeling ingediend."
+          : "Advertentie succesvol aangemaakt.",
       },
-      data: populated,
+
+      data: {
+        listing: populated,
+
+        approval: {
+          isFirstListing,
+
+          listing: {
+            approvalRequired: itemApprovalRequired,
+
+            status: populated.approvalStatus,
+          },
+
+          vendor: {
+            approvalRequired: vendorActivationRequired,
+
+            reviewTriggered: isFirstListing,
+          },
+        },
+      },
     });
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error("Error creating listing:", error);
+
+    if (error.name === "ValidationError") {
+      const errors = Object.values(error.errors).map((err) => err.message);
+
+      return res.status(400).json({
+        success: false,
+        message: {
+          en: "Listing validation failed.",
+          nl: "Validatie van de advertentie is mislukt.",
+        },
+        errors,
+      });
+    }
+
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: {
+          en: "Invalid category or subcategory.",
+          nl: "Ongeldige categorie of subcategorie.",
+        },
+      });
+    }
+
     return res.status(500).json({
       success: false,
-      message: "Error creating listing",
-      error: err.message,
+      message: {
+        en: "An unexpected error occurred while creating the listing.",
+        nl: "Er is een onverwachte fout opgetreden bij het aanmaken van de advertentie.",
+      },
+      error: error.message,
     });
   }
 };
@@ -450,17 +711,80 @@ const createListing = async (req, res) => {
 const updateListing = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
-    // Find the existing listing
-    const existingListing = await Listing.findById(id);
-    if (!existingListing) {
-      return res.status(404).json({
+    const updateData = { ...req.body };
+
+    // -----------------------------------------
+    // 1. Validate authenticated user
+    // -----------------------------------------
+    if (!req.user?.id) {
+      return res.status(401).json({
         success: false,
-        message: "Listing not found",
+        message: {
+          en: "Authentication required.",
+          nl: "Authenticatie vereist.",
+        },
       });
     }
 
-    // Validate required fields if they are being updated
+    // -----------------------------------------
+    // 2. Find existing listing
+    // -----------------------------------------
+    const existingListing = await Listing.findById(id);
+
+    if (!existingListing) {
+      return res.status(404).json({
+        success: false,
+        message: {
+          en: "Listing not found.",
+          nl: "Advertentie niet gevonden.",
+        },
+      });
+    }
+
+    // -----------------------------------------
+    // 3. Resolve vendor owner
+    // -----------------------------------------
+    const ownerUserId = await resolveVendorOwnerUserId(
+      req.user.vendorId || req.user.id,
+    );
+
+    if (!ownerUserId) {
+      return res.status(404).json({
+        success: false,
+        message: {
+          en: "Vendor account not found.",
+          nl: "Leveranciersaccount niet gevonden.",
+        },
+      });
+    }
+
+    // -----------------------------------------
+    // 4. Verify listing ownership
+    // -----------------------------------------
+    if (existingListing.vendor.toString() !== ownerUserId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: {
+          en: "You are not allowed to update this listing.",
+          nl: "U mag deze advertentie niet bijwerken.",
+        },
+      });
+    }
+
+    // -----------------------------------------
+    // 5. Protect system-controlled fields
+    // -----------------------------------------
+    delete updateData.vendor;
+    delete updateData.approvalStatus;
+    delete updateData.approvalHistory;
+    delete updateData.rejectionReason;
+    delete updateData.reviewedBy;
+    delete updateData.reviewedAt;
+    delete updateData.submittedForReviewAt;
+
+    // -----------------------------------------
+    // 6. Validate title if updated
+    // -----------------------------------------
     if (updateData.title !== undefined) {
       if (
         !updateData.title ||
@@ -468,13 +792,19 @@ const updateListing = async (req, res) => {
       ) {
         return res.status(400).json({
           success: false,
-          message: "Validation error",
-          errors: ["Title cannot be empty"],
+          message: {
+            en: "Title cannot be empty.",
+            nl: "De titel mag niet leeg zijn.",
+          },
         });
       }
+
       updateData.title = toMultilingualText(updateData.title);
     }
 
+    // -----------------------------------------
+    // 7. Validate description if updated
+    // -----------------------------------------
     if (updateData.description !== undefined) {
       if (
         !updateData.description ||
@@ -483,80 +813,96 @@ const updateListing = async (req, res) => {
       ) {
         return res.status(400).json({
           success: false,
-          message: "Validation error",
-          errors: ["Description cannot be empty"],
+          message: {
+            en: "Description cannot be empty.",
+            nl: "De beschrijving mag niet leeg zijn.",
+          },
         });
       }
+
       updateData.description = toMultilingualText(updateData.description);
     }
 
-    // Convert text fields to multilingual format using toMultilingualText
+    // -----------------------------------------
+    // 8. Convert subtitle
+    // -----------------------------------------
     if (updateData.subtitle) {
       updateData.subtitle = toMultilingualText(updateData.subtitle);
     }
 
-    // Handle images array
+    // -----------------------------------------
+    // 9. Handle images
+    // -----------------------------------------
     if (Array.isArray(updateData.images)) {
       updateData.images = updateData.images.filter(
-        (img) => typeof img === "string" && img.length > 0
+        (img) => typeof img === "string" && img.trim().length > 0,
       );
     } else if (updateData.images && typeof updateData.images === "string") {
       updateData.images = [updateData.images];
     }
-    // Fallback: if images is missing or empty, but media.gallery exists, copy gallery to images
+
+    // Fallback to media.gallery
     if (
       (!updateData.images || updateData.images.length === 0) &&
       updateData.media &&
       Array.isArray(updateData.media.gallery)
     ) {
       updateData.images = updateData.media.gallery.filter(
-        (img) => typeof img === "string" && img.length > 0
+        (img) => typeof img === "string" && img.trim().length > 0,
       );
     }
 
-    // Handle location coordinates - support both lat/lng and latitude/longitude formats
+    // -----------------------------------------
+    // 10. Handle location coordinates
+    // -----------------------------------------
     if (updateData.location && updateData.location.coordinates) {
       const coords = updateData.location.coordinates;
 
-      // Extract latitude and longitude, handling both formats
       let latitude =
         coords.latitude !== undefined ? coords.latitude : coords.lat;
+
       let longitude =
         coords.longitude !== undefined ? coords.longitude : coords.lng;
 
-      // Validate latitude
       if (latitude !== undefined) {
         latitude = parseFloat(latitude);
-        if (isNaN(latitude) || latitude < -90 || latitude > 90) {
+
+        if (Number.isNaN(latitude) || latitude < -90 || latitude > 90) {
           return res.status(400).json({
             success: false,
-            message: "Invalid latitude: must be a number between -90 and 90",
+            message: {
+              en: "Latitude must be between -90 and 90.",
+              nl: "De breedtegraad moet tussen -90 en 90 liggen.",
+            },
           });
         }
       }
 
-      // Validate longitude
       if (longitude !== undefined) {
         longitude = parseFloat(longitude);
-        if (isNaN(longitude) || longitude < -180 || longitude > 180) {
+
+        if (Number.isNaN(longitude) || longitude < -180 || longitude > 180) {
           return res.status(400).json({
             success: false,
-            message: "Invalid longitude: must be a number between -180 and 180",
+            message: {
+              en: "Longitude must be between -180 and 180.",
+              nl: "De lengtegraad moet tussen -180 en 180 liggen.",
+            },
           });
         }
       }
 
-      // Set the coordinates in the correct format for the model
       if (latitude !== undefined && longitude !== undefined) {
         updateData.location.coordinates = {
-          latitude: latitude,
-          longitude: longitude,
+          latitude,
+          longitude,
         };
       }
     }
-    console.log(updateData, "updateDataupdateDataupdateDataupdateData");
 
-    // --- Merge pricing updates with existing pricing ---
+    // -----------------------------------------
+    // 11. Merge pricing updates
+    // -----------------------------------------
     if (updateData.pricing) {
       const {
         type,
@@ -567,78 +913,218 @@ const updateListing = async (req, res) => {
         escrowFee,
       } = updateData.pricing;
 
-      // Get existing pricing to preserve unmodified fields
       const existingPricing = existingListing.pricing || {};
 
-      // Merge existing pricing with updates, only updating provided fields
       updateData.pricing = {
         type: type !== undefined ? type : existingPricing.type,
+
         amount: amount !== undefined ? amount : existingPricing.amount,
+
         extratimeCost:
           extratimeCost !== undefined
-            ? extratimeCost === "" ? 0 : extratimeCost
+            ? extratimeCost === ""
+              ? 0
+              : extratimeCost
             : existingPricing.extratimeCost,
+
         securityFee:
           securityFee !== undefined ? securityFee : existingPricing.securityFee,
+
         pricePerKm:
           pricePerKm !== undefined ? pricePerKm : existingPricing.pricePerKm,
+
         escrowFee:
           escrowFee !== undefined ? escrowFee : existingPricing.escrowFee,
       };
 
-      // Validate required fields after merging
       if (!updateData.pricing.type || updateData.pricing.amount === undefined) {
         return res.status(400).json({
           success: false,
-          message: "Pricing type and amount are required.",
+          message: {
+            en: "Pricing type and amount are required.",
+            nl: "Prijstype en bedrag zijn vereist.",
+          },
         });
       }
 
-      // Calculate totalPrice after merging pricing updates
-      const finalAmount = updateData.pricing.amount || 0;
-      const finalExtratimeCost = updateData.pricing.extratimeCost || 0;
-      const finalSecurityFee = updateData.pricing.securityFee || 0;
-      const finalEscrowFee = updateData.pricing.escrowFee || 0;
+      const finalAmount = Number(updateData.pricing.amount) || 0;
+
+      const finalExtratimeCost = Number(updateData.pricing.extratimeCost) || 0;
+
+      const finalSecurityFee = Number(updateData.pricing.securityFee) || 0;
+
+      const finalEscrowFee = Number(updateData.pricing.escrowFee) || 0;
+
       updateData.pricing.totalPrice =
         finalAmount + finalExtratimeCost + finalSecurityFee + finalEscrowFee;
     }
 
-    // Update the listing and trigger middleware
-    const updatedListing = await Listing.findByIdAndUpdate(id, updateData, {
-      new: true,
-      runValidators: true,
-    })
+    // -----------------------------------------
+    // 12. Get approval settings
+    // -----------------------------------------
+    const approvalSettings = await getApprovalSettings();
+
+    const now = new Date();
+
+    const previousApprovalStatus = existingListing.approvalStatus || "pending";
+
+    let nextApprovalStatus = previousApprovalStatus;
+
+    // -----------------------------------------
+    // 13. Determine next approval status
+    // -----------------------------------------
+
+    // Approval system disabled
+    if (!approvalSettings.itemApprovalRequired) {
+      nextApprovalStatus = "approved";
+    }
+
+    // Rejected listing edited/resubmitted
+    else if (previousApprovalStatus === "rejected") {
+      nextApprovalStatus = "pending";
+
+      updateData.rejectionReason = "";
+      updateData.submittedForReviewAt = now;
+      updateData.reviewedAt = null;
+      updateData.reviewedBy = null;
+    }
+
+    // Approved/live listing edited
+    else if (
+      previousApprovalStatus === "approved" &&
+      approvalSettings.editReapprovalRequired
+    ) {
+      nextApprovalStatus = "edited";
+
+      updateData.submittedForReviewAt = now;
+      updateData.reviewedAt = null;
+      updateData.reviewedBy = null;
+    }
+
+    // Approved listing + reapproval disabled
+    else if (
+      previousApprovalStatus === "approved" &&
+      !approvalSettings.editReapprovalRequired
+    ) {
+      nextApprovalStatus = "approved";
+    }
+
+    // Already waiting for review
+    else if (previousApprovalStatus === "pending") {
+      nextApprovalStatus = "pending";
+    }
+
+    // Already edited and waiting for review
+    else if (previousApprovalStatus === "edited") {
+      nextApprovalStatus = "edited";
+    }
+
+    // -----------------------------------------
+    // 14. Set system-controlled approval status
+    // -----------------------------------------
+    updateData.approvalStatus = nextApprovalStatus;
+
+    const approvalStatusChanged = previousApprovalStatus !== nextApprovalStatus;
+
+    // -----------------------------------------
+    // 15. Build MongoDB update operation
+    // -----------------------------------------
+    const updateOperation = {
+      $set: updateData,
+    };
+
+    // Only add history when approval state changes
+    if (approvalStatusChanged) {
+      updateOperation.$push = {
+        approvalHistory: {
+          status: nextApprovalStatus,
+          changedBy: ownerUserId,
+          reason: "",
+          changedAt: now,
+        },
+      };
+    }
+
+    // -----------------------------------------
+    // 16. Update listing
+    // -----------------------------------------
+    const updatedListing = await Listing.findByIdAndUpdate(
+      id,
+      updateOperation,
+      {
+        new: true,
+        runValidators: true,
+      },
+    )
       .populate(
         "vendor",
-        "_id businessName businessLocation businessDescription businessEmail businessPhone businessWebsite gallery userId"
+        "_id email contactNumber firstName lastName accountType",
       )
       .populate("category", "name icon description")
       .populate("subCategory", "name icon description");
 
-    res.json({
+    // -----------------------------------------
+    // 17. Dynamic response message
+    // -----------------------------------------
+    let message = {
+      en: "Listing updated successfully.",
+      nl: "Advertentie succesvol bijgewerkt.",
+    };
+
+    if (nextApprovalStatus === "edited" && approvalStatusChanged) {
+      message = {
+        en: "Listing updated successfully and submitted for admin review.",
+        nl: "Advertentie succesvol bijgewerkt en ingediend voor beoordeling door de beheerder.",
+      };
+    }
+
+    if (
+      previousApprovalStatus === "rejected" &&
+      nextApprovalStatus === "pending"
+    ) {
+      message = {
+        en: "Listing updated and resubmitted for admin review.",
+        nl: "Advertentie bijgewerkt en opnieuw ingediend voor beoordeling door de beheerder.",
+      };
+    }
+
+    return res.json({
       success: true,
-      message: "Listing updated successfully",
+      message,
       data: updatedListing,
     });
   } catch (error) {
     console.error("Error updating listing:", error);
+
     if (error.name === "ValidationError") {
       const errors = Object.values(error.errors).map((err) => err.message);
+
       return res.status(400).json({
         success: false,
-        message: "Validation error",
+        message: {
+          en: "Listing validation failed.",
+          nl: "Validatie van de advertentie is mislukt.",
+        },
         errors,
       });
     }
+
     if (error.name === "CastError") {
       return res.status(400).json({
         success: false,
-        message: "Invalid listing ID",
+        message: {
+          en: "Invalid listing ID or related ID.",
+          nl: "Ongeldige advertentie-ID of gerelateerde ID.",
+        },
       });
     }
-    res.status(500).json({
+
+    return res.status(500).json({
       success: false,
-      message: "Error updating listing",
+      message: {
+        en: "An unexpected error occurred while updating the listing.",
+        nl: "Er is een onverwachte fout opgetreden bij het bijwerken van de advertentie.",
+      },
       error: error.message,
     });
   }

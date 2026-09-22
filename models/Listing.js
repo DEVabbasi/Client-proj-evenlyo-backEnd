@@ -1,179 +1,259 @@
 const mongoose = require('mongoose');
 
 // Listing Schema
-const listingSchema = new mongoose.Schema({
-  quantity: {
-    type: Number,
-    default: 1,
-    min: 0,
-    description: 'Current stock quantity for this listing.'
-  },
-  title: {
-    en: { type: String, trim: true, required: true, maxlength: 100 },
-    nl: { type: String, trim: true, required: true, maxlength: 100 }
-  },
-  subtitle: {
-    en: { type: String, trim: true, },
-    nl: { type: String, trim: true, }
-
-  },
-  description: {
-    en: { type: String, trim: true, required: true, },
-    nl: { type: String, trim: true, required: true, }
-  },
-  vendor: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  category: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Category',
-    required: true
-  },
-  subCategory: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'SubCategory',
-    required: true
-  },
-  pricing: {
-    type: Object,
-    default: null
-  },
-  images: {
-    type: [String],
-    default: []
-  },
-  contact: {
-    phone: {
-      type: String,
-      required: false
-    },
-    email: {
-      type: String,
-      required: false
-    },
-    website: String,
-    socialMedia: {
-      facebook: String,
-      instagram: String,
-      twitter: String,
-      linkedin: String
-    }
-  },
-  location: {
-    userAddress: String,
-    coordinates: {
-      latitude: {
-        type: Number,
-        min: -90,
-        max: 90
-      },
-      longitude: {
-        type: Number,
-        min: -180,
-        max: 180
-      }
-    }
-  },
-  availability: {
-    isAvailable: {
-      type: Boolean,
-      default: true
-    },
-    availableDays: [{
-      type: String,
-      enum: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
-    }],
-    availableTimeSlots: [{
-      startTime: String, // "09:00"
-      endTime: String    // "17:00"
-    }],
-  },
-
-  serviceDetails: {
-    serviceType: {
-      type: String,
-      enum: ['human', 'non_human'],
-      required: true,
-      default: 'human'
-    },
-  },
-
-  status: {
-    type: String,
-    enum: ['draft', 'pending', 'active', 'inactive', 'suspended'],
-    default: 'draft'
-  },
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  rating: {
-    average: {
+const listingSchema = new mongoose.Schema(
+  {
+    quantity: {
       type: Number,
+      default: 1,
       min: 0,
-      max: 5,
-      default: 0
+      description: "Current stock quantity for this listing.",
     },
-    totalReviews: {
-      type: mongoose.Schema.Types.Double,
-      default: 0
-    }
-  },
-  reviews: [{
-    bookingId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Booking'
+    title: {
+      en: { type: String, trim: true, required: true, maxlength: 100 },
+      nl: { type: String, trim: true, required: true, maxlength: 100 },
     },
-    clientId: {
+    subtitle: {
+      en: { type: String, trim: true },
+      nl: { type: String, trim: true },
+    },
+    description: {
+      en: { type: String, trim: true, required: true },
+      nl: { type: String, trim: true, required: true },
+    },
+    vendor: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      ref: "User",
+      required: true,
+    },
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
+    },
+    subCategory: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SubCategory",
+      required: true,
+    },
+    pricing: {
+      type: Object,
+      default: null,
+    },
+    images: {
+      type: [String],
+      default: [],
+    },
+    contact: {
+      phone: {
+        type: String,
+        required: false,
+      },
+      email: {
+        type: String,
+        required: false,
+      },
+      website: String,
+      socialMedia: {
+        facebook: String,
+        instagram: String,
+        twitter: String,
+        linkedin: String,
+      },
+    },
+    location: {
+      userAddress: String,
+      coordinates: {
+        latitude: {
+          type: Number,
+          min: -90,
+          max: 90,
+        },
+        longitude: {
+          type: Number,
+          min: -180,
+          max: 180,
+        },
+      },
+    },
+    availability: {
+      isAvailable: {
+        type: Boolean,
+        default: true,
+      },
+      availableDays: [
+        {
+          type: String,
+          enum: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+        },
+      ],
+      availableTimeSlots: [
+        {
+          startTime: String, // "09:00"
+          endTime: String, // "17:00"
+        },
+      ],
+    },
+
+    serviceDetails: {
+      serviceType: {
+        type: String,
+        enum: ["human", "non_human"],
+        required: true,
+        default: "human",
+      },
+    },
+
+    status: {
+      type: String,
+      enum: ["draft", "pending", "active", "inactive", "suspended"],
+      default: "draft",
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
     rating: {
+      average: {
+        type: Number,
+        min: 0,
+        max: 5,
+        default: 0,
+      },
+      totalReviews: {
+        type: mongoose.Schema.Types.Double,
+        default: 0,
+      },
+    },
+    reviews: [
+      {
+        bookingId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Booking",
+        },
+        clientId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        rating: {
+          type: Number,
+          min: 1,
+          max: 5,
+          required: true,
+        },
+        review: {
+          en: String,
+          nl: String,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    bookings: {
+      total: {
+        type: Number,
+        default: 0,
+      },
+      completed: {
+        type: Number,
+        default: 0,
+      },
+    },
+    sortOrder: {
       type: Number,
-      min: 1,
-      max: 5,
-      required: true
+      default: 0,
     },
-    review: {
-      en: String,
-      nl: String
+    popular: {
+      type: Boolean,
+      default: false,
+      description:
+        "Indicates if the listing is popular based on certain criteria (e.g., high bookings, high ratings, etc.)",
     },
-    createdAt: {
+
+    approvalStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected", "edited"],
+      default: "pending",
+    },
+
+    rejectionReason: {
+      en: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+      nl: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+    },
+
+    submittedForReviewAt: {
       type: Date,
-      default: Date.now
-    }
-  }],
-  bookings: {
-    total: {
-      type: Number,
-      default: 0
+      default: null,
     },
-    completed: {
-      type: Number,
-      default: 0
-    }
+
+    reviewedAt: {
+      type: Date,
+      default: null,
+    },
+
+    reviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    approvalHistory: [
+      {
+        status: {
+          type: String,
+          enum: ["pending", "approved", "rejected", "edited"],
+          required: true,
+        },
+
+        reason: {
+          en: {
+            type: String,
+            trim: true,
+            default: "",
+          },
+          nl: {
+            type: String,
+            trim: true,
+            default: "",
+          },
+        },
+
+        changedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          default: null,
+        },
+
+        changedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
-  sortOrder: {
-    type: Number,
-    default: 0
-  },
-  popular: {
-    type: Boolean,
-    default: false,
-    description: 'Indicates if the listing is popular based on certain criteria (e.g., high bookings, high ratings, etc.)'
-  },
-},
   {
     timestamps: true,
     toJSON: { virtuals: true },
-    toObject: { virtuals: true }
-  });
+    toObject: { virtuals: true },
+  },
+);
 
 
 
-
+listingSchema.index({
+  approvalStatus: 1,
+  isActive: 1,
+});
 // Pre-save middleware
 // listingSchema.pre('save', function (next) {
 //   // Update the sort order based on rating and bookings if not manually set

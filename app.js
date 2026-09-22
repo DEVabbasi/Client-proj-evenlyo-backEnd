@@ -59,8 +59,8 @@ const allowedOrigins = [
   "https://www.staging.evenlyo.nl",
   "https://staging.evenlyo.nl",
   "https://www.staging.vendor.evenlyo.nl",
-  'https://staging.leverancier.evenlyo.nl',
-  'https://staging.admin.evenlyo.nl',
+  "https://staging.leverancier.evenlyo.nl",
+  "https://staging.admin.evenlyo.nl",
   "https://www.staging.admin.evenlyo.nl",
   "https://evenlyo.nl",
   "https://www.evenlyo.nl",
@@ -184,6 +184,7 @@ app.use("/api/admin/settings", require("./routes/admin/settings"));
 app.use("/api/admin/blogs", require("./routes/admin/blog"));
 app.use("/api/admin/faqs", require("./routes/admin/faqs"));
 app.use("/api/admin/payments", require("./routes/admin/Payment"));
+app.use("/api/admin", require("./routes/admin/adminApprovalRoutes"))
 
 // Chat routes
 app.use("/api/messages", require("./routes/messageRoutes"));
@@ -194,6 +195,7 @@ app.use("/api", require("./routes/admin/knowledgeBase"));
 
 app.use("/api", require("./routes/admin/chatbotTickets"));
 
+app.use("/api/vendor/", require("./routes/vendor/onboardingBannerRoute"));
 
 
 
@@ -213,8 +215,6 @@ app.use((err, req, res, next) => {
     timestamp: new Date().toISOString(),
   });
 });
-
-
 
 // async function createCategory({
 //   name,
@@ -266,9 +266,9 @@ async function addCreatedByIdToUsers() {
       {
         $set: {
           webFcm: "",
-          appFcm: ""
-        }
-      }
+          appFcm: "",
+        },
+      },
     );
 
     console.log("Updated Bookings:", result.modifiedCount);
@@ -280,5 +280,23 @@ async function addCreatedByIdToUsers() {
 }
 
 // addCreatedByIdToUsers()
+
+// const userResult = await User.updateMany(
+//   {
+//     userType: "vendor",
+//     approvalStatus: { $exists: false },
+//   },
+//   {
+//     $set: {
+//       approvalStatus: "approved",
+//     },
+//   },
+// );
+
+// console.log(`Existing vendor users migrated: ${userResult.modifiedCount}`);
+
+
+
+
 
 module.exports = app;

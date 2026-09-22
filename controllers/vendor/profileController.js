@@ -316,14 +316,42 @@ const getMainCategoriesbyVendorId = async (req, res) => {
   try {
     const { vendorId } = req.params;
 
-    const data = await Vendor.find({ userId: vendorId })
-      .select("mainCategories subCategories")
-      .populate("mainCategories", "name") // only get category name
-      .populate("subCategories", "name"); // only get category name
+    if (!vendorId) {
+      return res.status(400).json({
+        success: false,
+        message: {
+          en: "Vendor ID is required.",
+          nl: "Leveranciers-ID is vereist.",
+        },
+      });
+    }
 
-    successHelper(res, data, "categories fetch successfully");
+    const data = await Vendor.find({
+      userId: vendorId,
+    })
+      .select("mainCategories subCategories")
+      .populate({
+        path: "mainCategories",
+        select: "name",
+      })
+      .populate({
+        path: "subCategories",
+        select: "name mainCategory",
+      });
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: {
+          en: "Vendor categories not found.",
+          nl: "Leverancierscategorieën niet gevonden.",
+        },
+      });
+    }
+
+    return successHelper(res, data, "categories fetch successfully");
   } catch (error) {
-    errorHelper(res, error);
+    return errorHelper(res, error);
   }
 };
 
