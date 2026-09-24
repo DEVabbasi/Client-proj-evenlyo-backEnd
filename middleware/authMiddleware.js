@@ -1,8 +1,8 @@
-const User = require('../models/User');
-const Vendor = require('../models/Vendor');
-const Admin = require('../models/Admin');
-const AdminEmployee = require("../models/AdminEmployee")
-const { verifyAccessToken } = require('../utils/jwtUtils');
+const User = require("../models/User");
+const Vendor = require("../models/Vendor");
+const Admin = require("../models/Admin");
+const AdminEmployee = require("../models/AdminEmployee");
+const { verifyAccessToken } = require("../utils/jwtUtils");
 
 // Session removed: configuration middleware no longer needed
 
@@ -12,24 +12,29 @@ const requireAuth = async (req, res, next) => {
     let tokenUser = null;
 
     // 1. Try Authorization Bearer token first
-    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+    const authHeader =
+      req.headers["authorization"] || req.headers["Authorization"];
     console.log(authHeader, "authHeaderauthHeaderauthHeader");
 
-    if (authHeader && authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.substring(7);
       console.log(token, "tokentokentokentoken");
       try {
         const decoded = verifyAccessToken(token);
-        console.log(decoded,"decodeddecodeddecodeddecoded");
+        console.log(decoded, "decodeddecodeddecodeddecoded");
         tokenUser = decoded; // should contain id, userType, etc.
       } catch (err) {
-        return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+        return res
+          .status(401)
+          .json({ success: false, message: "Invalid or expired token" });
       }
     }
 
     // If no token user -> unauthorized (sessions removed)
     if (!tokenUser) {
-      return res.status(401).json({ success: false, message: 'Authentication required' });
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
     }
     const baseUser = tokenUser;
     console.log(baseUser, "tokenUsertokenUsertokenUser");
@@ -38,55 +43,77 @@ const requireAuth = async (req, res, next) => {
     // Verify user still exists in database. Accept Employee/AdminEmployee tokens too.
     let user = await User.findById(baseUser.id);
     if (user && !user.isActive) {
-      return res.status(401).json({ success: false, message: 'User not found or deactivated' });
+      return res
+        .status(401)
+        .json({ success: false, message: "User not found or deactivated" });
     }
 
     // If User not found, try Employee or AdminEmployee depending on userType in token
     if (!user) {
       try {
-        if (baseUser.userType === 'vendor') {
-          const Employee = require('../models/Employee');
-          const emp = await Employee.findById(baseUser.id).populate('designation vendor');
-          if (!emp || emp.status !== 'active') {
-            return res.status(401).json({ success: false, message: 'User not found or deactivated' });
+        if (baseUser.userType === "vendor") {
+          const Employee = require("../models/Employee");
+          const emp = await Employee.findById(baseUser.id).populate(
+            "designation vendor",
+          );
+          if (!emp || emp.status !== "active") {
+            return res
+              .status(401)
+              .json({
+                success: false,
+                message: "User not found or deactivated",
+              });
           }
           req.user = {
             id: emp._id ? emp._id : emp.id,
             email: emp.email,
             firstName: emp.firstName,
             lastName: emp.lastName,
-            userType: 'vendor',
-            vendorId: emp.vendor && emp.vendor._id ? emp.vendor._id : emp.vendor,
+            userType: "vendor",
+            vendorId:
+              emp.vendor && emp.vendor._id ? emp.vendor._id : emp.vendor,
             designation: emp.designation ? emp.designation.name : undefined,
             _isEmployee: true,
             ...baseUser,
-            authSource: 'jwt'
+            authSource: "jwt",
           };
           return next();
         }
 
-        if (baseUser.userType === 'admin') {
-          const AdminEmployee = require('../models/AdminEmployee');
-          const adm = await AdminEmployee.findById(baseUser.id).populate('designation');
-          if (!adm || adm.status !== 'active') {
-            return res.status(401).json({ success: false, message: 'User not found or deactivated' });
+        if (baseUser.userType === "admin") {
+          const AdminEmployee = require("../models/AdminEmployee");
+          const adm = await AdminEmployee.findById(baseUser.id).populate(
+            "designation",
+          );
+          if (!adm || adm.status !== "active") {
+            return res
+              .status(401)
+              .json({
+                success: false,
+                message: "User not found or deactivated",
+              });
           }
           req.user = {
             id: adm._id ? adm._id : adm.id,
             email: adm.email,
             firstName: adm.firstName,
             lastName: adm.lastName,
-            userType: 'admin',
+            userType: "admin",
             designation: adm.designation ? adm.designation.name : undefined,
             _isAdminEmployee: true,
             ...baseUser,
-            authSource: 'jwt'
+            authSource: "jwt",
           };
           return next();
         }
       } catch (e) {
-        console.warn('Error while trying employee/adminemployee lookup:', e && e.message);
-        return res.status(401).json({ success: false, message: 'User not found or deactivated' });
+        console.warn(
+          "Error while trying employee/adminemployee lookup:",
+          e && e.message,
+        );
+        return res
+          .status(401)
+          .json({ success: false, message: "User not found or deactivated" });
       }
     }
 
@@ -94,26 +121,26 @@ const requireAuth = async (req, res, next) => {
     req.user = {
       id: user?._id ? user?._id : user?.id,
       email: user.email,
-      firstName: user.firstName,  
+      firstName: user.firstName,
       lastName: user.lastName,
       userType: user.userType,
       ...baseUser,
-      authSource: 'jwt'
+      authSource: "jwt",
     };
 
     // Ensure vendorId present if vendor user
-    if (req.user.userType === 'vendor') {
+    if (req.user.userType === "vendor") {
       if (!req.user.vendorId) {
         // attempt lookup
-        const vendor = await Vendor.findOne({ userId: user._id }, '_id');
+        const vendor = await Vendor.findOne({ userId: user._id }, "_id");
         if (vendor) req.user.vendorId = vendor._id;
       }
     }
 
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
-    res.status(500).json({ success: false, message: 'Authentication error' });
+    console.error("Auth middleware error:", error);
+    res.status(500).json({ success: false, message: "Authentication error" });
   }
 };
 
@@ -124,9 +151,10 @@ const requireAdmin = async (req, res, next) => {
     let tokenUser = null;
 
     // 1. Try Authorization Bearer token first
-    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+    const authHeader =
+      req.headers["authorization"] || req.headers["Authorization"];
 
-    if (authHeader && authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.substring(7);
       console.log(token, "tokentokentokentoken");
       try {
@@ -135,13 +163,17 @@ const requireAdmin = async (req, res, next) => {
 
         tokenUser = decoded; // should contain id, userType, etc.
       } catch (err) {
-        return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+        return res
+          .status(401)
+          .json({ success: false, message: "Invalid or expired token" });
       }
     }
 
     // If no token user -> unauthorized (sessions removed)
     if (!tokenUser) {
-      return res.status(401).json({ success: false, message: 'Authentication required' });
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
     }
     const baseUser = tokenUser;
     console.log(baseUser, "tokenUsertokenUsertokenUser");
@@ -152,13 +184,30 @@ const requireAdmin = async (req, res, next) => {
     console.log(user, "useruseruseruser");
 
     if (user && user.status != "active") {
-      return res.status(401).json({ success: false, message: 'User not found or deactivated' });
+      return res
+        .status(401)
+        .json({ success: false, message: "User not found or deactivated" });
     }
     req.user = user || baseUser;
+
+    // --- CRITICAL SECURITY FIX: Verify user is actually an admin ---
+    // Regular admin users carry userType === "admin".
+    // AdminEmployee documents carry role (default "Admin") but no userType.
+    const isAdmin =
+      req.user.userType === "admin" ||
+      (req.user.role || "") === "Admin";
+
+    if (!isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Admin access required",
+      });
+    }
+
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
-    res.status(500).json({ success: false, message: 'Authentication error' });
+    console.error("Auth middleware error:", error);
+    res.status(500).json({ success: false, message: "Authentication error" });
   }
 };
 
@@ -167,14 +216,14 @@ const requireRole = (allowedRoles) => {
     if (!req.user) {
       return res.status(401).json({
         success: false,
-        message: 'Authentication required'
+        message: "Authentication required",
       });
     }
 
     if (!allowedRoles.includes(req.user.userType)) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied. Insufficient permissions.'
+        message: "Access denied. Insufficient permissions.",
       });
     }
 
@@ -183,8 +232,8 @@ const requireRole = (allowedRoles) => {
 };
 
 // --- Specific Role Middleware ---
-const requireClient = requireRole(['client']);
-const requireVendor = requireRole(['vendor']);
+const requireClient = requireRole(["client"]);
+const requireVendor = requireRole(["vendor"]);
 
 // --- Permission-based Middleware ---
 const requirePermission = (requiredPermissions) => {
@@ -193,15 +242,15 @@ const requirePermission = (requiredPermissions) => {
       if (!req.user) {
         return res.status(401).json({
           success: false,
-          message: 'Authentication required'
+          message: "Authentication required",
         });
       }
 
       // Only admins have permissions
-      if (req.user.userType !== 'admin') {
+      if (req.user.userType || req.user.role !== "admin") {
         return res.status(403).json({
           success: false,
-          message: 'Admin access required'
+          message: "Admin access required",
         });
       }
 
@@ -211,62 +260,71 @@ const requirePermission = (requiredPermissions) => {
       if (admin) permissions = admin.permissions || [];
 
       // Check if user has required permissions
-      const hasPermission = requiredPermissions.every(permission =>
-        permissions.includes(permission)
+      const hasPermission = requiredPermissions.every((permission) =>
+        permissions.includes(permission),
       );
 
       if (!hasPermission) {
         return res.status(403).json({
           success: false,
-          message: 'Insufficient permissions'
+          message: "Insufficient permissions",
         });
       }
 
       next();
     } catch (error) {
-      console.error('Permission middleware error:', error);
+      console.error("Permission middleware error:", error);
       res.status(500).json({
         success: false,
-        message: 'Permission check error'
+        message: "Permission check error",
       });
     }
   };
 };
 
-
 // --- Admin Status Check Middleware ---
 const requireActiveAdmin = async (req, res, next) => {
   try {
-    if (!req.user || req.user.userType !== 'admin') {
+    if (req.user.role || !req.user || req.user.userType !== "admin") {
+      console.log(
+        req.user,
+        "req.user.rolereq.user.rolereq.user.rolereq.user.rolereq.user.rolereq.user.rolereq.user.rolereq.user.rolereq.user.role",
+      );
       return res.status(403).json({
         success: false,
-        message: 'Admin access required'
+        message: "Admin access required",
       });
     }
 
     // Skip database check for super admin (env-based login)
-    if (req.user.id === 'superadmin') {
+    if (req.user.id === "superadmin") {
       // Super admin is always considered active with full permissions
       req.admin = {
-        _id: 'superadmin',
-        userId: 'superadmin',
-        role: 'super_admin',
-        permissions: ['*'],
+        _id: "superadmin",
+        userId: "superadmin",
+        role: "super_admin",
+        permissions: ["*"],
         isActive: true,
-        department: 'Administration'
+        department: "Administration",
       };
       return next();
     }
 
     // For admin employees, check AdminEmployee record
     if (req.user._isAdminEmployee) {
-      const AdminEmployee = require('../models/AdminEmployee');
-      const adm = await AdminEmployee.findById(req.user.id).populate('designation');
+      const AdminEmployee = require("../models/AdminEmployee");
+      const adm = await AdminEmployee.findById(req.user.id).populate(
+        "designation",
+      );
       if (!adm) {
-        return res.status(404).json({ success: false, message: 'Admin profile not found' });
+        return res
+          .status(404)
+          .json({ success: false, message: "Admin profile not found" });
       }
-      if (adm.status !== 'active') {
-        return res.status(403).json({ success: false, message: 'Admin account is deactivated' });
+      if (adm.status !== "active") {
+        return res
+          .status(403)
+          .json({ success: false, message: "Admin account is deactivated" });
       }
       req.admin = adm;
       return next();
@@ -277,14 +335,14 @@ const requireActiveAdmin = async (req, res, next) => {
     if (!admin) {
       return res.status(404).json({
         success: false,
-        message: 'Admin profile not found'
+        message: "Admin profile not found",
       });
     }
 
     if (!admin.isActive) {
       return res.status(403).json({
         success: false,
-        message: 'Admin account is deactivated'
+        message: "Admin account is deactivated",
       });
     }
 
@@ -292,10 +350,10 @@ const requireActiveAdmin = async (req, res, next) => {
     req.admin = admin;
     next();
   } catch (error) {
-    console.error('Admin status check error:', error);
+    console.error("Admin status check error:", error);
     res.status(500).json({
       success: false,
-      message: 'Admin status check error'
+      message: "Admin status check error",
     });
   }
 };
@@ -307,8 +365,9 @@ const adminRoutes = [requireAuth, requireAdmin, requireActiveAdmin];
 
 // Optional auth now only attempts JWT if provided
 const optionalAuth = async (req, res, next) => {
-  const authHeader = req.headers['authorization'] || req.headers['Authorization'];
-  if (authHeader && authHeader.startsWith('Bearer ')) {
+  const authHeader =
+    req.headers["authorization"] || req.headers["Authorization"];
+  if (authHeader && authHeader.startsWith("Bearer ")) {
     try {
       const decoded = verifyAccessToken(authHeader.substring(7));
       const user = await User.findById(decoded.id);
@@ -320,10 +379,12 @@ const optionalAuth = async (req, res, next) => {
           lastName: user.lastName,
           userType: user.userType,
           ...decoded,
-          authSource: 'jwt'
+          authSource: "jwt",
         };
       }
-    } catch (_) { /* ignore */ }
+    } catch (_) {
+      /* ignore */
+    }
   }
   next();
 };
@@ -334,7 +395,7 @@ const rateLimit = (maxRequests = 100, windowMs = 15 * 60 * 1000) => {
 
   return (req, res, next) => {
     // More lenient rate limiting in development
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       maxRequests = maxRequests * 5; // 5x more lenient in development
     }
 
@@ -344,7 +405,9 @@ const rateLimit = (maxRequests = 100, windowMs = 15 * 60 * 1000) => {
 
     // Clean old entries
     if (requests.has(ip)) {
-      const userRequests = requests.get(ip).filter(time => time > windowStart);
+      const userRequests = requests
+        .get(ip)
+        .filter((time) => time > windowStart);
       requests.set(ip, userRequests);
     } else {
       requests.set(ip, []);
@@ -355,7 +418,7 @@ const rateLimit = (maxRequests = 100, windowMs = 15 * 60 * 1000) => {
     if (userRequests.length >= maxRequests) {
       return res.status(429).json({
         success: false,
-        message: 'Too many requests. Please try again later.'
+        message: "Too many requests. Please try again later.",
       });
     }
 
@@ -367,20 +430,23 @@ const rateLimit = (maxRequests = 100, windowMs = 15 * 60 * 1000) => {
 // --- CSRF Protection Helper ---
 const csrfProtection = (req, res, next) => {
   // Skip CSRF check in development/testing environment
-  if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+  if (
+    process.env.NODE_ENV === "development" ||
+    process.env.NODE_ENV === "test"
+  ) {
     return next();
   }
 
   // Basic CSRF check - in production, use a proper CSRF library
-  const origin = req.get('Origin');
-  const referer = req.get('Referer');
+  const origin = req.get("Origin");
+  const referer = req.get("Referer");
 
   // Allow requests from same origin or trusted origins
   const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:5000',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:5000'
+    "http://localhost:3000",
+    "http://localhost:5000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5000",
   ];
 
   // Allow requests with no origin (like Postman, curl, etc.)
@@ -394,11 +460,15 @@ const csrfProtection = (req, res, next) => {
   }
 
   // For POST/PUT/DELETE requests, require either origin or referer
-  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE') {
+  if (
+    req.method === "POST" ||
+    req.method === "PUT" ||
+    req.method === "DELETE"
+  ) {
     if (!origin && !referer) {
       return res.status(403).json({
         success: false,
-        message: 'CSRF protection: Invalid request origin'
+        message: "CSRF protection: Invalid request origin",
       });
     }
   }
@@ -430,5 +500,5 @@ module.exports = {
   // Route combinations
   clientRoutes,
   vendorRoutes,
-  adminRoutes
+  adminRoutes,
 };

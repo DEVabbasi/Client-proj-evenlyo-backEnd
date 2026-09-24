@@ -5,6 +5,7 @@ const Listing = require("../../models/Listing");
 
 const { getApprovalSettings } = require("../../utils/getApprovalSettings");
 const { toMultilingualText } = require("../../utils/textUtils");
+const approvalNotifications = require("../../utils/approvalNotifications");
 const Settings = require("../../models/Settings");
 
 const getAdminApprovalVendors = async (req, res) => {
@@ -583,10 +584,18 @@ const approveVendor = async (req, res) => {
       en: "",
       nl: "",
     };
+    user.submittedForReviewAt = null;
     user.reviewedAt = now;
     user.reviewedBy = req.user.id;
 
     await user.save();
+
+    // Notify vendor that the account was approved (no email: the approval
+    // email is reserved for the first-listing activation flow).
+    await approvalNotifications.notifyVendorApproved({
+      vendorUser: user,
+      vendorProfile: vendor,
+    });
 
     return res.status(200).json({
       success: true,
@@ -739,6 +748,13 @@ const rejectVendor = async (req, res) => {
 
     await user.save();
 
+    // Notify vendor about the rejection (with reason).
+    await approvalNotifications.notifyVendorRejected({
+      vendorUser: user,
+      vendorProfile: vendor,
+      reason: multilingualReason,
+    });
+
     // -----------------------------------------
     // 8. Response
     // -----------------------------------------
@@ -788,6 +804,7 @@ const getAdminApprovalListings = async (req, res) => {
       status = "all",
       search = "",
       vendorId,
+      vendorName = "",
       categoryId,
       subCategoryId,
       sortBy = "submittedForReviewAt",
@@ -835,6 +852,16 @@ const getAdminApprovalListings = async (req, res) => {
       query.approvalStatus = status;
     }
 
+    /*
+     * Vendor filtering. Supports:
+     *   vendorId   -> Vendor._id (resolved to the Vendor's User id)
+     *   vendorName -> free-text match on Vendor.businessName
+     *
+     * Both are combined with AND. Listing.vendor references User._id,
+     * so every filter is resolved to a set of User ids first.
+     */
+    let vendorUserIds = null;
+
     if (vendorId) {
       if (!mongoose.Types.ObjectId.isValid(vendorId)) {
         return res.status(400).json({
@@ -847,13 +874,6 @@ const getAdminApprovalListings = async (req, res) => {
         });
       }
 
-      /*
-       * IMPORTANT:
-       * Frontend/Admin may send Vendor._id.
-       * Listing.vendor references User._id.
-       *
-       * Therefore resolve Vendor -> User before filtering listings.
-       */
       const vendor = await Vendor.findById(vendorId)
         .select("userId")
         .lean();
@@ -869,7 +889,40 @@ const getAdminApprovalListings = async (req, res) => {
         });
       }
 
-      query.vendor = vendor.userId;
+      vendorUserIds = [vendor.userId];
+    }
+
+    if (vendorName.trim()) {
+      const matchingVendors = await Vendor.find({
+        businessName: {
+          $regex: vendorName.trim(),
+          $options: "i",
+        },
+      })
+        .select("userId")
+        .lean();
+
+      const nameMatchUserIds = matchingVendors
+        .map((vendor) => vendor.userId)
+        .filter(Boolean);
+
+      if (vendorUserIds === null) {
+        vendorUserIds = nameMatchUserIds;
+      } else {
+        const existing = new Set(
+          vendorUserIds.map((id) => id.toString()),
+        );
+
+        vendorUserIds = nameMatchUserIds.filter((id) =>
+          existing.has(id.toString()),
+        );
+      }
+    }
+
+    if (vendorUserIds !== null) {
+      query.vendor = {
+        $in: vendorUserIds,
+      };
     }
 
     if (categoryId) {
@@ -1068,13 +1121,13 @@ const getAdminApprovalListings = async (req, res) => {
     // 6. Resolve Vendor profiles
     // -----------------------------------------
 
-    const vendorUserIds = listings
+    const listingVendorUserIds = listings
       .map((listing) => listing.vendor?._id)
       .filter(Boolean);
 
     const vendorProfiles = await Vendor.find({
       userId: {
-        $in: vendorUserIds,
+        $in: listingVendorUserIds,
       },
     })
       .select(`
@@ -1210,6 +1263,7 @@ const getAdminApprovalListings = async (req, res) => {
         status,
         search: searchValue,
         vendorId: vendorId || "",
+        vendorName: vendorName.trim() || "",
         categoryId: categoryId || "",
         subCategoryId: subCategoryId || "",
         sortBy: finalSortBy,
@@ -1618,6 +1672,51 @@ const approveListing = async (req, res) => {
 
     await listing.save();
 
+    // -----------------------------------------
+    // Vendor activation through first-listing approval.
+    // When vendor review is enabled and the vendor account is still
+    // pending, approving the (first) listing also activates the vendor.
+    // -----------------------------------------
+    let vendorJustActivated = false;
+    let vendorUser = await User.findOne({
+      _id: listing.vendor,
+      userType: "vendor",
+    });
+
+    if (
+      approvalSettings.vendorActivationRequired &&
+      vendorUser &&
+      vendorUser.approvalStatus !== "approved"
+    ) {
+      vendorUser.approvalStatus = "approved";
+      vendorUser.approvalRejectionReason = {
+        en: "",
+        nl: "",
+      };
+      vendorUser.submittedForReviewAt = null;
+      vendorUser.reviewedAt = now;
+      vendorUser.reviewedBy = req.user.id;
+
+      await vendorUser.save();
+
+      vendorJustActivated = true;
+    }
+
+    const approveVendorProfile = await Vendor.findOne({
+      userId: listing.vendor,
+    })
+      .select("businessName")
+      .lean();
+
+    // Vendor notification. The Dutch approval email is only sent when the
+    // vendor account was just activated through this approval.
+    await approvalNotifications.notifyVendorListingApproved({
+      vendorUser,
+      vendorProfile: approveVendorProfile,
+      listing,
+      vendorJustActivated,
+    });
+
     const populatedListing = await Listing.findById(listing._id)
       .populate("vendor", "_id email contactNumber accountType")
       .populate("category", "name icon description")
@@ -1764,6 +1863,27 @@ const rejectListing = async (req, res) => {
     await listing.save();
 
     // -----------------------------------------
+    // Notify vendor about the rejection (with reason).
+    // -----------------------------------------
+    const rejectVendorUser = await User.findOne({
+      _id: listing.vendor,
+      userType: "vendor",
+    });
+
+    const rejectVendorProfile = await Vendor.findOne({
+      userId: listing.vendor,
+    })
+      .select("businessName")
+      .lean();
+
+    await approvalNotifications.notifyVendorListingRejected({
+      vendorUser: rejectVendorUser,
+      vendorProfile: rejectVendorProfile,
+      listing,
+      reason: finalReason,
+    });
+
+    // -----------------------------------------
     // 9. Populate response
     // -----------------------------------------
     const populatedListing = await Listing.findById(listing._id)
@@ -1821,7 +1941,9 @@ const getAdminApprovalSettings = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: approvalSettings,
+      data: {
+        approvalSettings,
+      },
     });
   } catch (error) {
     console.error("Error fetching approval settings:", error);
@@ -1841,8 +1963,6 @@ const updateAdminApprovalSettings = async (req, res) => {
   try {
     const allowedFields = [
       "itemApprovalRequired",
-      "editReapprovalRequired",
-      "rejectionFlowEnabled",
       "vendorActivationRequired",
     ];
 
@@ -1851,9 +1971,13 @@ const updateAdminApprovalSettings = async (req, res) => {
     // -----------------------------------------
     // 1. Validate input
     // -----------------------------------------
+    // Accept both nested (`{ approvalSettings: { vendorActivationRequired: true } }`)
+    // and flat (`{ vendorActivationRequired: true }`) payloads.
+    const requestSettings = req.body.approvalSettings || req.body;
+
     for (const field of allowedFields) {
-      if (req.body[field] !== undefined) {
-        if (typeof req.body[field] !== "boolean") {
+      if (requestSettings[field] !== undefined) {
+        if (typeof requestSettings[field] !== "boolean") {
           return res.status(400).json({
             success: false,
             message: {
@@ -1863,7 +1987,7 @@ const updateAdminApprovalSettings = async (req, res) => {
           });
         }
 
-        updates[`approvalSettings.${field}`] = req.body[field];
+        updates[`approvalSettings.${field}`] = requestSettings[field];
       }
     }
 
@@ -1912,7 +2036,9 @@ const updateAdminApprovalSettings = async (req, res) => {
         nl: "Goedkeuringsinstellingen succesvol bijgewerkt.",
       },
 
-      data: updatedSettings.approvalSettings,
+      data: {
+        approvalSettings: updatedSettings.approvalSettings,
+      },
     });
   } catch (error) {
     console.error("Error updating approval settings:", error);

@@ -53,6 +53,8 @@ build/
 # Temporary files
 .tmp/
 temp/
+.kilo
+.fallow
 
 # Firebase service account key
 serviceAccountKey.json
@@ -61,3 +63,9 @@ package-lock.json
 branch_structure.json
 temp_auto_push.bat
 temp_interactive_push.bat
+
+# Tests (kept local only, not deployed)
+tests/
+jest.config.js
+
+

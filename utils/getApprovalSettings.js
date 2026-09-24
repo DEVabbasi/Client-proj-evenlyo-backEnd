@@ -2,8 +2,6 @@ const Settings = require("../models/Settings");
 
 const DEFAULT_APPROVAL_SETTINGS = {
   itemApprovalRequired: true,
-  editReapprovalRequired: true,
-  rejectionFlowEnabled: true,
   vendorActivationRequired: true,
 };
 

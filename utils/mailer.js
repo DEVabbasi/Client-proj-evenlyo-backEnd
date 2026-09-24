@@ -791,6 +791,107 @@ const sendSecurityRefundEmail = async ({ email, name, booking, amount }) => {
   await sendEmail(email, subject, html);
 };
 
+// ---------------------------------------------------------------------
+// Vendor approval emails (approval flow)
+// ---------------------------------------------------------------------
+
+const getListingTitle = (listing, lang = "nl") => {
+  if (!listing) return "";
+  if (typeof listing.title === "string") return listing.title;
+  return listing.title?.[lang] || listing.title?.en || "";
+};
+
+const getVendorGreeting = (vendorUser, vendorProfile) => {
+  const firstName = vendorUser?.firstName;
+  if (firstName) return firstName;
+  return vendorProfile?.businessName || "Leverancier";
+};
+
+// To Admin(s): a vendor submitted his first listing and is waiting for review.
+// `to` accepts a single email or an array of admin emails. Falls back to the
+// configured contact inbox when no explicit recipients are provided.
+const sendVendorReviewEmail = async ({ vendorUser, vendorProfile, listing, to }) => {
+  const businessName =
+    vendorProfile?.businessName || getVendorGreeting(vendorUser, vendorProfile);
+  const vendorEmail = vendorUser?.email || vendorProfile?.businessEmail || "";
+  const listingTitle = getListingTitle(listing, "nl");
+
+  const recipients = to || process.env.CONTACT_EMAIL || process.env.EMAIL_USER;
+  const recipientsSummary = Array.isArray(recipients)
+    ? recipients.join(", ")
+    : recipients;
+
+  const mailOptions = {
+    from: `"Evenlyo" <${process.env.EMAIL_USER}>`,
+    to: recipients,
+    subject: `Nieuwe leverancier ter goedkeuring – ${businessName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; background-color: #f4f6f8;">
+        <div style="background-color: #ffffff; padding: 25px; border-radius: 8px;">
+          <h2 style="color: #1976d2; margin-top: 0;">Nieuwe leverancier ter goedkeuring</h2>
+          <p>Beste admin,</p>
+          <p>De volgende leverancier heeft zijn/haar eerste advertentie ingediend en wacht nu op beoordeling:</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+          <p><strong>Leverancier:</strong> ${businessName}</p>
+          <p><strong>E-mail:</strong> ${vendorEmail}</p>
+          <p><strong>Eerste advertentie:</strong> ${listingTitle}</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+          <p>Bekijk en beoordeel deze leverancier in het admin dashboard.</p>
+          <p style="color: #888; font-size: 12px; margin-top: 30px;">
+            Dit is een automatische melding van het Evenlyo systeem.
+          </p>
+        </div>
+      </div>
+    `,
+    text: `Nieuwe leverancier ter goedkeuring\n\nBeste admin,\n\nDe volgende leverancier heeft zijn/haar eerste advertentie ingediend en wacht nu op beoordeling:\n\nLeverancier: ${businessName}\nE-mail: ${vendorEmail}\nEerste advertentie: ${listingTitle}\n\nBekijk en beoordeel deze leverancier in het admin dashboard.\n\nMet vriendelijke groet,\nEvenlyo`,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(
+      `📧 Vendor review email sent to ${recipientsSummary} (${info.messageId})`,
+    );
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error("❌ Error sending vendor review email:", error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+// To Vendor: account activated through first-listing approval
+const sendVendorApprovalEmail = async ({ vendorUser, vendorProfile, listing }) => {
+  const to = vendorUser?.email || vendorProfile?.businessEmail;
+  const name = getVendorGreeting(vendorUser, vendorProfile);
+  const listingTitle = getListingTitle(listing, "nl");
+
+  const mailOptions = {
+    from: `"Evenlyo" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: "Evenlyo – Uw account is goedgekeurd",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; background-color: #f4f6f8;">
+        <div style="background-color: #ffffff; padding: 25px; border-radius: 8px;">
+          <h2 style="color: #2e7d32; margin-top: 0;">Goed nieuws!</h2>
+          <p>Beste ${name},</p>
+          <p>Uw leveranciersaccount is goedgekeurd en uw eerste advertentie <strong>"${listingTitle}"</strong> is nu live.</p>
+          <p>Klanten kunnen uw diensten nu bekijken en boeken via Evenlyo.</p>
+          <p style="color: #666; font-size: 14px; margin-top: 20px;">Met vriendelijke groet,<br/>Evenlyo Team</p>
+        </div>
+      </div>
+    `,
+    text: `Goed nieuws!\n\nBeste ${name},\n\nUw leveranciersaccount is goedgekeurd en uw eerste advertentie "${listingTitle}" is nu live.\n\nKlanten kunnen uw diensten nu bekijken en boeken via Evenlyo.\n\nMet vriendelijke groet,\nEvenlyo Team`,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("📧 Vendor approval email sent:", info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error("❌ Error sending vendor approval email:", error.message);
+    return { success: false, error: error.message };
+  }
+};
+
 const sendClientClaimRefundEmail = async ({
   email,
   name,
@@ -853,4 +954,6 @@ module.exports = {
   sendChatbotTicketReply,
   sendSecurityRefundEmail,
   sendClientClaimRefundEmail,
+  sendVendorReviewEmail,
+  sendVendorApprovalEmail,
 };

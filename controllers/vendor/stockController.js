@@ -57,7 +57,7 @@ exports.createStockEvent = async (req, res) => {
 };
 
 // Tabular GET endpoints
-function getListingName(listing) {
+function getListingDisplayName(listing) {
   if (!listing) return { en: '', nl: '' };
   const title = listing.title;
   if (!title) return { en: '', nl: '' };
@@ -83,7 +83,7 @@ exports.getStockTable = async (req, res) => {
       const table = listings.map((l, idx) => ({
         SNo: idx + 1,
         ListingID: l._id,
-        Name: getListingName(l),
+        Name: getListingDisplayName(l),
         'In Stock (Quantity)': l.quantity || 0
       }));
       return res.json({ table });
@@ -96,7 +96,7 @@ exports.getStockTable = async (req, res) => {
     }
     const table = logs.map((log, idx) => {
       const listing = log.listing;
-      const name = getListingName(listing);
+      const name = getListingDisplayName(listing);
       const listingId = listing?._id || null;
       console.log(listingId, "listingIdlistingIdlistingIdlistingId");
 
@@ -155,8 +155,8 @@ exports.getStockTable = async (req, res) => {
         const startIndex = table.length;
         const claimRows = claimBookings.map((b, i) => {
           const name = b.listingId
-            ? getListingName(b.listingId)
-            : getListingName({ title: b.listingDetails?.title });
+            ? getListingDisplayName(b.listingId)
+            : getListingDisplayName({ title: b.listingDetails?.title });
           return {
             SNo: startIndex + i + 1,
             ListingID: b.listingId?._id || null,
@@ -217,7 +217,7 @@ exports.getStockLogs = async (req, res) => {
     const mapLog = (log) => ({
       id: log._id,
       listingId: log.listing?._id || null,
-      listingTitle: getListingName(log.listing),
+      listingTitle: getListingDisplayName(log.listing),
       type: log.type,
       quantity: log.quantity,
       note: log.note,

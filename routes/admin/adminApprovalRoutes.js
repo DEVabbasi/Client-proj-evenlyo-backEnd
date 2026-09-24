@@ -34,9 +34,9 @@ router.patch("/approvals/vendors/:vendorId/reject", requireAdmin, rejectVendor);
 // LISTINGS
 // =============================================
 
-router.get("/approvals/listings", getAdminApprovalListings);
+router.get("/approvals/listings", requireAdmin, getAdminApprovalListings);
 
-router.get("/approvals/listings/:listingId", getAdminApprovalListingById);
+router.get("/approvals/listings/:listingId", requireAdmin, getAdminApprovalListingById);
 router.patch(
   "/approvals/listings/:listingId/approve",
   requireAdmin,

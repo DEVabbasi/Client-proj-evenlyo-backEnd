@@ -7,6 +7,7 @@ const Review = require("../../models/Review");
 const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 const slugify = require("../../utils/slugify");
+const { getApprovalSettings } = require("../../utils/getApprovalSettings");
 
 // @desc    Get all details related to a vendor (business, user, listings, popular)
 // @route   GET /api/vendor/details/:vendorId
@@ -44,6 +45,11 @@ const getVendorFullDetails = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "Vendor not found" });
+    }
+
+    const approvalSettings = await getApprovalSettings();
+    if (approvalSettings.vendorActivationRequired && vendor.userId?.approvalStatus !== "approved") {
+      return res.status(404).json({ success: false, message: "Vendor not found" });
     }
 
     if (slugUrl) {
@@ -589,11 +595,26 @@ const getAllVendors = asyncHandler(async (req, res) => {
     sortOrder = "desc",
   } = req.query;
 
+  const approvalSettings = await getApprovalSettings();
+
   const query = {};
 
-  // Filter by approval status
-  if (status !== "all") {
-    query.approvalStatus = status;
+  // Filter by approval status via User model (Vendor doesn't have approvalStatus)
+  if (status !== "all" && approvalSettings.vendorActivationRequired) {
+    const approvedUserIds = await User.find({
+      userType: "vendor",
+      approvalStatus: status,
+      isActive: true,
+    }).select("_id");
+    query.userId = { $in: approvedUserIds.map(u => u._id) };
+  } else if (status === "all") {
+    // When status is "all", get all vendors
+    if (!approvalSettings.vendorActivationRequired) {
+      query.userId = await User.find({
+        userType: "vendor",
+        isActive: true,
+      }).select("_id");
+    }
   }
 
   // Filter by category
@@ -648,10 +669,24 @@ const getAllVendors = asyncHandler(async (req, res) => {
 const getFeaturedVendors = asyncHandler(async (req, res) => {
   const { limit = 6, featured = false, category, location } = req.query;
 
-  const query = {
-    approvalStatus: "approved",
-    // Removed isApproved: true as it seems inconsistent with approvalStatus in your schema
-  };
+  const approvalSettings = await getApprovalSettings();
+
+  const query = {};
+
+  if (approvalSettings.vendorActivationRequired) {
+    const approvedUserIds = await User.find({
+      userType: "vendor",
+      approvalStatus: "approved",
+      isActive: true,
+    }).select("_id");
+    query.userId = { $in: approvedUserIds.map(u => u._id) };
+  } else {
+    const activeUserIds = await User.find({
+      userType: "vendor",
+      isActive: true,
+    }).select("_id");
+    query.userId = { $in: activeUserIds.map(u => u._id) };
+  }
 
   // Filter by category
   if (category) {
@@ -854,9 +889,12 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
   const limitNum = parseInt(limit);
   const skip = (pageNum - 1) * limitNum;
 
+  const approvalSettings = await getApprovalSettings();
+
   const activeVendorUsers = await User.find({
     userType: "vendor",
     isActive: true,
+    ...(approvalSettings.vendorActivationRequired ? { approvalStatus: "approved" } : {}),
   }).select("_id");
 
   const activeUserIds = activeVendorUsers.map((u) => u._id);

@@ -11,6 +11,7 @@ const User = require("../../models/User");
 const Settings = require("../../models/Settings");
 const Review = require("../../models/Review");
 const { default: mongoose } = require("mongoose");
+const { getApprovalSettings } = require("../../utils/getApprovalSettings");
 // @desc    Get calendar data (booked and available days/times) for a listing
 // @route   GET /api/listing/:id/calendar
 // @access  Public
@@ -109,11 +110,17 @@ const getListings = async (req, res) => {
       isAvailable,
     } = req.query;
 
+    const approvalSettings = await getApprovalSettings();
+
     // Build query object
     const query = {
       status: status,
       isActive: true,
     };
+
+    if (approvalSettings.itemApprovalRequired) {
+      query.approvalStatus = "approved";
+    }
 
     // Filter by category
     if (categoryId) {
@@ -185,17 +192,17 @@ const getListings = async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Build sort object
-    // const sortOptions = {};
-    // if (sortBy === "price") {
-    //   // Sort by lowest available price option
-    //   sortOptions["pricing.perHour"] = sortOrder === "desc" ? -1 : 1;
-    // } else if (sortBy === "rating") {
-    //   sortOptions["ratings.average"] = sortOrder === "desc" ? -1 : 1;
-    // } else if (sortBy === "popularity") {
-    //   sortOptions["bookings.completed"] = sortOrder === "desc" ? -1 : 1;
-    // } else {
-    //   sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
-    // }
+    const sortOptions = {};
+    if (sortBy === "price") {
+      // Sort by lowest available price option
+      sortOptions["pricing.perHour"] = sortOrder === "desc" ? -1 : 1;
+    } else if (sortBy === "rating") {
+      sortOptions["rating.average"] = sortOrder === "desc" ? -1 : 1;
+    } else if (sortBy === "popularity") {
+      sortOptions["bookings.completed"] = sortOrder === "desc" ? -1 : 1;
+    } else {
+      sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
+    }
 
     // Get listings with populated vendor and category information
     const listingsDocs = await Listing.find(query)
@@ -283,6 +290,14 @@ const getListingById = async (req, res) => {
 
     // ❌ Agar listing hi nahi mili
     if (!listing) {
+      return res.status(404).json({
+        success: false,
+        message: "Listing not found",
+      });
+    }
+
+    const approvalSettings = await getApprovalSettings();
+    if (approvalSettings.itemApprovalRequired && listing.approvalStatus !== "approved") {
       return res.status(404).json({
         success: false,
         message: "Listing not found",
@@ -403,12 +418,18 @@ const getFeaturedListings = async (req, res) => {
   try {
     const { limit = 6, categoryId } = req.query;
 
+    const approvalSettings = await getApprovalSettings();
+
     const query = {
       isFeatured: true,
       status: "active",
       isActive: true,
       "availability.isAvailable": true,
     };
+
+    if (approvalSettings.itemApprovalRequired) {
+      query.approvalStatus = "approved";
+    }
 
     // Filter by category if provided
     if (categoryId) {
@@ -444,11 +465,17 @@ const getPopularListings = async (req, res) => {
   try {
     const { limit = 8, categoryId } = req.query;
 
+    const approvalSettings = await getApprovalSettings();
+
     const query = {
       status: "active",
       isActive: true,
       popular: true,
     };
+
+    if (approvalSettings.itemApprovalRequired) {
+      query.approvalStatus = "approved";
+    }
 
     // Filter by category if provided
     if (categoryId) {
@@ -520,12 +547,18 @@ const searchListings = async (req, res) => {
 
     console.log("Search query:", { q, title, location, date, dateTime });
 
+    const approvalSettings = await getApprovalSettings();
+
     // Build query object
     const query = {
       status: "active",
       isActive: true,
       "availability.isAvailable": true,
     };
+
+    if (approvalSettings.itemApprovalRequired) {
+      query.approvalStatus = "approved";
+    }
 
     // Handle different search types
     const searchConditions = [];
@@ -732,7 +765,7 @@ const getListingsByVendor = async (req, res) => {
     console.log(vendorId, "vendorIdvendorIdvendorId");
 
     // Verify vendor exists
-    const vendor = await User.findById({ _id: vendorId });
+    const vendor = await User.findById({ _id: vendorId, userType: "vendor" });
     if (!vendor) {
       return res.status(404).json({
         success: false,
@@ -740,10 +773,16 @@ const getListingsByVendor = async (req, res) => {
       });
     }
 
+    const approvalSettings = await getApprovalSettings();
+
     const query = {
       vendor: vendorId,
       isActive: true,
     };
+
+    if (approvalSettings.itemApprovalRequired) {
+      query.approvalStatus = "approved";
+    }
 
     // Add status filter
     if (status !== "all") {
@@ -968,12 +1007,18 @@ const filterListings = async (req, res) => {
       });
     }
 
+    const approvalSettings = await getApprovalSettings();
+
     // Build query object
     const query = {
       status: "active",
       isActive: true,
       "availability.isAvailable": true,
     };
+
+    if (approvalSettings.itemApprovalRequired) {
+      query.approvalStatus = "approved";
+    }
 
     // Filter by category AND/OR subcategory
     if (categoryId && subCategoryId) {
@@ -1262,15 +1307,21 @@ const getHomeData = async (req, res) => {
       }
     }
 
-    /*
-     * ---------------------------------------------------------
-     * BUILD MAIN SEARCH QUERY
-     * ---------------------------------------------------------
-     */
+/*
+      * ---------------------------------------------------------
+      * BUILD MAIN SEARCH QUERY
+      * ---------------------------------------------------------
+      */
+
+    const approvalSettings = await getApprovalSettings();
 
     const query = {
       isActive: true,
     };
+
+    if (approvalSettings.itemApprovalRequired) {
+      query.approvalStatus = "approved";
+    }
 
     if (categoryId) {
       query.category = categoryId;

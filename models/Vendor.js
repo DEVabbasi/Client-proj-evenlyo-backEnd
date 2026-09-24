@@ -174,6 +174,12 @@ const vendorSchema = new mongoose.Schema(
       type: String,
       enum: ["personal", "business"],
     },
+    // Manual completion flags for onboarding "Profile Enhancement" sub-points.
+    // Keys: designation, roles, stock, tracking, escrow, securityFee.
+    profileEnhancement: {
+      type: Object,
+      default: {},
+    },
   },
   {
     timestamps: true,

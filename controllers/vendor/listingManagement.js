@@ -9,6 +9,7 @@ const { createActivityLog } = require("../../utils/activityLogger");
 const { resolveVendorOwnerUserId } = require("../../utils/resolveVendorUserId");
 const mongoose = require("mongoose");
 const { getApprovalSettings } = require("../../utils/getApprovalSettings");
+const approvalNotifications = require("../../utils/approvalNotifications");
 const Vendor = require("../../models/Vendor");
 const User = require("../../models/User");
 
@@ -406,7 +407,7 @@ const createListing = async (req, res) => {
     const vendor = await Vendor.findOne({
       userId: ownerUserId,
     })
-      .select("mainCategories subCategories")
+      .select("mainCategories subCategories businessName")
       .lean();
 
     if (!vendor) {
@@ -620,6 +621,31 @@ const createListing = async (req, res) => {
       }
 
       await vendorUser.save();
+    }
+
+    // -----------------------------------------
+    // 15b. Notify admin(s) about the new submission.
+    // The Dutch review-request email is only sent for the very first
+    // listing (first-listing + vendor review flow).
+    // Emails/notifications never block listing creation.
+    // -----------------------------------------
+    if (itemApprovalRequired) {
+      let vendorUserForNotify = null;
+
+      if (isFirstListing) {
+        vendorUserForNotify = await User.findOne({
+          _id: ownerUserId,
+          userType: "vendor",
+        }).select("_id email firstName");
+      }
+
+      await approvalNotifications.notifyAdminListingSubmitted({
+        vendorUser: vendorUserForNotify,
+        vendorProfile: vendor,
+        listing,
+        isFirstListing,
+        vendorActivationRequired,
+      });
     }
 
     // -----------------------------------------
@@ -989,24 +1015,14 @@ const updateListing = async (req, res) => {
       updateData.reviewedBy = null;
     }
 
-    // Approved/live listing edited
-    else if (
-      previousApprovalStatus === "approved" &&
-      approvalSettings.editReapprovalRequired
-    ) {
+    // Approved/live listing edited -> needs reapproval
+    // (listing approval toggle covers submitted AND edited listings)
+    else if (previousApprovalStatus === "approved") {
       nextApprovalStatus = "edited";
 
       updateData.submittedForReviewAt = now;
       updateData.reviewedAt = null;
       updateData.reviewedBy = null;
-    }
-
-    // Approved listing + reapproval disabled
-    else if (
-      previousApprovalStatus === "approved" &&
-      !approvalSettings.editReapprovalRequired
-    ) {
-      nextApprovalStatus = "approved";
     }
 
     // Already waiting for review
@@ -1062,6 +1078,31 @@ const updateListing = async (req, res) => {
       )
       .populate("category", "name icon description")
       .populate("subCategory", "name icon description");
+
+    // -----------------------------------------
+    // 16b. Notify admin(s) when the listing goes back into review,
+    // either after a rejection resubmission (-> pending) or after a
+    // live-edit that requires reapproval (-> edited).
+    // -----------------------------------------
+    const shouldNotifyAdmin =
+      nextApprovalStatus === "edited" ||
+      (previousApprovalStatus === "rejected" &&
+        nextApprovalStatus === "pending");
+
+    if (shouldNotifyAdmin) {
+      const notifyVendorProfile = await Vendor.findOne({
+        userId: ownerUserId,
+      })
+        .select("businessName")
+        .lean();
+
+      await approvalNotifications.notifyAdminListingSubmitted({
+        vendorUser: { _id: ownerUserId },
+        vendorProfile: notifyVendorProfile,
+        listing: updatedListing,
+        isFirstListing: false,
+      });
+    }
 
     // -----------------------------------------
     // 17. Dynamic response message
