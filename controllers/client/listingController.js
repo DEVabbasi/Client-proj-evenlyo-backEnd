@@ -11,7 +11,11 @@ const User = require("../../models/User");
 const Settings = require("../../models/Settings");
 const Review = require("../../models/Review");
 const { default: mongoose } = require("mongoose");
-const { getApprovalSettings } = require("../../utils/getApprovalSettings");
+const {
+  getApprovalSettings,
+  getPublicListingApprovalFilter,
+  isPubliclyVisibleListing,
+} = require("../../utils/getApprovalSettings");
 // @desc    Get calendar data (booked and available days/times) for a listing
 // @route   GET /api/listing/:id/calendar
 // @access  Public
@@ -118,9 +122,7 @@ const getListings = async (req, res) => {
       isActive: true,
     };
 
-    if (approvalSettings.itemApprovalRequired) {
-      query.approvalStatus = "approved";
-    }
+    Object.assign(query, getPublicListingApprovalFilter(approvalSettings));
 
     // Filter by category
     if (categoryId) {
@@ -229,7 +231,7 @@ const getListings = async (req, res) => {
 
     const listingIds = listingsDocs.map((doc) => doc._id);
     console.log(listingIds, "listingIdslistingIdslistingIds");
-    // 2️⃣ Get Bookings for these listings
+    // 2Ã¯Â¸ÂÃ¢Æ’Â£ Get Bookings for these listings
     const bookings = await BookingRequest.find({
       listingId: { $in: listingIds },
     }).select("_id listing");
@@ -241,7 +243,7 @@ const getListings = async (req, res) => {
       bookingMap[b._id.toString()] = b.listing.toString();
     });
 
-    // 3️⃣ Get Reviews for these bookings
+    // 3Ã¯Â¸ÂÃ¢Æ’Â£ Get Reviews for these bookings
     const reviews = await Review.find({
       bookingId: { $in: bookingIds },
     }).select("bookingId rating");
@@ -288,7 +290,7 @@ const getListingById = async (req, res) => {
       )
       .populate("reviews.clientId", "firstName lastName profileImage");
 
-    // ❌ Agar listing hi nahi mili
+    // Ã¢ÂÅ’ Agar listing hi nahi mili
     if (!listing) {
       return res.status(404).json({
         success: false,
@@ -297,14 +299,17 @@ const getListingById = async (req, res) => {
     }
 
     const approvalSettings = await getApprovalSettings();
-    if (approvalSettings.itemApprovalRequired && listing.approvalStatus !== "approved") {
+    if (
+      approvalSettings.itemApprovalRequired &&
+      !isPubliclyVisibleListing(listing.approvalStatus)
+    ) {
       return res.status(404).json({
         success: false,
         message: "Listing not found",
       });
     }
 
-    // ✅ Vendor details fetch (business logo + Vendor model _id)
+    // Ã¢Å“â€¦ Vendor details fetch (business logo + Vendor model _id)
     let businessLogo = "";
     let vendorModelId = null;
     if (listing.vendor?._id) {
@@ -316,14 +321,14 @@ const getListingById = async (req, res) => {
       vendorModelId = vendorDetails?._id || null;
     }
 
-    // ✅ Booking IDs
+    // Ã¢Å“â€¦ Booking IDs
     const bookings = await BookingRequest.find({
       listingId: req.params.id,
     }).select("_id");
 
     const bookingIds = bookings.map((b) => b._id);
 
-    // ✅ Reviews aggregation
+    // Ã¢Å“â€¦ Reviews aggregation
     const reviewAgg = await Review.aggregate([
       {
         $match: {
@@ -359,22 +364,22 @@ const getListingById = async (req, res) => {
       },
     ]);
 
-    // ✅ Safe reviews object
+    // Ã¢Å“â€¦ Safe reviews object
     const reviewsData = reviewAgg[0] || {
       averageRating: 0,
       totalReviews: 0,
       reviews: [],
     };
 
-    // ✅ Views increment safe
+    // Ã¢Å“â€¦ Views increment safe
     listing.views = (listing.views || 0) + 1;
     await listing.save();
 
-    // ✅ Convert object
+    // Ã¢Å“â€¦ Convert object
     const data = listing.toObject();
     console.log(data, "datadatadatadatadatadata");
 
-    // ✅ Attach extra data
+    // Ã¢Å“â€¦ Attach extra data
     data.vendor = data.vendor || {};
     data.vendor.businessLogo = businessLogo;
     data.vendor.vendorModelId = vendorModelId;
@@ -382,7 +387,7 @@ const getListingById = async (req, res) => {
     const sc = data.subCategory || {};
     const settings = await Settings.findOne();
 
-    // ✅ IMPORTANT: toggle flag for frontend
+    // Ã¢Å“â€¦ IMPORTANT: toggle flag for frontend
     data.isActiveListing = listing.status === "active";
 
     data.paymentPolicy = sc;
@@ -427,9 +432,7 @@ const getFeaturedListings = async (req, res) => {
       "availability.isAvailable": true,
     };
 
-    if (approvalSettings.itemApprovalRequired) {
-      query.approvalStatus = "approved";
-    }
+    Object.assign(query, getPublicListingApprovalFilter(approvalSettings));
 
     // Filter by category if provided
     if (categoryId) {
@@ -446,7 +449,7 @@ const getFeaturedListings = async (req, res) => {
 
     res.json({
       success: true,
-      data: listings,
+      data: listings.map((doc) => doc.toObject()),
     });
   } catch (error) {
     console.error("Error fetching featured listings:", error);
@@ -473,9 +476,7 @@ const getPopularListings = async (req, res) => {
       popular: true,
     };
 
-    if (approvalSettings.itemApprovalRequired) {
-      query.approvalStatus = "approved";
-    }
+    Object.assign(query, getPublicListingApprovalFilter(approvalSettings));
 
     // Filter by category if provided
     if (categoryId) {
@@ -556,9 +557,7 @@ const searchListings = async (req, res) => {
       "availability.isAvailable": true,
     };
 
-    if (approvalSettings.itemApprovalRequired) {
-      query.approvalStatus = "approved";
-    }
+    Object.assign(query, getPublicListingApprovalFilter(approvalSettings));
 
     // Handle different search types
     const searchConditions = [];
@@ -724,7 +723,7 @@ const searchListings = async (req, res) => {
 
     res.json({
       success: true,
-      data: listings,
+      data: listings.map((doc) => doc.toObject()),
       searchCriteria: {
         generalQuery: q || "",
         title: title || "",
@@ -780,9 +779,7 @@ const getListingsByVendor = async (req, res) => {
       isActive: true,
     };
 
-    if (approvalSettings.itemApprovalRequired) {
-      query.approvalStatus = "approved";
-    }
+    Object.assign(query, getPublicListingApprovalFilter(approvalSettings));
 
     // Add status filter
     if (status !== "all") {
@@ -814,7 +811,7 @@ const getListingsByVendor = async (req, res) => {
 
     res.json({
       success: true,
-      data: listings,
+      data: listings.map((doc) => doc.toObject()),
       vendor: {
         _id: vendor._id,
         businessName: vendor.businessName,
@@ -1016,9 +1013,7 @@ const filterListings = async (req, res) => {
       "availability.isAvailable": true,
     };
 
-    if (approvalSettings.itemApprovalRequired) {
-      query.approvalStatus = "approved";
-    }
+    Object.assign(query, getPublicListingApprovalFilter(approvalSettings));
 
     // Filter by category AND/OR subcategory
     if (categoryId && subCategoryId) {
@@ -1130,7 +1125,7 @@ const filterListings = async (req, res) => {
   }
 };
 
-// @desc    Get listings, vendors, and sale items by category and subcategory
+// @desc    GHet listings, vendors, and sale items by category and subcategory
 // @route   GET /api/listings/by-category
 // @access  Public
 
@@ -1319,9 +1314,8 @@ const getHomeData = async (req, res) => {
       isActive: true,
     };
 
-    if (approvalSettings.itemApprovalRequired) {
-      query.approvalStatus = "approved";
-    }
+    // "edited" listings stay publicly visible while awaiting re-approval.
+    Object.assign(query, getPublicListingApprovalFilter(approvalSettings));
 
     if (categoryId) {
       query.category = categoryId;
@@ -1367,7 +1361,7 @@ const getHomeData = async (req, res) => {
       .populate("category", "name")
       .populate("subCategory", "name")
       .select(
-        "title description pricing location ratings images media.featuredImage availability vendor",
+        "title description pricing location ratings images media.featuredImage availability vendor approvalStatus",
       );
 
     /*
@@ -1391,9 +1385,12 @@ const getHomeData = async (req, res) => {
      * Related listings must:
      *
      * 1. Be active
-     * 2. Belong to the SAME main category
-     * 3. Belong to a DIFFERENT subcategory
-     * 4. Match date availability if date was provided
+     * 2. Pass the public approval filter (so pending/rejected listings never
+     *    leak in, while "edited" listings stay visible with their last
+     *    approved content)
+     * 3. Belong to the SAME main category
+     * 4. Belong to a DIFFERENT subcategory
+     * 5. Match date availability if date was provided
      */
 
     let relatedListings = null;
@@ -1401,6 +1398,8 @@ const getHomeData = async (req, res) => {
     if (categoryId && subCategoryId) {
       const relatedQuery = {
         isActive: true,
+
+        ...getPublicListingApprovalFilter(approvalSettings),
 
         // SAME MAIN CATEGORY
         category: categoryId,
@@ -1425,7 +1424,7 @@ const getHomeData = async (req, res) => {
         .populate("category", "name")
         .populate("subCategory", "name")
         .select(
-          "title description pricing location ratings images media.featuredImage availability vendor",
+          "title description pricing location ratings images media.featuredImage availability vendor approvalStatus",
         );
     }
 
@@ -1445,7 +1444,12 @@ const getHomeData = async (req, res) => {
 
     /*
      * ---------------------------------------------------------
-     * VENDOR LOGOS
+     * VENDOR PROFILE DETAILS (logo + business name)
+     *
+     * Listing.vendor points at the User, but the public-facing business name
+     * lives on the Vendor profile. User.fullName is often empty ("undefined
+     * undefined"), so businessName is exposed alongside it for the client to
+     * use as a display-name fallback.
      * ---------------------------------------------------------
      */
 
@@ -1453,12 +1457,15 @@ const getHomeData = async (req, res) => {
       userId: {
         $in: vendorIds,
       },
-    }).select("userId businessLogo");
+    }).select("userId businessLogo businessName");
 
-    const vendorLogoMap = {};
+    const vendorProfileMap = {};
 
     vendorDetails.forEach((vd) => {
-      vendorLogoMap[vd.userId.toString()] = vd.businessLogo;
+      vendorProfileMap[vd.userId.toString()] = {
+        businessLogo: vd.businessLogo,
+        businessName: vd.businessName,
+      };
     });
 
     /*
@@ -1544,12 +1551,22 @@ const getHomeData = async (req, res) => {
         };
 
         /*
-         * Vendor logo
+         * Vendor profile fields
          */
         const vendorId = obj.vendor?._id?.toString();
 
         if (obj.vendor) {
-          obj.vendor.businessLogo = vendorLogoMap[vendorId] || "";
+          const profile = vendorProfileMap[vendorId];
+
+          obj.vendor.businessLogo = profile?.businessLogo || "";
+
+          // The business name is a display-name fallback: User.fullName is
+          // frequently unset, which would otherwise render as
+          // "undefined undefined". Left undefined when the vendor has no
+          // profile row so the client can fall back further up the chain.
+          if (profile?.businessName) {
+            obj.vendor.businessName = profile.businessName;
+          }
         }
 
         return obj;
@@ -1703,12 +1720,17 @@ const getHomeData = async (req, res) => {
 
 const fetchAllListings = async (req, res) => {
   try {
-    const listings = await Listing.find({ isActive: true }).sort({
+    const approvalSettings = await getApprovalSettings();
+
+    const listings = await Listing.find({
+      isActive: true,
+      ...getPublicListingApprovalFilter(approvalSettings),
+    }).sort({
       createdAt: -1,
     });
     res.status(200).json({
       success: true,
-      data: listings,
+      data: listings.map((doc) => doc.toObject()),
     });
   } catch (error) {
     console.error("Fetch all listings error:", error);

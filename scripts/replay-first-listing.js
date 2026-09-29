@@ -7,10 +7,9 @@
  *   2. Resets that vendor to a fresh post-onboarding state:
  *        - deletes all of the vendor's listings
  *        - deletes notifications created for/by the vendor
- *        - resets User.approvalStatus back to the pre-submission state
- *      so `isFirstListing` is true again on every run.
- *   3. Ensures approval toggles are ON
- *      (approvalSettings.vendorActivationRequired + itemApprovalRequired).
+ *      so `isFirstListing` is true again on every run (vendor visibility is
+ *      derived from listings, there is no User approval state any more).
+ *   3. Ensures the approval toggle is ON (approvalSettings.itemApprovalRequired).
  *   4. Calls the REAL controller (controllers/vendor/listingManagement.js
  *      createListing), which also fires the real SMTP review email to the
  *      active Admin employees.
@@ -68,7 +67,7 @@ async function ensureSettings() {
       bookingItemPlatformFee: 0,
       salesItemPlatformFee: 0,
       vat: 0,
-      approvalSettings: { vendorActivationRequired: true, itemApprovalRequired: true },
+      approvalSettings: { itemApprovalRequired: true },
     });
   } else {
     await Settings.updateOne(
@@ -76,7 +75,6 @@ async function ensureSettings() {
       {
         $set: {
           approvalSettings: {
-            vendorActivationRequired: true,
             itemApprovalRequired: true,
           },
         },
@@ -160,21 +158,8 @@ async function resetVendor(userId) {
     $or: [{ vendorId: userId }, { notificationFor: "Admin", vendorId: userId }],
   });
 
-  await User.updateOne(
-    { _id: userId },
-    {
-      $set: {
-        approvalStatus: "pending",
-        submittedForReviewAt: null,
-        reviewedAt: null,
-        reviewedBy: null,
-        approvalRejectionReason: { en: "", nl: "" },
-      },
-    },
-  );
-
   log(
-    `🧹 Reset vendor: deleted ${listingsDeleted.deletedCount} listing(s), cleared notifications & reverted approvalStatus → pending`,
+    `🧹 Reset vendor: deleted ${listingsDeleted.deletedCount} listing(s) and cleared notifications (vendor is no longer live because it has no listings)`,
   );
 }
 
@@ -268,10 +253,8 @@ async function showNotificationsAfter(userId) {
   const settings = await ensureSettings();
   const { user, vendor } = await findOrCreateReplayVendor(email);
 
-  if (!settings.vendorActivationRequired || !settings.itemApprovalRequired) {
-    log(
-      "❌ Both toggles must be true to reproduce the vendor-review email scenario.",
-    );
+  if (!settings.itemApprovalRequired) {
+    log("❌ itemApprovalRequired must be true to reproduce the review email scenario.");
     process.exitCode = 1;
     await mongoose.connection.close();
     return;
@@ -299,9 +282,20 @@ async function showNotificationsAfter(userId) {
   log(`   approval: ${JSON.stringify(out.body?.data?.approval) || ""}`);
   log(`   listing.approvalStatus: ${out.body?.data?.listing?.approvalStatus || "n/a"}`);
 
-  const usr = await User.findById(user._id).select("approvalStatus submittedForReviewAt");
+  const usr = await User.findById(user._id).select("email isActive").lean();
+  const listing = await Listing.findOne({ vendor: user._id })
+    .select("approvalStatus submittedForReviewAt")
+    .lean();
+  const liveListings = await Listing.countDocuments({
+    vendor: user._id,
+    approvalStatus: { $in: ["approved", "edited"] },
+  });
+  log(`\n👤 Vendor: ${usr?.email} (isActive=${usr?.isActive})`);
   log(
-    `\n👤 Vendor User state after run: approvalStatus=${usr?.approvalStatus}, submittedForReviewAt=${usr?.submittedForReviewAt ? "set" : "null"}`,
+    `📦 Listing after run: approvalStatus=${listing?.approvalStatus || "n/a"}, submittedForReviewAt=${listing?.submittedForReviewAt ? "set" : "null"}`,
+  );
+  log(
+    `🌐 Public visibility: ${liveListings > 0 ? "LIVE" : "not live (waiting for the first approved listing)"} (${liveListings} live listing(s))`,
   );
 
   log(

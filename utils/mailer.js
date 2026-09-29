@@ -892,6 +892,60 @@ const sendVendorApprovalEmail = async ({ vendorUser, vendorProfile, listing }) =
   }
 };
 
+// To Vendor: a listing was rejected, with the Admin's reason.
+// `vendorOnHold` is true when this rejection leaves the vendor without any
+// approved listing, which means it also drops out of the public site until one
+// of its listings is approved.
+const sendVendorRejectionEmail = async ({
+  vendorUser,
+  vendorProfile,
+  listing,
+  reason,
+  vendorOnHold = false,
+}) => {
+  const to = vendorUser?.email || vendorProfile?.businessEmail;
+  const name = getVendorGreeting(vendorUser, vendorProfile);
+  const listingTitle = getListingTitle(listing, "nl");
+
+  const reasonNl =
+    typeof reason === "string" ? reason : reason?.nl || reason?.en || "";
+
+  const introParagraph = vendorOnHold
+    ? `Uw leveranciersaccount blijft in de wacht tot u een goedgekeurde advertentie hebt. U staat daarom nog niet op de openbare website.`
+    : `U kunt deze advertentie corrigeren en opnieuw ter beoordeling indienen.`;
+
+  const mailOptions = {
+    from: `"Evenlyo" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: "Evenlyo – Uw advertentie is afgewezen",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; background-color: #f4f6f8;">
+        <div style="background-color: #ffffff; padding: 25px; border-radius: 8px;">
+          <h2 style="color: #c62828; margin-top: 0;">Uw advertentie is afgewezen</h2>
+          <p>Beste ${name},</p>
+          <p>Uw advertentie <strong>"${listingTitle}"</strong> is afgewezen.</p>
+          <div style="background-color: #fdecea; border-left: 4px solid #c62828; padding: 12px 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0 0 6px 0; color: #c62828; font-weight: bold;">Reden van afwijzing:</p>
+            <p style="margin: 0;">${reasonNl}</p>
+          </div>
+          <p>${introParagraph}</p>
+          <p style="color: #666; font-size: 14px; margin-top: 20px;">Met vriendelijke groet,<br/>Evenlyo Team</p>
+        </div>
+      </div>
+    `,
+    text: `Uw advertentie is afgewezen\n\nBeste ${name},\n\nUw advertentie "${listingTitle}" is afgewezen.\n\nReden van afwijzing:\n${reasonNl}\n\n${introParagraph}\n\nMet vriendelijke groet,\nEvenlyo Team`,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("📧 Vendor rejection email sent:", info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error("❌ Error sending vendor rejection email:", error.message);
+    return { success: false, error: error.message };
+  }
+};
+
 const sendClientClaimRefundEmail = async ({
   email,
   name,
@@ -956,4 +1010,5 @@ module.exports = {
   sendClientClaimRefundEmail,
   sendVendorReviewEmail,
   sendVendorApprovalEmail,
+  sendVendorRejectionEmail,
 };

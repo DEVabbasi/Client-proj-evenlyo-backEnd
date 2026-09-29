@@ -207,6 +207,10 @@ const listingSchema = new mongoose.Schema(
       default: null,
     },
 
+    // Last approved, publicly visible content of the listing.
+    // Captured every time the listing is approved (admin approval, or
+    // auto-approval while the item-approval toggle is off).
+    //
     approvalHistory: [
       {
         status: {

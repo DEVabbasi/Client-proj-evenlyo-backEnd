@@ -7,7 +7,44 @@ const Review = require("../../models/Review");
 const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 const slugify = require("../../utils/slugify");
-const { getApprovalSettings } = require("../../utils/getApprovalSettings");
+const {
+  getApprovalSettings,
+  getLiveVendorUserIds,
+  VENDOR_VISIBLE_LISTING_STATES,
+} = require("../../utils/getApprovalSettings");
+
+// Single source of truth for the public vendor name and its URL slug.
+//
+// getVendorsByCategory generates the links and getVendorFullDetails validates
+// them, so both MUST derive the slug the same way. They previously did not:
+// the list endpoint fell back through businessName -> firstName+lastName ->
+// "Business Name Not Set", while the detail endpoint only ever used
+// businessName. A vendor with no businessName therefore produced a link whose
+// slug the detail endpoint rejected with 404 "Vendor URL does not match".
+const getVendorDisplayName = (vendor) => {
+  if (!vendor) return "";
+
+  if (vendor.businessName) return vendor.businessName;
+
+  const user = vendor.userId;
+  if (user?.firstName && user?.lastName) {
+    return `${user.firstName} ${user.lastName}`;
+  }
+
+  return "Business Name Not Set";
+};
+
+const getVendorSlug = (vendor) => slugify(getVendorDisplayName(vendor));
+
+// A vendor is publicly visible as soon as it owns at least one approved
+// listing. "edited" also counts: a vendor that already went live must not
+// disappear from the public site just because it is editing its current
+// listing, even though that listing itself is hidden until approved.
+const hasApprovedListing = (vendorUserId) =>
+  Listing.exists({
+    vendor: vendorUserId,
+    approvalStatus: { $in: VENDOR_VISIBLE_LISTING_STATES },
+  }).then(Boolean);
 
 // @desc    Get all details related to a vendor (business, user, listings, popular)
 // @route   GET /api/vendor/details/:vendorId
@@ -48,12 +85,17 @@ const getVendorFullDetails = async (req, res) => {
     }
 
     const approvalSettings = await getApprovalSettings();
-    if (approvalSettings.vendorActivationRequired && vendor.userId?.approvalStatus !== "approved") {
+
+    // A vendor is publicly visible as soon as it owns at least one approved
+    // listing. There is no vendor approval state of its own any more.
+    const isVendorVisible = await hasApprovedListing(vendor.userId?._id);
+
+    if (!isVendorVisible) {
       return res.status(404).json({ success: false, message: "Vendor not found" });
     }
 
     if (slugUrl) {
-      const expectedSlug = slugify(vendor.businessName);
+      const expectedSlug = getVendorSlug(vendor);
 
       if (slugUrl !== expectedSlug) {
         return res.status(404).json({
@@ -66,11 +108,20 @@ const getVendorFullDetails = async (req, res) => {
     const vendorUserId = vendor.userId?._id ?? vendor.userId;
 
     // ✅ Fetch Listings
-    const listingItemsRaw = await Listing.find({ vendor: vendorUserId }).lean();
-    console.log(
-      listingItemsRaw,
-      "listingItemsRawlistingItemsRawlistingItemsRawlistingItemsRaw",
-    );
+    //
+    // The public page renders a card per listing and links to
+    // /reservering/:listingId, which calls GET /api/listings/:id. That endpoint
+    // returns 404 for anything that is not currently "approved", so returning
+    // pending/rejected/edited listings here produced cards that always led to a
+    // dead page. Use the same public approval filter as the listing endpoints
+    // so the profile can only ever offer listings that actually resolve.
+    const listingQuery = { vendor: vendorUserId };
+
+    if (approvalSettings.itemApprovalRequired) {
+      listingQuery.approvalStatus = "approved";
+    }
+
+    const listingItemsRaw = await Listing.find(listingQuery).lean();
 
     const listingItems = listingItemsRaw.map((item) => ({
       ...item,
@@ -176,8 +227,8 @@ const getVendorFullDetails = async (req, res) => {
       email: showContact ? vendor.businessEmail : null,
       phone: showContact ? vendor.businessPhone : null,
       rating: averageRating,
-      slugUrl: slugify(vendor.businessName),
-      businessName: vendor.businessName,
+      slugUrl: getVendorSlug(vendor),
+      businessName: getVendorDisplayName(vendor),
       location: vendor.businessLocation || "",
       employees: vendor.teamSize || "",
       description: vendor.description,
@@ -227,6 +278,58 @@ const getVendorFullDetails = async (req, res) => {
     });
   }
 };
+
+// @desc    Resolve a public vendor slug to its id
+// @route   GET /api/vendor/slug/:slugUrl
+// @access  Public
+//
+// Used for legacy /verkoper/:slugUrl links and for slug-only entry points.
+// The canonical URL is /verkoper/:vendorId/:slugUrl; the client uses this to
+// look up the id and then redirect to the canonical form.
+//
+// The slug is derived from businessName at read time (there is no stored slug
+// column), so this cannot be a direct indexed lookup. It is scoped to vendors
+// the public is allowed to see and only selects the two fields needed.
+const resolveVendorBySlug = asyncHandler(async (req, res) => {
+  const { slugUrl } = req.params;
+
+  if (!slugUrl) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Missing vendor slug" });
+  }
+
+  const query = {};
+
+  // Only vendors with at least one approved listing have a public page.
+  const liveUserIds = await getLiveVendorUserIds();
+
+  const activeVendorUsers = await User.find({
+    _id: { $in: liveUserIds },
+    userType: "vendor",
+    isActive: true,
+  }).select("_id");
+
+  query.userId = { $in: activeVendorUsers.map((u) => u._id) };
+
+  const candidates = await Vendor.find(query)
+    .select("_id businessName userId")
+    .populate("userId", "firstName lastName")
+    .lean();
+
+  const match = candidates.find((vendor) => getVendorSlug(vendor) === slugUrl);
+
+  if (!match) {
+    return res
+      .status(404)
+      .json({ success: false, message: "Vendor not found" });
+  }
+
+  res.json({
+    success: true,
+    data: { _id: match._id, slugUrl: getVendorSlug(match) },
+  });
+});
 
 // @desc    Get vendor profile (public and private access)
 // @route   GET /api/vendor/profile/:vendorId (public)
@@ -297,8 +400,6 @@ const getVendorProfile = asyncHandler(async (req, res) => {
     },
     status: {
       isApproved: vendor.isApproved,
-      approvalStatus: vendor.approvalStatus,
-      rejectionReason: isPublicAccess ? undefined : vendor.rejectionReason,
     },
     settings: {
       contactMeEnabled: vendor.contactMeEnabled,
@@ -483,8 +584,6 @@ const getVendorBusinessDetails = asyncHandler(async (req, res) => {
     },
     status: {
       isApproved: vendor.isApproved,
-      approvalStatus: vendor.approvalStatus,
-      rejectionReason: vendor.rejectionReason,
     },
     settings: {
       contactMeEnabled: vendor.contactMeEnabled,
@@ -544,7 +643,6 @@ const getVendorDashboard = asyncHandler(async (req, res) => {
     vendor: {
       _id: vendor._id,
       businessName: vendor.businessName,
-      approvalStatus: vendor.approvalStatus,
       isApproved: vendor.isApproved,
     },
     stats: {
@@ -588,34 +686,25 @@ const getAllVendors = asyncHandler(async (req, res) => {
   const {
     page = 1,
     limit = 10,
-    status = "approved",
     category,
     location,
     sortBy = "createdAt",
     sortOrder = "desc",
   } = req.query;
 
-  const approvalSettings = await getApprovalSettings();
+  // A vendor is publicly visible as soon as it owns at least one approved
+  // listing. There is no separate vendor approval state to filter on.
+  const liveUserIds = await getLiveVendorUserIds();
 
-  const query = {};
+  const activeVendorUsers = await User.find({
+    _id: { $in: liveUserIds },
+    userType: "vendor",
+    isActive: true,
+  }).select("_id");
 
-  // Filter by approval status via User model (Vendor doesn't have approvalStatus)
-  if (status !== "all" && approvalSettings.vendorActivationRequired) {
-    const approvedUserIds = await User.find({
-      userType: "vendor",
-      approvalStatus: status,
-      isActive: true,
-    }).select("_id");
-    query.userId = { $in: approvedUserIds.map(u => u._id) };
-  } else if (status === "all") {
-    // When status is "all", get all vendors
-    if (!approvalSettings.vendorActivationRequired) {
-      query.userId = await User.find({
-        userType: "vendor",
-        isActive: true,
-      }).select("_id");
-    }
-  }
+  const query = {
+    userId: { $in: activeVendorUsers.map((u) => u._id) },
+  };
 
   // Filter by category
   if (category) {
@@ -669,24 +758,18 @@ const getAllVendors = asyncHandler(async (req, res) => {
 const getFeaturedVendors = asyncHandler(async (req, res) => {
   const { limit = 6, featured = false, category, location } = req.query;
 
-  const approvalSettings = await getApprovalSettings();
+  // Only vendors with at least one approved listing are public.
+  const liveUserIds = await getLiveVendorUserIds();
 
-  const query = {};
+  const activeUserIds = await User.find({
+    _id: { $in: liveUserIds },
+    userType: "vendor",
+    isActive: true,
+  }).select("_id");
 
-  if (approvalSettings.vendorActivationRequired) {
-    const approvedUserIds = await User.find({
-      userType: "vendor",
-      approvalStatus: "approved",
-      isActive: true,
-    }).select("_id");
-    query.userId = { $in: approvedUserIds.map(u => u._id) };
-  } else {
-    const activeUserIds = await User.find({
-      userType: "vendor",
-      isActive: true,
-    }).select("_id");
-    query.userId = { $in: activeUserIds.map(u => u._id) };
-  }
+  const query = {
+    userId: { $in: activeUserIds.map((u) => u._id) },
+  };
 
   // Filter by category
   if (category) {
@@ -811,8 +894,9 @@ const getFeaturedVendors = asyncHandler(async (req, res) => {
         email: vendor.businessEmail,
         website: vendor.businessWebsite,
         contactEnabled: vendor.contactMeEnabled,
-        canContact:
-          vendor.contactMeEnabled && vendor.approvalStatus === "approved",
+        // Reached only for vendors that already passed the
+        // at-least-one-approved-listing gate above.
+        canContact: vendor.contactMeEnabled,
       },
       // Owner/Personal Information
       personalInfo: {
@@ -827,8 +911,9 @@ const getFeaturedVendors = asyncHandler(async (req, res) => {
       // Status and Verification
       status: {
         isApproved: vendor.isApproved,
-        approvalStatus: vendor.approvalStatus,
-        isVerified: vendor.approvalStatus === "approved",
+        // Visibility comes from the vendor's own approved listings, which was
+        // already enforced by the gate at the top of this handler.
+        isVerified: true,
         isActive: vendor.userId?.isActive,
       },
       // Settings
@@ -889,12 +974,13 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
   const limitNum = parseInt(limit);
   const skip = (pageNum - 1) * limitNum;
 
-  const approvalSettings = await getApprovalSettings();
+  // Only vendors with at least one approved listing are public.
+  const liveUserIds = await getLiveVendorUserIds();
 
   const activeVendorUsers = await User.find({
+    _id: { $in: liveUserIds },
     userType: "vendor",
     isActive: true,
-    ...(approvalSettings.vendorActivationRequired ? { approvalStatus: "approved" } : {}),
   }).select("_id");
 
   const activeUserIds = activeVendorUsers.map((u) => u._id);
@@ -1022,13 +1108,8 @@ const getVendorsByCategory = asyncHandler(async (req, res) => {
         ? vendor.description.en || vendor.description.nl || ""
         : vendor.description || "";
 
-    const displayBusinessName =
-      vendor.businessName ||
-      (vendor.userId?.firstName && vendor.userId?.lastName
-        ? `${vendor.userId.firstName} ${vendor.userId.lastName}`
-        : "Business Name Not Set");
-
-    const slugUrl = slugify(displayBusinessName);
+    const displayBusinessName = getVendorDisplayName(vendor);
+    const slugUrl = getVendorSlug(vendor);
 
     const reviewData = reviewMap[vendor.userId?._id?.toString()] || {
       avgRating: 0,
@@ -1107,4 +1188,5 @@ module.exports = {
   getFeaturedVendors,
   getVendorsByCategory,
   getVendorFullDetails,
+  resolveVendorBySlug,
 };

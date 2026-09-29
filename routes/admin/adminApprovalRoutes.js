@@ -6,28 +6,20 @@ const {
   updateAdminApprovalSettings,
   rejectListing,
   approveListing,
-  rejectVendor,
-  approveVendor,
   getAdminApprovalVendorById,
   getAdminApprovalListings,
   getAdminApprovalListingById,
 } = require("../../controllers/admin/adminApprovalController");
 const { requireAdmin } = require("../../middleware/authMiddleware");
 
+// Vendor accounts have no separate approve/reject endpoints: the vendor
+// review status is driven by the vendor's first listing.
 router.get("/approvals/vendors", requireAdmin, getAdminApprovalVendors);
 router.get(
   "/approvals/vendors/:vendorId",
   requireAdmin,
   getAdminApprovalVendorById,
 );
-
-router.patch(
-  "/approvals/vendors/:vendorId/approve",
-  requireAdmin,
-  approveVendor,
-);
-
-router.patch("/approvals/vendors/:vendorId/reject", requireAdmin, rejectVendor);
 
 
 // =============================================

@@ -3,6 +3,7 @@ const AdminEmployee = require("../models/AdminEmployee");
 const {
   sendVendorReviewEmail,
   sendVendorApprovalEmail,
+  sendVendorRejectionEmail,
 } = require("./mailer");
 
 // Central place for approval-flow notifications.
@@ -65,14 +66,14 @@ const getReviewEmailRecipients = async () => {
 };
 
 // Listing submitted for review -> notify admin(s).
-// On the FIRST listing (with vendor review enabled) the Admin also gets a
-// Dutch review-request email.
+// When item approval is on, the FIRST listing is what makes the vendor
+// publicly visible, so the Admin also gets a Dutch review-request email for it.
 const notifyAdminListingSubmitted = async ({
   vendorUser,
   vendorProfile,
   listing,
   isFirstListing = false,
-  vendorActivationRequired = false,
+  itemApprovalRequired = true,
 }) => {
   const businessName = getBusinessName(vendorProfile);
 
@@ -91,7 +92,7 @@ const notifyAdminListingSubmitted = async ({
     }),
   );
 
-  if (isFirstListing && vendorActivationRequired) {
+  if (isFirstListing && itemApprovalRequired) {
     const recipients = await getReviewEmailRecipients();
     await safeEmail(() =>
       sendVendorReviewEmail({
@@ -105,13 +106,14 @@ const notifyAdminListingSubmitted = async ({
 };
 
 // Listing approved -> notify the vendor.
-// When approving the FIRST listing activates the vendor account too, the
-// vendor also gets the Dutch approval email. (Only once, at activation.)
+// `vendorWentLive` is true when this approval gave the vendor its first
+// approved listing, i.e. it is only now visible on the public site. That is the
+// only moment the Dutch approval email is sent.
 const notifyVendorListingApproved = async ({
   vendorUser,
   vendorProfile,
   listing,
-  vendorJustActivated = false,
+  vendorWentLive = false,
 }) => {
   const title = getListingTitle(listing, "en");
 
@@ -130,19 +132,23 @@ const notifyVendorListingApproved = async ({
     }),
   );
 
-  if (vendorJustActivated) {
+  if (vendorWentLive) {
     await safeEmail(() =>
       sendVendorApprovalEmail({ vendorUser, vendorProfile, listing }),
     );
   }
 };
 
-// Listing rejected -> notify the vendor (includes the rejection reason).
+// Listing rejected -> notify the vendor and email them the reason.
+// `vendorWentOffLive` is true when this rejection leaves the vendor with no
+// approved listing at all, so it drops off the public site. The email wording
+// reflects that.
 const notifyVendorListingRejected = async ({
   vendorUser,
   vendorProfile,
   listing,
   reason,
+  vendorWentOffLive = false,
 }) => {
   const title = getListingTitle(listing, "en");
   const reasonEn =
@@ -157,60 +163,33 @@ const notifyVendorListingRejected = async ({
   await safeNotify(() =>
     notificationController.createNotification({
       title: {
-        en: "Listing rejected",
-        nl: "Advertentie afgewezen",
+        en: vendorWentOffLive
+          ? "Listing rejected - not visible on the site yet"
+          : "Listing rejected",
+        nl: vendorWentOffLive
+          ? "Advertentie afgewezen - nog niet zichtbaar op de site"
+          : "Advertentie afgewezen",
       },
       message: {
-        en: `Your listing "${title}" was rejected. Reason: ${reasonEn}`,
-        nl: `Uw advertentie "${getListingTitle(listing, "nl")}" is afgewezen. Reden: ${reasonNl}`,
+        en: vendorWentOffLive
+          ? `Your listing "${title}" was rejected. You are not visible on the site until one of your listings is approved. Reason: ${reasonEn}`
+          : `Your listing "${title}" was rejected. Reason: ${reasonEn}`,
+        nl: vendorWentOffLive
+          ? `Uw advertentie "${getListingTitle(listing, "nl")}" is afgewezen. U bent pas zichtbaar op de site zodra één van uw advertenties is goedgekeurd. Reden: ${reasonNl}`
+          : `Uw advertentie "${getListingTitle(listing, "nl")}" is afgewezen. Reden: ${reasonNl}`,
       },
       notificationFor: "Vendor",
       vendorId: vendorUser?._id || vendorUser?.id || null,
     }),
   );
-};
 
-// Vendor account approved manually by an admin -> notify the vendor.
-const notifyVendorApproved = async ({ vendorUser, vendorProfile }) => {
-  await safeNotify(() =>
-    notificationController.createNotification({
-      title: {
-        en: "Vendor account approved",
-        nl: "Leveranciersaccount goedgekeurd",
-      },
-      message: {
-        en: "Your vendor account has been approved. You can now start selling.",
-        nl: "Uw leveranciersaccount is goedgekeurd. U kunt nu beginnen met verkopen.",
-      },
-      notificationFor: "Vendor",
-      vendorId: vendorUser?._id || vendorUser?.id || null,
-    }),
-  );
-};
-
-// Vendor account rejected by an admin -> notify the vendor (with reason).
-const notifyVendorRejected = async ({ vendorUser, vendorProfile, reason }) => {
-  const reasonEn =
-    typeof reason === "string"
-      ? reason
-      : reason?.en || reason?.nl || "No reason provided";
-  const reasonNl =
-    typeof reason === "string"
-      ? reason
-      : reason?.nl || reason?.en || "Geen reden opgegeven";
-
-  await safeNotify(() =>
-    notificationController.createNotification({
-      title: {
-        en: "Vendor account rejected",
-        nl: "Leveranciersaccount afgewezen",
-      },
-      message: {
-        en: `Your vendor account was rejected. Reason: ${reasonEn}`,
-        nl: `Uw leveranciersaccount is afgewezen. Reden: ${reasonNl}`,
-      },
-      notificationFor: "Vendor",
-      vendorId: vendorUser?._id || vendorUser?.id || null,
+  await safeEmail(() =>
+    sendVendorRejectionEmail({
+      vendorUser,
+      vendorProfile,
+      listing,
+      reason,
+      vendorOnHold: vendorWentOffLive,
     }),
   );
 };
@@ -219,6 +198,4 @@ module.exports = {
   notifyAdminListingSubmitted,
   notifyVendorListingApproved,
   notifyVendorListingRejected,
-  notifyVendorApproved,
-  notifyVendorRejected,
 };

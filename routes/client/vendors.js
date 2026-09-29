@@ -25,6 +25,11 @@ router.post("/bycategory/:categoryId", vendorController.getVendorsByCategory);
 // @access  Public
 router.get("/featured", vendorController.getFeaturedVendors);
 
+// @desc    Resolve a public vendor slug to its id (legacy /verkoper/:slugUrl links)
+// @route   GET /api/vendor/slug/:slugUrl
+// @access  Public
+router.get("/slug/:slugUrl", vendorController.resolveVendorBySlug);
+
 // @desc    Get vendor profile by ID (public access)
 // @route   GET /api/vendor/profile/:vendorId
 // @access  Public

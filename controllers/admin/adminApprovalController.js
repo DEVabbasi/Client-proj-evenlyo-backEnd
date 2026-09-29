@@ -3,7 +3,11 @@ const User = require("../../models/User");
 const Vendor = require("../../models/Vendor");
 const Listing = require("../../models/Listing");
 
-const { getApprovalSettings } = require("../../utils/getApprovalSettings");
+const {
+  getApprovalSettings,
+  getLiveVendorUserIds,
+  VENDOR_VISIBLE_LISTING_STATES,
+} = require("../../utils/getApprovalSettings");
 const { toMultilingualText } = require("../../utils/textUtils");
 const approvalNotifications = require("../../utils/approvalNotifications");
 const Settings = require("../../models/Settings");
@@ -20,6 +24,13 @@ const getAdminApprovalVendors = async (req, res) => {
 
     // -----------------------------------------
     // 1. Validate status filter
+    //
+    // There is no vendor approval state any more. A vendor is publicly
+    // visible as soon as it owns at least one approved listing, so the filter
+    // below is derived from the vendor's listings:
+    //   approved -> live on the public site
+    //   pending  -> has listings, but none approved yet
+    //   rejected -> nothing approved and at least one rejection
     // -----------------------------------------
     const allowedStatuses = ["all", "pending", "approved", "rejected"];
 
@@ -35,15 +46,10 @@ const getAdminApprovalVendors = async (req, res) => {
 
     // -----------------------------------------
     // 2. Build User query
-    // Vendor approval belongs to User
     // -----------------------------------------
     const userQuery = {
       userType: "vendor",
     };
-
-    if (status !== "all") {
-      userQuery.approvalStatus = status;
-    }
 
     if (search.trim()) {
       userQuery.$or = [
@@ -115,7 +121,7 @@ const getAdminApprovalVendors = async (req, res) => {
         path: "userId",
         match: userQuery,
         select:
-          "_id email contactNumber accountType userType isActive approvalStatus approvalRejectionReason submittedForReviewAt reviewedAt reviewedBy createdAt",
+          "_id email contactNumber accountType userType isActive createdAt",
       })
       .populate("mainCategories", "name")
       .populate("subCategories", "name")
@@ -125,6 +131,41 @@ const getAdminApprovalVendors = async (req, res) => {
     // populate(match) does not remove parent Vendor.
     // Remove vendors whose User didn't match.
     vendors = vendors.filter((vendor) => vendor.userId);
+
+    // -----------------------------------------
+    // 5b. Derive visibility from listings
+    //
+    // The Admin queue keeps showing every vendor, including the ones that are
+    // not public yet, otherwise a pending vendor could never be approved.
+    // The status filter and the "isLive" flag are computed from the vendor's
+    // own listings.
+    // -----------------------------------------
+    const [liveVendorUserIds, vendorsWithListings, vendorsWithRejections] =
+      await Promise.all([
+        getLiveVendorUserIds(),
+        Listing.distinct("vendor", {}),
+        Listing.distinct("vendor", { approvalStatus: "rejected" }),
+      ]);
+
+    const liveUserIdSet = new Set(liveVendorUserIds.map(String));
+    const listedUserIdSet = new Set(vendorsWithListings.map(String));
+    const rejectedUserIdSet = new Set(vendorsWithRejections.map(String));
+
+    const isVendorLive = (vendor) =>
+      liveUserIdSet.has(String(vendor.userId?._id));
+
+    const visibilityState = (vendor) => {
+      const userId = String(vendor.userId?._id);
+
+      if (liveUserIdSet.has(userId)) return "approved";
+      if (rejectedUserIdSet.has(userId)) return "rejected";
+      if (listedUserIdSet.has(userId)) return "pending";
+      return "pending";
+    };
+
+    if (status !== "all") {
+      vendors = vendors.filter((vendor) => visibilityState(vendor) === status);
+    }
 
     // -----------------------------------------
     // 6. Pagination
@@ -222,14 +263,10 @@ const getAdminApprovalVendors = async (req, res) => {
         email: user.email,
         isActive: user.isActive,
 
-        // Vendor approval comes from User
-        approvalStatus: user.approvalStatus || "pending",
-
-        rejectionReason: user.approvalRejectionReason || "",
-
-        submittedForReviewAt: user.submittedForReviewAt,
-
-        reviewedAt: user.reviewedAt,
+        // Derived from the vendor's own listings: a vendor is publicly
+        // visible as soon as it has at least one approved listing.
+        isLive: isVendorLive(vendor),
+        approvalStatus: visibilityState(vendor),
 
         mainCategories: vendor.mainCategories || [],
 
@@ -297,18 +334,9 @@ const getAdminApprovalVendorById = async (req, res) => {
           accountType
           userType
           isActive
-          approvalStatus
-          approvalRejectionReason
-          submittedForReviewAt
-          reviewedAt
-          reviewedBy
           stripeOnboardingComplete
           createdAt
         `,
-        populate: {
-          path: "reviewedBy",
-          select: "firstName lastName email",
-        },
       })
       .populate("mainCategories", "name icon description")
       .populate("subCategories", "name icon description mainCategory")
@@ -373,6 +401,14 @@ const getAdminApprovalVendorById = async (req, res) => {
         listingStats[listing.approvalStatus]++;
       }
     }
+
+    // -----------------------------------------
+    // Visibility is derived from the vendor's own listings: it is publicly
+    // visible as soon as it owns at least one approved listing.
+    // -----------------------------------------
+    const vendorIsLive = listings.some((listing) =>
+      VENDOR_VISIBLE_LISTING_STATES.includes(listing.approvalStatus),
+    );
 
     // -----------------------------------------
     // 5. Onboarding progress
@@ -461,15 +497,11 @@ const getAdminApprovalVendorById = async (req, res) => {
 
           stripeOnboardingComplete: vendor.userId.stripeOnboardingComplete,
 
-          approvalStatus: vendor.userId.approvalStatus || "pending",
-
-          rejectionReason: vendor.userId.approvalRejectionReason || "",
-
-          submittedForReviewAt: vendor.userId.submittedForReviewAt,
-
-          reviewedAt: vendor.userId.reviewedAt,
-
-          reviewedBy: vendor.userId.reviewedBy,
+          // Derived from the vendor's own listings, not from a stored
+          // approval flag: a vendor is publicly visible as soon as it owns at
+          // least one approved listing.
+          isLive: vendorIsLive,
+          approvalStatus: vendorIsLive ? "approved" : "pending",
 
           createdAt: vendor.createdAt,
 
@@ -504,293 +536,6 @@ const getAdminApprovalVendorById = async (req, res) => {
     });
   }
 };
-
-// @desc    Approve vendor account
-// @route   PATCH /api/admin/approvals/vendors/:vendorId/approve
-// @access  Admin
-
-const approveVendor = async (req, res) => {
-  try {
-    const { vendorId } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(vendorId)) {
-      return res.status(400).json({
-        success: false,
-        message: {
-          en: "Invalid vendor ID.",
-          nl: "Ongeldige leveranciers-ID.",
-        },
-      });
-    }
-
-    const approvalSettings = await getApprovalSettings();
-
-    if (!approvalSettings.vendorActivationRequired) {
-      return res.status(400).json({
-        success: false,
-        code: "VENDOR_APPROVAL_DISABLED",
-        message: {
-          en: "Manual vendor approval is currently disabled.",
-          nl: "Handmatige goedkeuring van leveranciers is momenteel uitgeschakeld.",
-        },
-      });
-    }
-
-    // vendorId = Vendor._id
-    const vendor = await Vendor.findById(vendorId)
-      .select("_id userId businessName")
-      .lean();
-
-    if (!vendor) {
-      return res.status(404).json({
-        success: false,
-        message: {
-          en: "Vendor not found.",
-          nl: "Leverancier niet gevonden.",
-        },
-      });
-    }
-
-    const user = await User.findOne({
-      _id: vendor.userId,
-      userType: "vendor",
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: {
-          en: "Vendor account not found.",
-          nl: "Leveranciersaccount niet gevonden.",
-        },
-      });
-    }
-
-    if (user.approvalStatus === "approved") {
-      return res.status(400).json({
-        success: false,
-        code: "VENDOR_ALREADY_APPROVED",
-        message: {
-          en: "Vendor is already approved.",
-          nl: "Leverancier is al goedgekeurd.",
-        },
-      });
-    }
-
-    const now = new Date();
-
-    user.approvalStatus = "approved";
-    user.approvalRejectionReason = {
-      en: "",
-      nl: "",
-    };
-    user.submittedForReviewAt = null;
-    user.reviewedAt = now;
-    user.reviewedBy = req.user.id;
-
-    await user.save();
-
-    // Notify vendor that the account was approved (no email: the approval
-    // email is reserved for the first-listing activation flow).
-    await approvalNotifications.notifyVendorApproved({
-      vendorUser: user,
-      vendorProfile: vendor,
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: {
-        en: "Vendor approved successfully.",
-        nl: "Leverancier succesvol goedgekeurd.",
-      },
-      data: {
-        vendorId: vendor._id,
-        userId: user._id,
-        businessName: vendor.businessName,
-        approvalStatus: user.approvalStatus,
-        reviewedAt: user.reviewedAt,
-        reviewedBy: user.reviewedBy,
-      },
-    });
-  } catch (error) {
-    console.error("Error approving vendor:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: {
-        en: "Unable to approve vendor.",
-        nl: "Kan leverancier niet goedkeuren.",
-      },
-      error: error.message,
-    });
-  }
-};
-
-// @desc    Reject vendor account
-// @route   PATCH /api/admin/approvals/vendors/:vendorId/reject
-// @access  Admin
-
-const rejectVendor = async (req, res) => {
-  try {
-    const { vendorId } = req.params;
-    const { reason } = req.body;
-
-    // -----------------------------------------
-    // 1. Validate vendor ID
-    // -----------------------------------------
-    if (!mongoose.Types.ObjectId.isValid(vendorId)) {
-      return res.status(400).json({
-        success: false,
-        message: {
-          en: "Invalid vendor ID.",
-          nl: "Ongeldige leveranciers-ID.",
-        },
-      });
-    }
-
-    // -----------------------------------------
-    // 2. Get approval settings
-    // -----------------------------------------
-    const approvalSettings = await getApprovalSettings();
-
-    if (!approvalSettings.vendorActivationRequired) {
-      return res.status(400).json({
-        success: false,
-        code: "VENDOR_APPROVAL_DISABLED",
-        message: {
-          en: "Manual vendor approval is currently disabled.",
-          nl: "Handmatige goedkeuring van leveranciers is momenteel uitgeschakeld.",
-        },
-      });
-    }
-
-    // -----------------------------------------
-    // 3. Convert reason to multilingual format
-    // -----------------------------------------
-    const multilingualReason = toMultilingualText(reason);
-
-    const hasReason =
-      multilingualReason.en.trim() || multilingualReason.nl.trim();
-
-    // Reason required only when rejection flow is ON
-    if (!hasReason) {
-      return res.status(400).json({
-        success: false,
-        code: "REJECTION_REASON_REQUIRED",
-        message: {
-          en: "A rejection reason is required.",
-          nl: "Een reden voor afwijzing is vereist.",
-        },
-      });
-    }
-
-    // -----------------------------------------
-    // 4. Find Vendor profile
-    // vendorId = Vendor._id
-    // -----------------------------------------
-    const vendor = await Vendor.findById(vendorId)
-      .select("_id userId businessName")
-      .lean();
-
-    if (!vendor) {
-      return res.status(404).json({
-        success: false,
-        message: {
-          en: "Vendor not found.",
-          nl: "Leverancier niet gevonden.",
-        },
-      });
-    }
-
-    // -----------------------------------------
-    // 5. Find actual vendor User account
-    // -----------------------------------------
-    const user = await User.findOne({
-      _id: vendor.userId,
-      userType: "vendor",
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: {
-          en: "Vendor account not found.",
-          nl: "Leveranciersaccount niet gevonden.",
-        },
-      });
-    }
-
-    // -----------------------------------------
-    // 6. Prevent duplicate rejection
-    // -----------------------------------------
-    if (user.approvalStatus === "rejected") {
-      return res.status(400).json({
-        success: false,
-        code: "VENDOR_ALREADY_REJECTED",
-        message: {
-          en: "Vendor is already rejected.",
-          nl: "Leverancier is al afgewezen.",
-        },
-      });
-    }
-
-    // -----------------------------------------
-    // 7. Reject vendor
-    // -----------------------------------------
-    const now = new Date();
-
-    user.approvalStatus = "rejected";
-
-    user.approvalRejectionReason = multilingualReason;
-
-    user.reviewedAt = now;
-    user.reviewedBy = req.user.id;
-
-    await user.save();
-
-    // Notify vendor about the rejection (with reason).
-    await approvalNotifications.notifyVendorRejected({
-      vendorUser: user,
-      vendorProfile: vendor,
-      reason: multilingualReason,
-    });
-
-    // -----------------------------------------
-    // 8. Response
-    // -----------------------------------------
-    return res.status(200).json({
-      success: true,
-      message: {
-        en: "Vendor rejected successfully.",
-        nl: "Leverancier succesvol afgewezen.",
-      },
-      data: {
-        vendorId: vendor._id,
-        userId: user._id,
-        businessName: vendor.businessName,
-
-        approvalStatus: user.approvalStatus,
-
-        rejectionReason: user.approvalRejectionReason,
-
-        reviewedAt: user.reviewedAt,
-        reviewedBy: user.reviewedBy,
-      },
-    });
-  } catch (error) {
-    console.error("Error rejecting vendor:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: {
-        en: "Unable to reject vendor.",
-        nl: "Kan leverancier niet afwijzen.",
-      },
-      error: error.message,
-    });
-  }
-};
-
 
 // @desc    Get all listings for Admin approval module
 // @route   GET /api/admin/approvals/listings
@@ -1572,9 +1317,6 @@ const getAdminApprovalListingById = async (req, res) => {
         approvalSettings: {
           itemApprovalRequired:
             approvalSettings.itemApprovalRequired,
-
-          vendorActivationRequired:
-            approvalSettings.vendorActivationRequired,
         },
       },
     });
@@ -1650,6 +1392,18 @@ const approveListing = async (req, res) => {
 
     const now = new Date();
 
+    // Did the vendor already have a listing that made it publicly visible
+    // BEFORE this approval? If not, this approval is what takes the vendor
+    // live, and it is the only moment the Dutch approval email is sent.
+    // "edited" counts as visible: a vendor that is already live must not
+    // re-trigger the "you are now live" email just because another listing of
+    // its is approved.
+    const hadVisibleListingBefore = await Listing.exists({
+      vendor: listing.vendor,
+      _id: { $ne: listing._id },
+      approvalStatus: { $in: VENDOR_VISIBLE_LISTING_STATES },
+    });
+
     listing.approvalStatus = "approved";
     listing.rejectionReason = {
       en: "",
@@ -1673,34 +1427,18 @@ const approveListing = async (req, res) => {
     await listing.save();
 
     // -----------------------------------------
-    // Vendor activation through first-listing approval.
-    // When vendor review is enabled and the vendor account is still
-    // pending, approving the (first) listing also activates the vendor.
+    // Vendor going live.
+    //
+    // There is no separate vendor approval state. A vendor is publicly
+    // visible as soon as it owns at least one approved listing, so this
+    // approval is what makes it visible whenever it had none before.
     // -----------------------------------------
-    let vendorJustActivated = false;
-    let vendorUser = await User.findOne({
+    const vendorJustWentLive = !hadVisibleListingBefore;
+
+    const vendorUser = await User.findOne({
       _id: listing.vendor,
       userType: "vendor",
     });
-
-    if (
-      approvalSettings.vendorActivationRequired &&
-      vendorUser &&
-      vendorUser.approvalStatus !== "approved"
-    ) {
-      vendorUser.approvalStatus = "approved";
-      vendorUser.approvalRejectionReason = {
-        en: "",
-        nl: "",
-      };
-      vendorUser.submittedForReviewAt = null;
-      vendorUser.reviewedAt = now;
-      vendorUser.reviewedBy = req.user.id;
-
-      await vendorUser.save();
-
-      vendorJustActivated = true;
-    }
 
     const approveVendorProfile = await Vendor.findOne({
       userId: listing.vendor,
@@ -1708,13 +1446,13 @@ const approveListing = async (req, res) => {
       .select("businessName")
       .lean();
 
-    // Vendor notification. The Dutch approval email is only sent when the
-    // vendor account was just activated through this approval.
+    // Vendor notification. The Dutch approval email is only sent when this
+    // approval is what put the vendor live on the public site.
     await approvalNotifications.notifyVendorListingApproved({
       vendorUser,
       vendorProfile: approveVendorProfile,
       listing,
-      vendorJustActivated,
+      vendorWentLive: vendorJustWentLive,
     });
 
     const populatedListing = await Listing.findById(listing._id)
@@ -1870,6 +1608,25 @@ const rejectListing = async (req, res) => {
       userType: "vendor",
     });
 
+    // -----------------------------------------
+    // Vendor going off the public site.
+    //
+    // There is no separate vendor rejection state. Visibility is derived
+    // entirely from the vendor's listings, so rejecting the last visible
+    // listing of a vendor takes it off the public site until another listing
+    // is approved.
+    //
+    // "edited" counts as visible, so rejecting one listing never hides a
+    // vendor that still has another listing keeping it on the site.
+    // -----------------------------------------
+    const vendorStillVisible = await Listing.exists({
+      vendor: listing.vendor,
+      _id: { $ne: listing._id },
+      approvalStatus: { $in: VENDOR_VISIBLE_LISTING_STATES },
+    });
+
+    const vendorWentOffLive = !vendorStillVisible;
+
     const rejectVendorProfile = await Vendor.findOne({
       userId: listing.vendor,
     })
@@ -1881,6 +1638,7 @@ const rejectListing = async (req, res) => {
       vendorProfile: rejectVendorProfile,
       listing,
       reason: finalReason,
+      vendorWentOffLive,
     });
 
     // -----------------------------------------
@@ -1961,18 +1719,15 @@ const getAdminApprovalSettings = async (req, res) => {
 
 const updateAdminApprovalSettings = async (req, res) => {
   try {
-    const allowedFields = [
-      "itemApprovalRequired",
-      "vendorActivationRequired",
-    ];
+    const allowedFields = ["itemApprovalRequired"];
 
     const updates = {};
 
     // -----------------------------------------
     // 1. Validate input
     // -----------------------------------------
-    // Accept both nested (`{ approvalSettings: { vendorActivationRequired: true } }`)
-    // and flat (`{ vendorActivationRequired: true }`) payloads.
+    // Accept both nested (`{ approvalSettings: { itemApprovalRequired: true } }`)
+    // and flat (`{ itemApprovalRequired: true }`) payloads.
     const requestSettings = req.body.approvalSettings || req.body;
 
     for (const field of allowedFields) {
@@ -2011,7 +1766,11 @@ const updateAdminApprovalSettings = async (req, res) => {
     let settings = await Settings.findOne();
 
     if (!settings) {
-      settings = await Settings.create({});
+      settings = await Settings.create({
+        bookingItemPlatformFee: 0,
+        salesItemPlatformFee: 0,
+        vat: 0,
+      });
     }
 
     // -----------------------------------------
@@ -2027,6 +1786,35 @@ const updateAdminApprovalSettings = async (req, res) => {
         runValidators: true,
       },
     ).select("approvalSettings");
+
+    // -----------------------------------------
+    // 5. Record who changed the toggle and when
+    //
+    // Append-only audit trail, one entry per actual value change. Writing the
+    // same value again is a no-op and is not recorded. The history is
+    // intentionally not exposed by the GET endpoint.
+    // -----------------------------------------
+    const field = Object.keys(updates)[0].split(".").pop();
+    const newValue = updates[`approvalSettings.${field}`];
+    const previousValue = settings.approvalSettings?.[field];
+
+    const didValueChange = previousValue !== newValue;
+
+    if (didValueChange) {
+      await Settings.updateOne(
+        { _id: settings._id },
+        {
+          $push: {
+            approvalSettingsHistory: {
+              [field]: newValue,
+              previousValue: previousValue ?? null,
+              changedBy: req.user.id,
+              changedAt: new Date(),
+            },
+          },
+        },
+      );
+    }
 
     return res.status(200).json({
       success: true,
@@ -2055,10 +1843,10 @@ const updateAdminApprovalSettings = async (req, res) => {
 };
 
 module.exports = {
+  // Vendor review is driven by the vendor's FIRST listing.
+  // There is intentionally no approve/reject endpoint for vendors.
   getAdminApprovalVendors,
   getAdminApprovalVendorById,
-  approveVendor,
-  rejectVendor,
 
   // Listing Admin module
   getAdminApprovalListings,

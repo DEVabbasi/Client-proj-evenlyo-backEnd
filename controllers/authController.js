@@ -2322,9 +2322,8 @@ const getStripeOnboardingLink = async (req, res) => {
 
     const accountLink = await stripe.accountLinks.create({
       account: vendor.stripeAccountId,
-      refresh_url:
-        "https://leverancier.evenlyo.nl/leverancier/profielbeheer/succes",
-      return_url: "https://leverancier.evenlyo.nl/leverancier/succes",
+      refresh_url: process.env.STRIPE_REFRESH_URL,
+      return_url: process.env.STRIPE_RETURN_URL,
       type: "account_onboarding",
     });
 

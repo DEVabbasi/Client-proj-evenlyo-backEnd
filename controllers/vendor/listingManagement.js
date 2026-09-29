@@ -500,12 +500,12 @@ const createListing = async (req, res) => {
     }
 
     // -----------------------------------------
-    // 9. Load the 2 approval settings
+    // 9. Load the approval setting
     // -----------------------------------------
     const approvalSettings = await getApprovalSettings();
     console.log("APPROVAL SETTINGS:", approvalSettings);
 
-    const { vendorActivationRequired, itemApprovalRequired } = approvalSettings;
+    const { itemApprovalRequired } = approvalSettings;
 
     // -----------------------------------------
     // 10. Check whether this is first listing
@@ -559,74 +559,9 @@ const createListing = async (req, res) => {
     await listing.save();
 
     // -----------------------------------------
-    // 15. First listing triggers VENDOR review
-    // -----------------------------------------
-    if (isFirstListing) {
-      const vendorUser = await User.findOne({
-        _id: ownerUserId,
-        userType: "vendor",
-      });
-
-      if (!vendorUser) {
-        // Listing exists, so don't pretend the whole
-        // request completely failed.
-        // Return result explaining what happened.
-        return res.status(201).json({
-          success: true,
-          code: "LISTING_CREATED_VENDOR_REVIEW_NOT_UPDATED",
-          message: {
-            en: "Listing was created, but the vendor approval status could not be updated.",
-            nl: "De advertentie is aangemaakt, maar de goedkeuringsstatus van de leverancier kon niet worden bijgewerkt.",
-          },
-          data: {
-            listing,
-          },
-        });
-      }
-
-      // ---------------------------------------
-      // Vendor approval required
-      // ---------------------------------------
-      if (vendorActivationRequired) {
-        vendorUser.approvalStatus = "pending";
-
-        vendorUser.submittedForReviewAt = now;
-
-        vendorUser.approvalRejectionReason = {
-          en: "",
-          nl: "",
-        };
-
-        // Clear previous review metadata
-        vendorUser.reviewedAt = null;
-        vendorUser.reviewedBy = null;
-      }
-
-      // ---------------------------------------
-      // Vendor approval NOT required
-      // ---------------------------------------
-      else {
-        vendorUser.approvalStatus = "approved";
-
-        vendorUser.approvalRejectionReason = {
-          en: "",
-          nl: "",
-        };
-
-        vendorUser.submittedForReviewAt = now;
-
-        // System approved — not an Admin review
-        vendorUser.reviewedAt = null;
-        vendorUser.reviewedBy = null;
-      }
-
-      await vendorUser.save();
-    }
-
-    // -----------------------------------------
-    // 15b. Notify admin(s) about the new submission.
+    // 15. Notify admin(s) about the new submission.
     // The Dutch review-request email is only sent for the very first
-    // listing (first-listing + vendor review flow).
+    // listing, because that is the listing that makes the vendor visible.
     // Emails/notifications never block listing creation.
     // -----------------------------------------
     if (itemApprovalRequired) {
@@ -644,7 +579,7 @@ const createListing = async (req, res) => {
         vendorProfile: vendor,
         listing,
         isFirstListing,
-        vendorActivationRequired,
+        itemApprovalRequired,
       });
     }
 
@@ -683,11 +618,10 @@ const createListing = async (req, res) => {
             status: populated.approvalStatus,
           },
 
-          vendor: {
-            approvalRequired: vendorActivationRequired,
-
-            reviewTriggered: isFirstListing,
-          },
+          // The vendor goes live as soon as it has one approved listing.
+          // With the toggle off this listing already satisfies that, with the
+          // toggle on it stays hidden until an Admin approves.
+          goesLiveWhenApproved: !itemApprovalRequired,
         },
       },
     });
@@ -1062,7 +996,7 @@ const updateListing = async (req, res) => {
     }
 
     // -----------------------------------------
-    // 16. Update listing
+    // 15. Update listing
     // -----------------------------------------
     const updatedListing = await Listing.findByIdAndUpdate(
       id,
