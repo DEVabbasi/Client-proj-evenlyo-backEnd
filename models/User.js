@@ -196,8 +196,10 @@ const userSchema = new mongoose.Schema(
 
 
 // Virtual for fullName
+// Business accounts may never set firstName/lastName, so never stringify
+// missing parts into "undefined undefined".
 userSchema.virtual("fullName").get(function () {
-  return `${this.firstName} ${this.lastName}`;
+  return `${this.firstName || ""} ${this.lastName || ""}`.trim();
 });
 
 // Ensure virtual fields are serialized

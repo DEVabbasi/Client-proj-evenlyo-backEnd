@@ -246,9 +246,7 @@ const getVendorFullDetails = async (req, res) => {
 
     const userDetails = {
       businessName: getVendorDisplayName(vendor),
-      name: vendor.userId
-        ? vendor.businessName
-        : `${vendor.userId.firstName} ${vendor.userId.lastName}`,
+      name: getVendorDisplayName(vendor),
       email: showContact ? vendor.userId?.email : null,
       userType: vendor.userId?.userType || "",
       profileImage: vendor.userId?.profileImage || "",
@@ -903,9 +901,7 @@ const getFeaturedVendors = asyncHandler(async (req, res) => {
       personalInfo: {
         firstName: vendor.userId?.firstName,
         lastName: vendor.userId?.lastName,
-        fullName: vendor.userId
-          ? `${vendor.userId.firstName} ${vendor.userId.lastName}`
-          : "",
+        fullName: getVendorDisplayName(vendor),
         profileImage: vendor.userId?.profileImage,
         isActive: vendor.userId?.isActive,
       },

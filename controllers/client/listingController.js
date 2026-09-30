@@ -16,6 +16,7 @@ const {
   getPublicListingApprovalFilter,
   isPubliclyVisibleListing,
 } = require("../../utils/getApprovalSettings");
+const { getVendorDisplayName } = require("../../utils/vendorDisplayName");
 // @desc    Get calendar data (booked and available days/times) for a listing
 // @route   GET /api/listing/:id/calendar
 // @access  Public
@@ -312,13 +313,14 @@ const getListingById = async (req, res) => {
     // Ã¢Å“â€¦ Vendor details fetch (business logo + Vendor model _id)
     let businessLogo = "";
     let vendorModelId = null;
+    let vendorProfile = null;
     if (listing.vendor?._id) {
-      const vendorDetails = await Vendor.findOne({
+      vendorProfile = await Vendor.findOne({
         userId: listing.vendor._id,
-      }).select("_id businessLogo");
+      }).select("_id businessLogo businessName");
 
-      businessLogo = vendorDetails?.businessLogo || "";
-      vendorModelId = vendorDetails?._id || null;
+      businessLogo = vendorProfile?.businessLogo || "";
+      vendorModelId = vendorProfile?._id || null;
     }
 
     // Ã¢Å“â€¦ Booking IDs
@@ -377,12 +379,18 @@ const getListingById = async (req, res) => {
 
     // Ã¢Å“â€¦ Convert object
     const data = listing.toObject();
-    console.log(data, "datadatadatadatadatadata");
 
-    // Ã¢Å“â€¦ Attach extra data
+    // Attach extra data
     data.vendor = data.vendor || {};
     data.vendor.businessLogo = businessLogo;
     data.vendor.vendorModelId = vendorModelId;
+
+    // Business accounts have no firstName/lastName, so the User.fullName
+    // virtual resolves to an empty string. Expose the Vendor profile's
+    // businessName and make fullName the resolved display name so clients
+    // never render "undefined undefined".
+    data.vendor.businessName = vendorProfile?.businessName || "";
+    data.vendor.fullName = getVendorDisplayName(data.vendor, vendorProfile);
 
     const sc = data.subCategory || {};
     const settings = await Settings.findOne();

@@ -5,6 +5,7 @@ const multer = require("multer");
 const path = require("path");
 const Listing = require("../models/Listing");
 const SaleItem = require("../models/Item");
+const { getVendorDisplayName } = require("../utils/vendorDisplayName");
 
 // --- Utility function to get user model ---
 const getUserData = async (userId, userType) => {
@@ -413,10 +414,23 @@ const getVendorFullData = async (req, res) => {
 
     const listings = await Listing.find({ vendor: vendor.userId }).lean();
     // const saleItems = await SaleItem.find({ vendor: vendor.userId }).lean();
+
+    // Business accounts have no firstName/lastName, so User.fullName
+    // resolves to an empty string. Resolve the display name from the Vendor
+    // profile so clients never render "undefined undefined".
+    const vendorData = vendor.toObject();
+    if (vendorData.userId) {
+      vendorData.userId = {
+        ...vendorData.userId,
+        businessName: vendorData.businessName || "",
+        fullName: getVendorDisplayName(vendorData.userId, vendorData),
+      };
+    }
+
     res.json({
       success: true,
       data: {
-        vendorData: vendor,
+        vendorData,
         Listings: listings,
         // SaleItems: saleItems,
       },
