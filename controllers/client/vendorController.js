@@ -245,9 +245,10 @@ const getVendorFullDetails = async (req, res) => {
     // =====================================================
 
     const userDetails = {
+      businessName: getVendorDisplayName(vendor),
       name: vendor.userId
-        ? `${vendor.userId.firstName} ${vendor.userId.lastName}`
-        : "",
+        ? vendor.businessName
+        : `${vendor.userId.firstName} ${vendor.userId.lastName}`,
       email: showContact ? vendor.userId?.email : null,
       userType: vendor.userId?.userType || "",
       profileImage: vendor.userId?.profileImage || "",
