@@ -16,7 +16,10 @@ const {
   getPublicListingApprovalFilter,
   isPubliclyVisibleListing,
 } = require("../../utils/getApprovalSettings");
-const { getVendorDisplayName } = require("../../utils/vendorDisplayName");
+const {
+  getVendorDisplayName,
+  syncVendorDisplayNames,
+} = require("../../utils/vendorDisplayName");
 // @desc    Get calendar data (booked and available days/times) for a listing
 // @route   GET /api/listing/:id/calendar
 // @access  Public
@@ -209,7 +212,9 @@ const getListings = async (req, res) => {
 
     // Get listings with populated vendor and category information
     const listingsDocs = await Listing.find(query)
-      .populate("vendor", "_id firstName lastName fullName")
+      // businessName is required for the fullName virtual to resolve for
+      // business vendors, who have no firstName/lastName.
+      .populate("vendor", "_id firstName lastName businessName fullName")
       .populate("category", "name icon")
       .populate(
         "subCategory",
@@ -254,10 +259,10 @@ const getListings = async (req, res) => {
 
     res.json({
       success: true,
-      data: listings,
+      data: await syncVendorDisplayNames(listings),
       pagination: {
         current: parseInt(page),
-        pages: Math.ceil(total / limit),
+        pages: Math.ceil(total / parseInt(limit)),
         total,
         limit: parseInt(limit),
       },
@@ -385,10 +390,9 @@ const getListingById = async (req, res) => {
     data.vendor.businessLogo = businessLogo;
     data.vendor.vendorModelId = vendorModelId;
 
-    // Business accounts have no firstName/lastName, so the User.fullName
-    // virtual resolves to an empty string. Expose the Vendor profile's
-    // businessName and make fullName the resolved display name so clients
-    // never render "undefined undefined".
+    // The Vendor profile is the source of truth for the business name, so it
+    // also refreshes the denormalized copy on the User and fullName built from
+    // it. Business vendors have no firstName/lastName of their own.
     data.vendor.businessName = vendorProfile?.businessName || "";
     data.vendor.fullName = getVendorDisplayName(data.vendor, vendorProfile);
 
@@ -1365,7 +1369,7 @@ const getHomeData = async (req, res) => {
      */
 
     const listings = await Listing.find(query)
-      .populate("vendor", "firstName rating isActive")
+      .populate("vendor", "firstName lastName businessName rating isActive")
       .populate("category", "name")
       .populate("subCategory", "name")
       .select(
@@ -1428,7 +1432,7 @@ const getHomeData = async (req, res) => {
       }
 
       relatedListings = await Listing.find(relatedQuery)
-        .populate("vendor", "firstName rating isActive")
+        .populate("vendor", "firstName lastName businessName rating isActive")
         .populate("category", "name")
         .populate("subCategory", "name")
         .select(
@@ -1568,12 +1572,13 @@ const getHomeData = async (req, res) => {
 
           obj.vendor.businessLogo = profile?.businessLogo || "";
 
-          // The business name is a display-name fallback: User.fullName is
-          // frequently unset, which would otherwise render as
-          // "undefined undefined". Left undefined when the vendor has no
-          // profile row so the client can fall back further up the chain.
+          // The Vendor profile is the source of truth for the business name, so
+          // it also refreshes the denormalized copy on the User doc and rebuilds
+          // fullName from it. Left undefined when the vendor has no profile row
+          // so the client can fall back further up the chain.
           if (profile?.businessName) {
             obj.vendor.businessName = profile.businessName;
+            obj.vendor.fullName = profile.businessName;
           }
         }
 
@@ -1710,10 +1715,10 @@ const getHomeData = async (req, res) => {
       // Main search results
       count: enrichedListings.length,
 
-      data: enrichedListings,
+      data: await syncVendorDisplayNames(enrichedListings),
 
       // Other subcategories within same main category
-      relatedItems: relatedListings,
+      relatedItems: await syncVendorDisplayNames(relatedListings),
     });
   } catch (error) {
     console.error("Search listings error:", error);

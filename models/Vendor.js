@@ -191,4 +191,73 @@ vendorSchema.index({ userId: 1 });
 vendorSchema.index({ mainCategories: 1 });
 // vendorSchema.index({ approvalStatus: 1 });
 
+// ---------------------------------------------------------------------------
+// Mirror businessName onto the owner's User document.
+//
+// User.fullName is the display name every API endpoint returns, and it is a
+// plain virtual (no cross-collection lookups). Business vendors have no
+// firstName/lastName, so without a copy of the business name on the User doc
+// fullName serializes as "" everywhere a User is populated (listing details,
+// homeData, cart, booking history, ...).
+//
+// Denormalizing here means every existing create/update path is covered
+// automatically, including ones that bypass the controllers (admin edits,
+// scripts, profile updates via findOneAndUpdate).
+// ---------------------------------------------------------------------------
+const mirrorBusinessNameToUser = async (vendorDoc) => {
+  if (!vendorDoc?.userId) return;
+
+  const User = require("./User");
+
+  const businessName =
+    typeof vendorDoc.businessName === "string" ? vendorDoc.businessName.trim() : "";
+
+  // Personal vendors have no business name. Unset rather than write "" so the
+  // field stays absent on their User doc, exactly as before.
+  await User.updateOne(
+    { _id: vendorDoc.userId },
+    businessName
+      ? { $set: { businessName } }
+      : { $unset: { businessName: "" } },
+  ).exec();
+};
+
+const mirrorFromQueryResult = (result, previous) => {
+  // findOneAndUpdate/findByIdAndUpdate return the updated doc only when
+  // { new: true } is passed; otherwise fall back to the pre-update doc.
+  const doc = result || previous;
+  if (!doc?.userId) return undefined;
+
+  return mirrorBusinessNameToUser(doc).catch((err) => {
+    console.error("Failed to mirror vendor businessName to user:", err);
+  });
+};
+
+vendorSchema.post("save", function (doc) {
+  return mirrorBusinessNameToUser(doc).catch((err) => {
+    console.error("Failed to mirror vendor businessName to user:", err);
+  });
+});
+
+vendorSchema.post("insertMany", function (docs) {
+  return Promise.all(
+    (docs || []).map((doc) =>
+      mirrorBusinessNameToUser(doc).catch((err) => {
+        console.error("Failed to mirror vendor businessName to user:", err);
+      }),
+    ),
+  );
+});
+
+vendorSchema.post("findOneAndUpdate", function (result, previous) {
+  return mirrorFromQueryResult(result, previous);
+});
+
+vendorSchema.post("updateOne", async function (result) {
+  const doc = await this.model
+    .findOne(this.getFilter())
+    .select("userId businessName");
+  return mirrorFromQueryResult(doc);
+});
+
 module.exports = mongoose.model("Vendor", vendorSchema);

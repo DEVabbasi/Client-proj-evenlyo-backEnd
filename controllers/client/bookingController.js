@@ -27,7 +27,10 @@ const {
   sendVendorCancellationEmail,
 } = require("../../utils/mailer");
 const { createActivityLog } = require("../../utils/activityLogger");
-const { getVendorDisplayName } = require("../../utils/vendorDisplayName");
+const {
+  getVendorDisplayName,
+  withFullName,
+} = require("../../utils/vendorDisplayName");
 
 const momentTime = require("moment-timezone");
 // @desc    Create Stripe PaymentIntent for a booking
@@ -712,7 +715,9 @@ const getAcceptedBookings = asyncHandler(async (req, res) => {
     status: "accepted",
     paymentStatus: { $ne: "paid" },
   })
-    .populate("vendorId", "firstName lastName")
+    // businessName is selected because business vendors have no firstName /
+    // lastName, and .lean() does not run the fullName virtual.
+    .populate("vendorId", "firstName lastName businessName")
     .sort({ createdAt: -1 })
     .lean();
 
@@ -727,8 +732,16 @@ const getAcceptedBookings = asyncHandler(async (req, res) => {
       v => v.userId.toString() === booking.vendorId?._id.toString()
     );
 
+    // .lean() returns plain objects, so the User.fullName virtual never runs.
+    // Recompute it here to keep the response shape identical to the hydrated
+    // endpoints the frontend already consumes.
+    const vendorUser = booking.vendorId
+      ? withFullName({ ...booking.vendorId })
+      : null;
+
     return {
       ...booking,
+      vendorId: vendorUser,
       vendorDetails: vendorDetail || null
     };
   });
@@ -814,7 +827,9 @@ const getBookingHistory = asyncHandler(async (req, res) => {
     filter.status = status;
   }
   const bookings = await BookingRequest.find(filter)
-    .populate("vendorId", "firstName lastName")
+    // businessName is required for the fullName virtual to resolve for business
+    // vendors, who have no firstName/lastName.
+    .populate("vendorId", "firstName lastName businessName")
     .sort({ createdAt: -1 })
     .limit(limit * 1)
     .skip((page - 1) * limit);
@@ -833,6 +848,16 @@ const getBookingHistory = asyncHandler(async (req, res) => {
         bookingId: booking._id,
       });
       const vendorDetailsId = await Vendor.findOne({ userId: booking.vendorId.id }).select("businessName");
+
+      // The Vendor profile is the source of truth for the business name, so it
+      // also refreshes fullName on the populated user. Older vendor documents
+      // may predate the denormalized copy on User.
+      const vendorUser = withFullName({ ...booking.vendorId.toObject() });
+      if (vendorDetailsId?.businessName) {
+        vendorUser.businessName = vendorDetailsId.businessName;
+        vendorUser.fullName = vendorDetailsId.businessName;
+      }
+
       const bookingData = {
         ...booking.toObject(),
         _id: booking._id,
@@ -845,7 +870,8 @@ const getBookingHistory = asyncHandler(async (req, res) => {
         },
         totalPrice: booking?.pricing?.totalPrice,
         status: booking.status,
-        vendor: booking.vendorId,
+        vendor: vendorUser,
+        vendorId: vendorUser,
         listing: booking.listingId,
         createdAt: booking.createdAt,
         statusHistory: booking.statusHistory,
@@ -860,7 +886,7 @@ const getBookingHistory = asyncHandler(async (req, res) => {
         claimDetails: booking.claimDetails,
         images: booking.images || [],
         isReviewed: !!reviewExists,
-        vendorDetailsId: vendorDetailsId._id
+        vendorDetailsId: vendorDetailsId?._id
       };
       return bookingData;
     }),
@@ -1443,7 +1469,9 @@ const getBookingDetails = asyncHandler(async (req, res) => {
     "firstName lastName email contactNumber",
   );
   const vendorDetails = await User.findById(booking.vendorId).select(
-    "firstName lastName email image fullName",
+    // businessName is required for the fullName virtual to resolve for business
+    // vendors, who have no firstName/lastName.
+    "firstName lastName businessName email image fullName",
   );
   if (!booking) {
     return res.status(404).json({
@@ -1457,6 +1485,13 @@ const getBookingDetails = asyncHandler(async (req, res) => {
     ...vendorDetails.toObject(),
     businessLogo: vendor ? vendor.businessLogo : null,
   };
+  // The Vendor profile is the source of truth for the business name, so it also
+  // refreshes fullName. Older vendor documents may predate the denormalized
+  // copy on User.
+  if (vendor?.businessName) {
+    vendorDetailsss.businessName = vendor.businessName;
+    vendorDetailsss.fullName = vendor.businessName;
+  }
   const bookingUserIdStr =
     booking.userId && booking.userId._id
       ? booking.userId._id.toString()

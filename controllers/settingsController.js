@@ -415,15 +415,17 @@ const getVendorFullData = async (req, res) => {
     const listings = await Listing.find({ vendor: vendor.userId }).lean();
     // const saleItems = await SaleItem.find({ vendor: vendor.userId }).lean();
 
-    // Business accounts have no firstName/lastName, so User.fullName
-    // resolves to an empty string. Resolve the display name from the Vendor
-    // profile so clients never render "undefined undefined".
+    // Business accounts have no firstName/lastName, so User.fullName resolves
+    // from the denormalized businessName. The Vendor profile stays the source
+    // of truth, so refresh fullName from it here.
     const vendorData = vendor.toObject();
     if (vendorData.userId) {
       vendorData.userId = {
         ...vendorData.userId,
         businessName: vendorData.businessName || "",
-        fullName: getVendorDisplayName(vendorData.userId, vendorData),
+        fullName: vendorData.businessName
+          ? vendorData.businessName
+          : getVendorDisplayName(vendorData.userId, vendorData),
       };
     }
 

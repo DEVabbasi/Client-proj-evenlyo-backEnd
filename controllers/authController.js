@@ -1580,6 +1580,9 @@ const registerVendor = async (req, res) => {
     // Create user
     const userData = {
       firstName: accountType === "personal" ? firstName : businessName,
+      // Denormalized so User.fullName resolves to the business name for
+      // business vendors, who have no firstName/lastName of their own.
+      ...(accountType === "business" && { businessName }),
       email,
       contactNumber,
       address: fullAddress || "",
@@ -2134,6 +2137,10 @@ const registerVendor2 = async (req, res) => {
 
       firstName,
       lastName,
+
+      // Denormalized so User.fullName resolves to the business name for
+      // business vendors, who have no firstName/lastName of their own.
+      businessName,
 
       address: fullAddress,
 

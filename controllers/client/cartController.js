@@ -5,6 +5,7 @@ const BookingRequest = require("../../models/Booking");
 const Vendor = require("../../models/Vendor");
 const { resolveVendorUserId } = require("../../utils/resolveVendorUserId");
 const { notifyVendorNewBooking } = require("../../utils/notifyVendorNewBooking");
+const { syncVendorDisplayNames } = require("../../utils/vendorDisplayName");
 
 // Helper function to create listing snapshot
 const createListingSnapshot = (listing) => {
@@ -87,7 +88,7 @@ const addToCart = asyncHandler(async (req, res) => {
         en: "Item is already in cart",
         nl: "Item zit al in de winkelmand",
       },
-      data: cart.items,
+      data: await syncVendorDisplayNames(cart.items),
     });
   }
 
@@ -106,7 +107,7 @@ const addToCart = asyncHandler(async (req, res) => {
       en: "Item added to cart successfully",
       nl: "Item succesvol toegevoegd aan winkelmand",
     },
-    data: cart.items,
+    data: await syncVendorDisplayNames(cart.items),
   });
 });
 
@@ -119,7 +120,10 @@ const getCart = asyncHandler(async (req, res) => {
   let cart = await Cart.findOne({ userId: req.user.id }).populate({
     path: "items.listingId",
     populate: {
+      // businessName is required for the fullName virtual to resolve for
+      // business vendors, who have no firstName/lastName.
       path: "vendor",
+      select: "firstName lastName businessName profileImage",
     },
   });
 
@@ -148,9 +152,15 @@ const getCart = asyncHandler(async (req, res) => {
     await cart.save();
   }
 
+  // Listing.vendor is a User, but vendors are business-only profiles so their
+  // display name lives on the Vendor document. Business vendors created before
+  // that name was mirrored onto the User doc have no businessName there, which
+  // is why fullName came back empty. Resolve it from the Vendor profile.
+  const items = await syncVendorDisplayNames(cart.items);
+
   res.json({
     success: true,
-    data: cart.items,
+    data: items,
   });
 });
 
@@ -179,9 +189,13 @@ const removeFromCart = asyncHandler(async (req, res) => {
     select: "title featuredImage pricing vendor",
     populate: {
       path: "vendor",
-      select: "businessName",
+      // businessName is required for the fullName virtual to resolve for
+      // business vendors, who have no firstName/lastName.
+      select: "firstName lastName businessName",
     },
   });
+
+  await syncVendorDisplayNames(cart);
 
   res.json({
     success: true,
@@ -270,9 +284,13 @@ const updateCartItem = asyncHandler(async (req, res) => {
       select: "title featuredImage pricing vendor",
       populate: {
         path: "vendor",
-        select: "businessName",
+        // businessName is required for the fullName virtual to resolve for
+        // business vendors, who have no firstName/lastName.
+        select: "firstName lastName businessName",
       },
     });
+
+    await syncVendorDisplayNames(cart);
 
     res.json({
       success: true,
@@ -546,7 +564,7 @@ const addToCart2 = asyncHandler(async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Item removed from cart successfully",
-      data: cart.items,
+      data: await syncVendorDisplayNames(cart.items),
     });
   }
 
@@ -579,7 +597,7 @@ const addToCart2 = asyncHandler(async (req, res) => {
       en: "Item added to cart successfully",
       nl: "Item succesvol toegevoegd aan winkelmand",
     },
-    data: cart.items,
+    data: await syncVendorDisplayNames(cart.items),
   });
 });
 

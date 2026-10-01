@@ -190,15 +190,35 @@ const userSchema = new mongoose.Schema(
     appFcm: {
       type: String,
     },
+
+    // Denormalized copy of Vendor.businessName for the owner of this account.
+    // Vendors are business-only profiles now, so they have no firstName/lastName
+    // to build a display name from. Keeping the business name on the User doc
+    // lets every endpoint that already returns a User (Listing.vendor,
+    // Booking.vendorId, cart items, ...) expose a usable `fullName` without any
+    // extra lookup. Kept in sync by the Vendor model hooks.
+    //
+    // Deliberately no default: clients and personal vendors must not start
+    // serializing an empty businessName they never had.
+    businessName: {
+      type: String,
+      trim: true,
+    },
   },
   { timestamps: true },
 );
 
-
 // Virtual for fullName
-// Business accounts may never set firstName/lastName, so never stringify
-// missing parts into "undefined undefined".
+//
+// This is the single display-name field the whole API (and the frontend) reads,
+// so it must never be empty for an active account. Business vendors have no
+// firstName/lastName, so the business name wins; clients and personal vendors
+// fall back to their personal name. Never stringify missing parts into
+// "undefined undefined".
 userSchema.virtual("fullName").get(function () {
+  const businessName = typeof this.businessName === "string" ? this.businessName.trim() : "";
+  if (businessName) return businessName;
+
   return `${this.firstName || ""} ${this.lastName || ""}`.trim();
 });
 

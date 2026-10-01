@@ -4,6 +4,7 @@ const Booking = require('../../models/Booking');
 const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcryptjs');
+const { getVendorDisplayName } = require('../../utils/vendorDisplayName');
 
 // --- Admin User Management ---
 const getAllClients = async (req, res) => {
@@ -410,7 +411,7 @@ const getAllVendors = async (req, res) => {
 
       // All vendors data with their booking counts
       User.find({ userType: 'vendor' })
-        .select('firstName lastName email contactNumber address isActive createdAt')
+        .select('firstName lastName businessName email contactNumber address isActive createdAt')
         .sort({ createdAt: -1 })
         .lean()
     ]);
@@ -434,7 +435,7 @@ const getAllVendors = async (req, res) => {
         return {
           id: vendorUser._id,
           vendorId: vendorProfile?._id || '',
-          vendorName: businessName || `${vendorUser.firstName || ''} ${vendorUser.lastName || ''}`.trim(),
+          vendorName: getVendorDisplayName(vendorUser, vendorProfile),
           email: vendorUser.email,
           address: vendorUser.address || '',
           contactNumber: vendorUser.contactNumber || '',

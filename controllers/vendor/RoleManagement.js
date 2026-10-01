@@ -16,6 +16,10 @@ const registerVendorFromUser = async (req, res) => {
 	const vendorDetails = await User.findOne({ _id: vendorId }).select("+accountType")
 	console.log(vendorDetails, "vendorDetailsvendorDetailsvendorDetailsvendorDetails");
 	try {
+		// Role users have no personal profile of their own, so they reuse the
+		// owning business's name. Copying businessName keeps User.fullName
+		// resolvable for them as well.
+		const ownerProfile = await Vendor.findOne({ userId: vendorId }).select("businessName");
 		const userData = {
 			email,
 			contactNumber,
@@ -25,7 +29,8 @@ const registerVendorFromUser = async (req, res) => {
 			isActive: true,
 			kvkNumber: vendorDetails?.kvkNumber,
 			createdById: vendorId,
-			firstName: vendorDetails?.firstName
+			firstName: vendorDetails?.firstName,
+			businessName: ownerProfile?.businessName || ''
 		};
 		console.log(userData, "userDatauserDatauserData");
 
